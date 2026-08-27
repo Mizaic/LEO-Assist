@@ -49,8 +49,8 @@ class AnalyteEntryRequest(BaseModel):
 
 
 class FormSchemaItemRequest(BaseModel):
-    pattern: str = Field(..., min_length=1)
-    entity_text: str = Field(..., min_length=1)
+    pattern: str = ""
+    entity_text: str = ""
     semantic_tag: str = "finding"
     assertion: str = "present"
     procedure_snomed: str = ""

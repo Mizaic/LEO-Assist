@@ -217,12 +217,50 @@ def _build_schema(write: FormSchemaWrite) -> FormSchema:
     )
 
 
+def _ordered_tests_item_has_content(item: dict[str, Any]) -> bool:
+    pattern = str(item.get("pattern") or "").strip()
+    procedure = str(item.get("procedure_snomed") or "").strip()
+    if pattern or procedure:
+        return True
+    analytes = item.get("analytes") or []
+    if not isinstance(analytes, list):
+        return False
+    return any(
+        isinstance(a, dict)
+        and (
+            str(a.get("label") or "").strip() or str(a.get("snomed_code") or "").strip()
+        )
+        for a in analytes
+    )
+
+
+def _normalize_item_for_request(
+    item: dict[str, Any],
+    section_type: str,
+) -> dict[str, Any] | None:
+    if not isinstance(item, dict):
+        return None
+    pattern = str(item.get("pattern") or "").strip()
+    entity_text = str(item.get("entity_text") or "").strip()
+    if section_type == "ordered_tests":
+        if not _ordered_tests_item_has_content(item):
+            return None
+        if not entity_text:
+            display = str(item.get("procedure_display") or "").strip()
+            entity_text = display or pattern
+        return {**item, "pattern": pattern, "entity_text": entity_text}
+    if not pattern or not entity_text:
+        return None
+    return {**item, "pattern": pattern, "entity_text": entity_text}
+
+
 def normalize_sections_for_request(
     raw_sections: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Drop blank items and fill missing start patterns before validation."""
     normalized: list[dict[str, Any]] = []
     for section in raw_sections:
+        section_type = str(section.get("section_type") or "").strip()
         label = str(section.get("label") or "").strip()
         section_id = str(section.get("section_id") or "").strip()
         start = str(section.get("start_pattern") or "").strip()
@@ -232,13 +270,9 @@ def normalize_sections_for_request(
             continue
         items: list[dict[str, Any]] = []
         for item in section.get("items") or []:
-            if not isinstance(item, dict):
-                continue
-            pattern = str(item.get("pattern") or "").strip()
-            entity_text = str(item.get("entity_text") or "").strip()
-            if not pattern or not entity_text:
-                continue
-            items.append({**item, "pattern": pattern, "entity_text": entity_text})
+            normalized_item = _normalize_item_for_request(item, section_type)
+            if normalized_item is not None:
+                items.append(normalized_item)
         normalized.append({**section, "start_pattern": start, "items": items})
     return normalized
 

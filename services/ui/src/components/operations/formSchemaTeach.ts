@@ -5,6 +5,7 @@
  */
 import {
   detectSections,
+  type FormSchemaItem,
   type FormSchemaSection,
 } from "./formSchemaDetector";
 
@@ -34,22 +35,43 @@ export function localDetectOrEmpty(sourceText: string): FormSchemaSection[] {
 
 const SKIP_TYPES = new Set(["admin", "template_noise"]);
 
+function sectionHasTaughtContent(
+  section: { section_type: string; label?: string; start_pattern?: string; items?: FormSchemaItem[] },
+): boolean {
+  if ((section.label ?? "").trim()) return true;
+  if ((section.start_pattern ?? "").trim()) return true;
+  for (const item of section.items ?? []) {
+    if ((item.pattern ?? "").trim() || (item.entity_text ?? "").trim()) {
+      return true;
+    }
+    if ((item.procedure_snomed ?? "").trim()) return true;
+    if (
+      (item.analytes ?? []).some(
+        (a) => (a.label ?? "").trim() || (a.snomed_code ?? "").trim(),
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * True when there are no usable clinical sections.
  *
  * A schema is incomplete when:
  * - It is empty, or
  * - Every section is an admin/template_noise skip type, or
- * - Every clinical section has an empty label (the LLM returned the
- *   right structure but omitted the content strings).
+ * - Every clinical section has no label and no taught items (the LLM
+ *   returned the right structure but omitted the content strings).
  */
 export function isIncompleteSchema(
-  sections: Array<{ section_type: string; label?: string }>,
+  sections: Array<{ section_type: string; label?: string; start_pattern?: string; items?: FormSchemaItem[] }>,
 ): boolean {
   if (!sections.length) return true;
   const clinical = sections.filter((s) => !SKIP_TYPES.has(s.section_type));
   if (!clinical.length) return true;
-  return clinical.every((s) => !(s.label ?? "").trim());
+  return clinical.every((s) => !sectionHasTaughtContent(s));
 }
 
 export type CompletenessLogicGroup = {
@@ -74,15 +96,38 @@ export function prepareSectionsForSave(
       const start =
         (section.start_pattern ?? "").trim() || label || section.section_id;
       const items = section.items
-        .map((item) => ({
-          ...item,
-          pattern: (item.pattern ?? "").trim(),
-          entity_text: (item.entity_text ?? "").trim(),
-        }))
-        .filter((item) => item.pattern && item.entity_text);
+        .map((item) => normalizeItemForSave(item, section.section_type))
+        .filter((item): item is FormSchemaItem => item !== null);
       return { ...section, start_pattern: start, items };
     })
     .filter((section) => section.start_pattern.trim());
+}
+
+function orderedTestsItemHasContent(item: FormSchemaItem): boolean {
+  if ((item.pattern ?? "").trim() || (item.procedure_snomed ?? "").trim()) {
+    return true;
+  }
+  return (item.analytes ?? []).some(
+    (a) => (a.label ?? "").trim() || (a.snomed_code ?? "").trim(),
+  );
+}
+
+function normalizeItemForSave(
+  item: FormSchemaItem,
+  sectionType: FormSchemaSection["section_type"],
+): FormSchemaItem | null {
+  const pattern = (item.pattern ?? "").trim();
+  let entityText = (item.entity_text ?? "").trim();
+  if (sectionType === "ordered_tests") {
+    if (!orderedTestsItemHasContent(item)) return null;
+    if (!entityText) {
+      entityText =
+        (item.procedure_display ?? "").trim() || pattern;
+    }
+    return { ...item, pattern, entity_text: entityText };
+  }
+  if (!pattern || !entityText) return null;
+  return { ...item, pattern, entity_text: entityText };
 }
 
 const HEX_FINGERPRINT = /^[a-f0-9]{16}$/i;

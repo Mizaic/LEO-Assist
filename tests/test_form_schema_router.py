@@ -326,17 +326,60 @@ def test_save_uses_section_id_when_start_pattern_empty(_mock_pg, mock_save):
     assert write.sections[0].start_pattern == "S1"
 
 
+@patch("app.routers.form_schema.save_form_schema", return_value=_saved_schema())
+@patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
+def test_save_ordered_tests_without_entity_text(_mock_pg, mock_save):
+    body = {
+        "form_name": "Gynae 2WW",
+        "sections": [
+            {
+                "section_id": "S1",
+                "section_type": "ordered_tests",
+                "label": "Blood Tests",
+                "start_pattern": "Blood Tests",
+                "items": [
+                    {
+                        "pattern": "FBC",
+                        "entity_text": "",
+                        "procedure_snomed": "26604007",
+                        "procedure_display": "Full blood count",
+                        "analytes": [
+                            {
+                                "label": "Hb",
+                                "snomed_code": "1022280009",
+                                "display": "Haemoglobin",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    resp = _client(_session("validation")).put(
+        "/form-schemas/fp-ordered-tests", json=body
+    )
+    assert resp.status_code == 200
+    write = mock_save.call_args.args[1]
+    item = write.sections[0].items[0]
+    assert item.pattern == "FBC"
+    assert item.entity_text == "Full blood count"
+    assert item.analytes[0]["label"] == "Hb"
+
+
 def test_save_rejects_when_all_sections_normalize_away():
     from libs.pipeline.form_schema_store import normalize_sections_for_request
 
-    assert normalize_sections_for_request(
-        [
-            {
-                "section_id": "",
-                "section_type": "checkbox_single",
-                "label": "",
-                "start_pattern": "",
-                "items": [],
-            }
-        ]
-    ) == []
+    assert (
+        normalize_sections_for_request(
+            [
+                {
+                    "section_id": "",
+                    "section_type": "checkbox_single",
+                    "label": "",
+                    "start_pattern": "",
+                    "items": [],
+                }
+            ]
+        )
+        == []
+    )

@@ -347,6 +347,26 @@ describe("incomplete saved schema helpers", () => {
     ).toBe(true);
   });
 
+  it("treats ordered_tests with taught analytes as complete even without labels", () => {
+    expect(
+      isIncompleteSchema([
+        {
+          section_type: "ordered_tests",
+          label: "",
+          items: [
+            {
+              pattern: "FBC",
+              entity_text: "",
+              semantic_tag: "procedure",
+              assertion: "present",
+              analytes: [{ label: "Hb", snomed_code: "1022280009", display: "Hb" }],
+            },
+          ],
+        },
+      ]),
+    ).toBe(false);
+  });
+
   it("treats clinical sections with whitespace-only labels as incomplete", () => {
     expect(
       isIncompleteSchema([{ section_type: "checkbox_single", label: "   " }]),

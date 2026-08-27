@@ -156,3 +156,38 @@ def test_normalize_sections_fills_start_pattern_and_drops_blank_items():
     assert len(rows) == 1
     assert rows[0]["start_pattern"] == "Section A"
     assert len(rows[0]["items"]) == 1
+
+
+def test_normalize_ordered_tests_keeps_analytes_without_entity_text():
+    """Blood batteries use pattern + analytes; entity_text is optional in UI."""
+    raw = [
+        {
+            "section_id": "S1",
+            "section_type": "ordered_tests",
+            "label": "Blood Tests",
+            "start_pattern": "Blood Tests",
+            "items": [
+                {
+                    "pattern": "FBC",
+                    "entity_text": "",
+                    "procedure_snomed": "26604007",
+                    "procedure_display": "Full blood count",
+                    "analytes": [
+                        {
+                            "label": "Hb",
+                            "snomed_code": "1022280009",
+                            "display": "Haemoglobin",
+                        }
+                    ],
+                },
+                {"pattern": "", "entity_text": "", "analytes": []},
+            ],
+        }
+    ]
+    rows = normalize_sections_for_request(raw)
+    assert len(rows) == 1
+    assert len(rows[0]["items"]) == 1
+    item = rows[0]["items"][0]
+    assert item["pattern"] == "FBC"
+    assert item["entity_text"] == "Full blood count"
+    assert len(item["analytes"]) == 1
