@@ -86,6 +86,9 @@ class ExtractionState(TypedDict, total=False):
     few_shot_max_similarity: float | None
     healthcare_service_org_id: str
     healthcare_service_id: str
+    form_schema_fingerprint: str
+    form_schema_match: str
+    form_schema_label: str
 
 
 _VALID_MODEL_MODES = {"llm", "ner", "auto"}
@@ -384,6 +387,27 @@ def _extract_lab_fallback_entities(
     return fallback
 
 
+def _chunk_load_payload(
+    loaded: dict[str, Any],
+    errors: list[str],
+) -> dict[str, Any]:
+    from libs.pipeline.document_chunk_loader import DOCUMENT_CHUNKS_MODE
+    from libs.pipeline.form_schema_store import form_schema_state_fields
+
+    fields = form_schema_state_fields(
+        str(loaded.get("form_schema_match") or "none"),
+        str(loaded.get("form_schema_fingerprint") or "none"),
+        str(loaded.get("form_schema_label") or ""),
+    )
+    return {
+        "encounter_text": loaded.get("encounter_text") or "",
+        "sentences": loaded.get("sentences") or [],
+        "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
+        "errors": errors,
+        **fields,
+    }
+
+
 def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
     """Use pre-loaded HCCP :Chunk rows as extraction units (no SentenceSplitter)."""
     from libs.pipeline.document_chunk_loader import (
@@ -400,10 +424,12 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
             encounter_text = CHUNK_TEXT_SEPARATOR.join(
                 str(s.get("text") or "") for s in raw_sentences if s.get("text")
             )
+        schema_fields = _form_schema_fields_from_state(state, encounter_text)
         return {
             "encounter_text": encounter_text,
             "sentences": raw_sentences,
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
+            **schema_fields,
         }
 
     chunk_ids = chunk_ids_from_state(state)
@@ -419,25 +445,20 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
 
     from libs.neo4j_client.client import PatientGraphClient
 
+    org_id, service_id, ers_id = _schema_scope(state)
     loaded = load_document_chunks_from_neo4j(
         PatientGraphClient(),
         chunk_ids,
-        organization_id=str(state.get("healthcare_service_org_id") or ""),
-        service_id=str(state.get("healthcare_service_id") or ""),
+        organization_id=org_id,
+        service_id=service_id,
+        ers_service_id=ers_id,
     )
     if loaded.get("sentences"):
-        return {
-            "encounter_text": loaded.get("encounter_text") or "",
-            "sentences": loaded.get("sentences") or [],
-            "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
-            "errors": list(loaded.get("errors") or []),
-        }
-    return {
-        "encounter_text": "",
-        "sentences": [],
-        "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
-        "errors": list(state.get("errors") or []) + list(loaded.get("errors") or []),
-    }
+        return _chunk_load_payload(loaded, list(loaded.get("errors") or []))
+    return _chunk_load_payload(
+        {},
+        list(state.get("errors") or []) + list(loaded.get("errors") or []),
+    )
 
 
 def load_communication_thread(state: ExtractionState) -> dict[str, Any]:
@@ -730,12 +751,12 @@ def _run_llm_extraction(
     }
 
 
-def _schema_scope(state: dict[str, Any]) -> tuple[str, str]:
-    """Return organisation and service ids used to resolve a taught form."""
-    return (
-        str(state.get("healthcare_service_org_id") or ""),
-        str(state.get("healthcare_service_id") or ""),
-    )
+def _schema_scope(state: dict[str, Any]) -> tuple[str, str, str]:
+    """Return Organization.id, Service.id, and Service.ers_service_id."""
+    org = str(state.get("healthcare_service_org_id") or state.get("org_id") or "")
+    service = str(state.get("healthcare_service_id") or state.get("service_id") or "")
+    ers = str(state.get("healthcare_service_ers_id") or "")
+    return org, service, ers
 
 
 def _enrich_from_state(
@@ -744,13 +765,14 @@ def _enrich_from_state(
     chunks: list[SentenceChunk],
     state: dict[str, Any],
 ) -> dict[str, Any]:
-    org_id, service_id = _schema_scope(state)
+    org_id, service_id, ers_id = _schema_scope(state)
     return _enrich_with_blood_panel_entities(
         result,
         encounter_text,
         chunks,
         organization_id=org_id,
         service_id=service_id,
+        ers_service_id=ers_id,
     )
 
 
@@ -760,6 +782,7 @@ def _enrich_with_blood_panel_entities(
     chunks: list[SentenceChunk],
     organization_id: str = "",
     service_id: str = "",
+    ers_service_id: str = "",
 ) -> dict[str, Any]:
     from libs.pipeline.blood_panel_table import (
         extract_blood_panel_table_entities,
@@ -784,6 +807,7 @@ def _enrich_with_blood_panel_entities(
                 fingerprint,
                 organization_id=organization_id,
                 service_id=service_id,
+                ers_service_id=ers_service_id,
             )
         finally:
             client.close()
@@ -922,36 +946,37 @@ _EMPTY_EXTRACTION_WARNING = (
 )
 
 
+def _form_schema_fields_from_state(
+    state: dict[str, Any],
+    encounter_text: str,
+) -> dict[str, str]:
+    """Resolve the taught form and return inspector state keys."""
+    from libs.pipeline.form_schema_store import form_schema_fields_from_state
+
+    org_id, service_id, _ers_id = _schema_scope(state)
+    return form_schema_fields_from_state(
+        state,
+        encounter_text,
+        organization_id=org_id,
+        service_id=service_id,
+    )
+
+
 def merge_results(state: ExtractionState) -> dict[str, Any]:
     entities = list(state.get("entities") or [])
     warnings = list(state.get("warnings") or [])
     if not entities and _EMPTY_EXTRACTION_WARNING not in warnings:
         warnings.append(_EMPTY_EXTRACTION_WARNING)
-    from libs.pipeline.document_quality import form_fingerprint, score_document_quality
+    from libs.pipeline.document_quality import score_document_quality
     from libs.pipeline.form_fingerprint_registry import known_fingerprints
-    from libs.pipeline.form_schema_store import is_known_schema
 
     encounter_text = state.get("encounter_text") or ""
-    fingerprint = form_fingerprint(encounter_text)
-    from libs.neo4j_client.client import PatientGraphClient
-
-    org_id, service_id = _schema_scope(state)
-    graph_client = PatientGraphClient()
-    try:
-        known_schema = is_known_schema(
-            graph_client,
-            fingerprint,
-            organization_id=org_id,
-            service_id=service_id,
-        )
-    finally:
-        graph_client.close()
-
+    schema_fields = _form_schema_fields_from_state(state, encounter_text)
     quality = score_document_quality(
         encounter_text,
         few_shot_max_similarity=state.get("few_shot_max_similarity"),
         known_fingerprints=known_fingerprints(),
-        known_schema=known_schema,
+        known_schema=schema_fields["form_schema_match"] != "none",
     )
     return {
         "entities": entities,
@@ -971,6 +996,7 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
         "errors": state.get("errors", []),
         "warnings": warnings,
         "document_quality": quality.to_dict(),
+        **schema_fields,
     }
 
 

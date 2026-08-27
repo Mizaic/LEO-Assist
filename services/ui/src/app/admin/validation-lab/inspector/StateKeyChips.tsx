@@ -17,8 +17,14 @@ import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { useRouter } from "next/navigation";
 
 import { EvidenceTooltip } from "./EvidenceTooltip";
+import {
+  FORM_SCHEMA_CHIP_KEYS,
+  formSchemaChipLabel,
+  formSchemaViewHref,
+} from "./formSchemaChip";
 import { formatKeyTooltip, isPresentValue } from "./stateKeyPresence";
 import {
   isEntityList,
@@ -100,11 +106,12 @@ function KeyChip({
     present && expandFacts && Array.isArray(value) && isEntityList(value)
       ? itemsFromEntities(value, sentences).slice(0, 8)
       : [];
+  const schemaChip = FORM_SCHEMA_CHIP_KEYS.has(name);
   return (
     <>
       <ValueTooltip text={formatKeyTooltip(value, ready, sentences)}>
         <Chip
-          label={name}
+          label={schemaChip ? formSchemaChipLabel(name, value) : name}
           size="small"
           tabIndex={0}
           variant={present ? "filled" : "outlined"}
@@ -113,6 +120,7 @@ function KeyChip({
           sx={present ? PRESENT_SX : CHIP_SX}
         />
       </ValueTooltip>
+      {schemaChip ? <FormSchemaViewChip value={value} /> : null}
       {entities.map((item, index) => (
         <EvidenceTooltip key={`${item.text}-${index}`} item={item}>
           <Chip
@@ -125,6 +133,23 @@ function KeyChip({
         </EvidenceTooltip>
       ))}
     </>
+  );
+}
+
+function FormSchemaViewChip({ value }: { value: unknown }) {
+  const router = useRouter();
+  const fp = String(value ?? "").trim() || "none";
+  const href = formSchemaViewHref(fp);
+  return (
+    <Chip
+      label="View"
+      size="small"
+      clickable
+      onClick={() => router.push(href)}
+      aria-label={`view form schema ${fp}`}
+      data-testid="validation-lab-form-schema-view"
+      sx={{ ...CHIP_SX, fontFamily: "inherit" }}
+    />
   );
 }
 

@@ -4,6 +4,13 @@
  * Atlas: DI-FE423B8D / DO-158BE606 / VT-C9851641
  */
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+const mockPush = jest.fn();
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
 
 import { StateKeyChips } from "../app/admin/validation-lab/inspector/StateKeyChips";
 import {
@@ -128,6 +135,37 @@ describe("StateKeyChips", () => {
     expect(screen.getByTestId("validation-lab-entity-chip")).toHaveTextContent(
       "dysphagia -- 40739000",
     );
+  });
+
+  it("opens the taught form from the form_schema_fingerprint chip", async () => {
+    mockPush.mockClear();
+    render(
+      <StateKeyChips
+        keys={["form_schema_fingerprint"]}
+        values={{ form_schema_fingerprint: "sfh-gynae-2ww-v1" }}
+        valuesReady
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /view form schema sfh-gynae-2ww-v1/i }),
+    );
+    expect(mockPush).toHaveBeenCalledWith(
+      "/admin/knowledge?tab=form-templates&fingerprint=sfh-gynae-2ww-v1",
+    );
+  });
+
+  it("keeps a none form schema chip so a miss is visible", () => {
+    render(
+      <StateKeyChips
+        keys={["form_schema_fingerprint"]}
+        values={{ form_schema_fingerprint: "none" }}
+        valuesReady
+      />,
+    );
+    expect(
+      screen.getByLabelText("form_schema_fingerprint: has a value"),
+    ).toBeTruthy();
+    expect(screen.getByText("form_schema_fingerprint: none")).toBeTruthy();
   });
 
   it("does not expand letter sentences as fact chips", () => {

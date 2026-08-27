@@ -144,7 +144,17 @@ def load_document_chunks_into_state(
     if not chunk_ids or state.get("sentences"):
         return
     if is_validation_lab_pipeline_state(state):
-        loaded = load_document_chunks_from_neo4j(client, chunk_ids)
+        loaded = load_document_chunks_from_neo4j(
+            client,
+            chunk_ids,
+            organization_id=str(
+                state.get("healthcare_service_org_id") or state.get("org_id") or ""
+            ),
+            service_id=str(
+                state.get("healthcare_service_id") or state.get("service_id") or ""
+            ),
+            ers_service_id=str(state.get("healthcare_service_ers_id") or ""),
+        )
         state.update(loaded)
         if not loaded.get("errors"):
             return
@@ -169,6 +179,7 @@ def load_document_chunks_into_state(
         chunk_ids,
         organization_id=str(state.get("healthcare_service_org_id") or ""),
         service_id=str(state.get("healthcare_service_id") or ""),
+        ers_service_id=str(state.get("healthcare_service_ers_id") or ""),
     )
     state.update(loaded)
     if not loaded.get("errors"):

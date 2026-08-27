@@ -28,6 +28,21 @@ def test_keys_from_state_caps_and_sorts() -> None:
     assert keys == ["a", "entities", "z"]
 
 
+def test_keys_from_state_includes_form_schema_keys() -> None:
+    keys = keys_from_state(
+        {
+            "org_id": "sfh",
+            "completeness_domain": "gynae",
+            "form_schema_fingerprint": "sfh-gynae-2ww-v1",
+            "form_schema_match": "org_service",
+            "form_schema_label": "SFH Gynae 2WW",
+        }
+    )
+    assert "form_schema_fingerprint" in keys
+    assert "form_schema_match" in keys
+    assert "form_schema_label" in keys
+
+
 class _InspectorClient:
     def __init__(self) -> None:
         self.runs: dict[str, dict[str, Any]] = {}

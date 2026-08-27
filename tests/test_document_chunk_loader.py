@@ -153,9 +153,90 @@ def test_build_document_chunk_state_preserves_table_text() -> None:
     assert loaded["text_segmentation_mode"] == DOCUMENT_CHUNKS_MODE
 
 
+def test_build_document_chunk_state_writes_form_schema_none() -> None:
+    rows = _make_rows(_DOC_CHUNK)
+    from unittest.mock import MagicMock, patch
+
+    client = MagicMock()
+    client.run.return_value = []
+    with patch(
+        "libs.neo4j_client.client.PatientGraphClient",
+        return_value=client,
+    ):
+        state = build_document_chunk_state(rows)
+    assert state["form_schema_fingerprint"] == "none"
+    assert state["form_schema_match"] == "none"
+    assert state["form_schema_label"] == ""
+
+
+def test_build_document_chunk_state_writes_loaded_schema_key() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
+    from libs.pipeline.form_schema_store import (
+        _schema_to_sections_json,
+        reset_schema_cache,
+    )
+
+    reset_schema_cache()
+    schema = FormSchema(
+        schema_id="seed-1",
+        fingerprint="sfh-gynae-2ww-v1",
+        form_name="SFH Gynae 2WW",
+        sections=[
+            FormSection(
+                section_id="A",
+                section_type="checkbox",
+                label="Cancer type",
+                start_pattern="Section A: cancer type suspected",
+                items=[],
+            )
+        ],
+        created_by="seed",
+        organization_id="sfh-nhs-trust",
+        service_id="sfh-gynae-2ww",
+    )
+    client = MagicMock()
+    client.run.side_effect = [
+        [],
+        [
+            {
+                "schema_id": schema.schema_id,
+                "fingerprint": schema.fingerprint,
+                "form_name": schema.form_name,
+                "sections_json": _schema_to_sections_json(schema),
+                "chunk_section_map": "[]",
+                "created_by": schema.created_by,
+                "version": 1,
+                "status": schema.status,
+                "organization_id": schema.organization_id,
+                "service_id": schema.service_id,
+            }
+        ],
+    ]
+    rows = _make_rows(_DOC_CHUNK)
+    try:
+        with patch(
+            "libs.neo4j_client.client.PatientGraphClient",
+            return_value=client,
+        ):
+            state = build_document_chunk_state(
+                rows,
+                organization_id="sfh-nhs-trust",
+                service_id="sfh-gynae-2ww",
+            )
+        assert state["form_schema_fingerprint"] == "sfh-gynae-2ww-v1"
+        assert state["form_schema_match"] == "org_service"
+        assert state["form_schema_label"] == "SFH Gynae 2WW"
+    finally:
+        reset_schema_cache()
+
+
 def test_is_document_chunks_mode() -> None:
     assert is_document_chunks_mode({"text_segmentation_mode": DOCUMENT_CHUNKS_MODE})
-    assert not is_document_chunks_mode({"text_segmentation_mode": "encounter_sentences"})
+    assert not is_document_chunks_mode(
+        {"text_segmentation_mode": "encounter_sentences"}
+    )
     assert not is_document_chunks_mode({})
 
 

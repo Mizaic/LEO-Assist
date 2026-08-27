@@ -47,6 +47,9 @@ class FormSchemaWrite:
     status: str = "active"
     organization_id: str = ""
     service_id: str = ""
+    organization_name: str = ""
+    service_name: str = ""
+    organization_ods_code: str = ""
     completeness_groups: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -78,6 +81,9 @@ def _record_to_schema(record: dict[str, Any]) -> FormSchema:
         created_at=str(record.get("created_at") or ""),
         organization_id=record.get("organization_id") or "",
         service_id=record.get("service_id") or "",
+        organization_name=record.get("organization_name") or "",
+        service_name=record.get("service_name") or "",
+        organization_ods_code=record.get("organization_ods_code") or "",
         chunk_section_map=chunk_section_map,
     )
 
@@ -198,32 +204,150 @@ def _load_schema_by_org_service(
         return None
 
 
+def _load_schema_by_node_ids(
+    client: Any,
+    organization_id: str,
+    service_id: str,
+    ers_service_id: str = "",
+) -> FormSchema | None:
+    """Match FormSchema to Organization.id and Service.id or ers_service_id."""
+    schema = _load_schema_by_org_service(client, organization_id, service_id)
+    if schema is not None:
+        return schema
+    ers = ers_service_id.strip()
+    if not ers or ers == service_id.strip():
+        return None
+    return _load_schema_by_org_service(client, organization_id, ers)
+
+
+def _schema_label(schema: FormSchema) -> str:
+    name = (schema.form_name or "").strip()
+    if name:
+        return name
+    org = (schema.organization_id or "").strip()
+    service = (schema.service_id or "").strip()
+    if org and service:
+        return f"{org}/{service}"
+    return org or service
+
+
+def form_schema_state_fields(
+    match: str,
+    loaded_key: str = "none",
+    label: str = "",
+) -> dict[str, str]:
+    """Top-level extraction-state keys for Validation Lab INPUT KEYS chips."""
+    if match == "none":
+        return {
+            "form_schema_fingerprint": "none",
+            "form_schema_match": "none",
+            "form_schema_label": "",
+        }
+    return {
+        "form_schema_fingerprint": loaded_key or "none",
+        "form_schema_match": match,
+        "form_schema_label": label,
+    }
+
+
+def form_schema_fields_from_state(
+    state: dict[str, Any],
+    encounter_text: str,
+    organization_id: str = "",
+    service_id: str = "",
+) -> dict[str, str]:
+    """Reuse a resolved form key, or look it up from the letter text."""
+    existing = str(state.get("form_schema_fingerprint") or "").strip()
+    if existing and existing != "none":
+        return {
+            "form_schema_fingerprint": existing,
+            "form_schema_match": str(state.get("form_schema_match") or "none"),
+            "form_schema_label": str(state.get("form_schema_label") or ""),
+        }
+    from libs.neo4j_client.client import PatientGraphClient
+    from libs.pipeline.document_quality import form_fingerprint
+
+    client = PatientGraphClient()
+    try:
+        _schema, match, loaded_key, label = resolve_form_schema_traced(
+            client,
+            form_fingerprint(encounter_text),
+            organization_id=organization_id,
+            service_id=service_id,
+            ers_service_id=str(state.get("healthcare_service_ers_id") or ""),
+        )
+    finally:
+        client.close()
+    return form_schema_state_fields(match, loaded_key, label)
+
+
+def resolve_form_schema_traced(
+    client: Any,
+    fingerprint: str,
+    organization_id: str = "",
+    service_id: str = "",
+    ers_service_id: str = "",
+) -> tuple[FormSchema | None, str, str, str]:
+    """Resolve a taught schema from letter hash, then live node ids.
+
+    Returns ``(schema, match, loaded_key, label)``. ``match`` is
+    ``exact_hash``, ``org_service``, or ``none``. ``loaded_key`` is the
+    fingerprint that was actually used, or ``none``.
+
+    Organisation and service ids are :Organization.id and :Service.id
+    (or Service.ers_service_id). They are not invented slugs.
+    """
+    schema = load_form_schema(client, fingerprint)
+    if schema is not None:
+        return schema, "exact_hash", schema.fingerprint, _schema_label(schema)
+    schema = _load_schema_by_node_ids(
+        client,
+        organization_id,
+        service_id,
+        ers_service_id=ers_service_id,
+    )
+    if schema is None:
+        logger.info(
+            "form_schema_resolve known_schema=false match=none "
+            "fingerprint=%s org_id=%s service_id=%s ers_service_id=%s",
+            fingerprint,
+            organization_id,
+            service_id,
+            ers_service_id,
+        )
+        return None, "none", "none", ""
+    _SCHEMA_CACHE[fingerprint] = schema
+    logger.info(
+        "form_schema_resolve known_schema=true match=org_service "
+        "fingerprint=%s loaded=%s org_id=%s service_id=%s",
+        fingerprint,
+        schema.fingerprint,
+        organization_id,
+        service_id,
+    )
+    return schema, "org_service", schema.fingerprint, _schema_label(schema)
+
+
 def resolve_form_schema(
     client: Any,
     fingerprint: str,
     organization_id: str = "",
     service_id: str = "",
+    ers_service_id: str = "",
 ) -> FormSchema | None:
-    """Load a taught schema by letter hash, then by organisation and service.
+    """Load a taught schema by letter hash, then by Organisation and Service ids.
 
     Extraction hashes the letter. Seeded templates may use a stable alias
     such as ``sfh-gynae-2ww-v1``. When the hash misses, an active schema
-    bound to the same organisation and service is used. The alias is then
-    cached under the letter hash so later in-process lookups hit.
+    bound to the same Organization.id and Service.id (or ers_service_id)
+    is used. The alias is then cached under the letter hash.
     """
-    schema = load_form_schema(client, fingerprint)
-    if schema is not None:
-        return schema
-    schema = _load_schema_by_org_service(client, organization_id, service_id)
-    if schema is None:
-        return None
-    _SCHEMA_CACHE[fingerprint] = schema
-    logger.info(
-        "Loaded FormSchema %s by org=%s service=%s for letter hash %s",
-        schema.fingerprint,
-        organization_id,
-        service_id,
+    schema, _match, _key, _label = resolve_form_schema_traced(
+        client,
         fingerprint,
+        organization_id=organization_id,
+        service_id=service_id,
+        ers_service_id=ers_service_id,
     )
     return schema
 
@@ -233,6 +357,7 @@ def is_known_schema(
     fingerprint: str,
     organization_id: str = "",
     service_id: str = "",
+    ers_service_id: str = "",
 ) -> bool:
     """Return True when a taught :FormSchema exists in cache or Neo4j."""
     return (
@@ -241,6 +366,7 @@ def is_known_schema(
             fingerprint,
             organization_id=organization_id,
             service_id=service_id,
+            ers_service_id=ers_service_id,
         )
         is not None
     )
@@ -259,6 +385,9 @@ def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
         created_by=schema.created_by,
         organization_id=schema.organization_id,
         service_id=schema.service_id,
+        organization_name=schema.organization_name,
+        service_name=schema.service_name,
+        organization_ods_code=schema.organization_ods_code,
     )
     if schema.service_id and write.completeness_groups:
         ensure_service_completeness_domain(
@@ -276,6 +405,37 @@ def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
         schema.fingerprint,
     )
     return schema
+
+
+def rebind_form_schema_ids(client: Any, write: FormSchemaWrite) -> str:
+    """Create, skip, or rebind a schema's Organization.id and Service.id.
+
+    Returns ``seeded``, ``skipped``, or ``updated``. Existing sections
+    are kept when only the live node ids change.
+    """
+    existing = load_form_schema(client, write.fingerprint)
+    if existing is None:
+        save_form_schema(client, write)
+        return "seeded"
+    same_org = existing.organization_id == write.organization_id
+    same_svc = existing.service_id == write.service_id
+    if same_org and same_svc:
+        return "skipped"
+    rebound = FormSchemaWrite(
+        fingerprint=existing.fingerprint,
+        form_name=existing.form_name,
+        sections=existing.sections,
+        created_by=write.created_by,
+        schema_id=existing.schema_id,
+        status=existing.status,
+        organization_id=write.organization_id,
+        service_id=write.service_id,
+        organization_name=write.organization_name,
+        service_name=write.service_name,
+        organization_ods_code=write.organization_ods_code,
+    )
+    save_form_schema(client, rebound)
+    return "updated"
 
 
 def delete_form_schema(client: Any, fingerprint: str) -> bool:
@@ -301,6 +461,9 @@ def _build_schema(write: FormSchemaWrite) -> FormSchema:
         status=write.status,
         organization_id=write.organization_id,
         service_id=write.service_id,
+        organization_name=write.organization_name,
+        service_name=write.service_name,
+        organization_ods_code=write.organization_ods_code or write.organization_id,
     )
 
 

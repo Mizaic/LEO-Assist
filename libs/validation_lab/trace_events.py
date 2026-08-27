@@ -14,12 +14,21 @@ from typing import Any
 
 TRACE_SCHEMA_VERSION = "1"
 _MAX_KEY_LIST = max(8, int(os.getenv("LAB_TRACE_MAX_KEYS", "24")))
+_PINNED_KEYS = (
+    "form_schema_fingerprint",
+    "form_schema_match",
+    "form_schema_label",
+)
 
 
 def _top_level_keys(state: Any) -> list[str]:
     if not isinstance(state, dict):
         return []
-    return sorted(str(k) for k in state.keys())[:_MAX_KEY_LIST]
+    all_keys = {str(k) for k in state.keys()}
+    pinned = [k for k in _PINNED_KEYS if k in all_keys]
+    rest = sorted(all_keys - set(pinned))
+    room = max(0, _MAX_KEY_LIST - len(pinned))
+    return sorted(pinned + rest[:room])
 
 
 def build_trace_event(

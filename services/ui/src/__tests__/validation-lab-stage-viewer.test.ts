@@ -16,6 +16,7 @@ const EXTRA = path.join(ROOT, "StageExtraDetail.tsx");
 const STORY = path.join(ROOT, "stageEvidence.ts");
 const TIP = path.join(ROOT, "EvidenceTooltip.tsx");
 const CHIPS = path.join(ROOT, "StateKeyChips.tsx");
+const SCHEMA_CHIP = path.join(ROOT, "formSchemaChip.ts");
 
 describe("RunInspectorPanel -- Pipeline tab with process-mining wizard", () => {
   let src: string;
@@ -92,6 +93,14 @@ describe("RunInspectorPanel -- Pipeline tab with process-mining wizard", () => {
   it("expands entity lists into fact and code chips", () => {
     expect(chips).toMatch(/validation-lab-entity-chip/);
     expect(chips).toMatch(/itemsFromEntities/);
+  });
+
+  it("opens the taught form schema from the form_schema chip", () => {
+    const href = fs.readFileSync(SCHEMA_CHIP, "utf-8");
+    expect(chips).toMatch(/formSchemaViewHref/);
+    expect(href).toMatch(/form_schema_fingerprint/);
+    expect(href).toMatch(/\/admin\/knowledge\?tab=form-templates/);
+    expect(href).toMatch(/fingerprint=/);
   });
 
   it("Fix in Pipeline Guards link points to guard-rules tab", () => {

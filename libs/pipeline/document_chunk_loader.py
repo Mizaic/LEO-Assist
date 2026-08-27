@@ -101,38 +101,66 @@ def chunk_ids_from_state(state: dict[str, Any]) -> list[str]:
     return [str(item).strip() for item in raw if str(item).strip()]
 
 
-def _normalise_chunk_texts(
+def _resolve_chunk_schema(
     raw_texts: list[str],
     organization_id: str = "",
     service_id: str = "",
-) -> list[str]:
-    """Normalise chunk texts, using chunk_section_map when a schema is known."""
-    if not raw_texts:
-        return []
+    ers_service_id: str = "",
+) -> tuple[Any, dict[str, str]]:
+    """Return the taught schema and inspector state fields for these chunks."""
     from libs.neo4j_client.client import PatientGraphClient
-    from libs.pipeline.form_schema_normalizer import normalise_chunks_with_schema
-    from libs.pipeline.form_schema_store import resolve_form_schema
+    from libs.pipeline.form_schema_store import (
+        form_schema_state_fields,
+        resolve_form_schema_traced,
+    )
 
+    if not raw_texts:
+        return None, form_schema_state_fields("none")
     fingerprint = bundle_fingerprint(raw_texts)
     client = PatientGraphClient()
     try:
-        schema = resolve_form_schema(
+        schema, match, loaded_key, label = resolve_form_schema_traced(
             client,
             fingerprint,
             organization_id=organization_id,
             service_id=service_id,
+            ers_service_id=ers_service_id,
         )
     finally:
         client.close()
+    return schema, form_schema_state_fields(match, loaded_key, label)
+
+
+def _normalise_chunk_texts(
+    raw_texts: list[str],
+    organization_id: str = "",
+    service_id: str = "",
+    ers_service_id: str = "",
+) -> tuple[list[str], dict[str, str]]:
+    """Normalise chunk texts, using chunk_section_map when a schema is known."""
+    from libs.pipeline.form_schema_normalizer import normalise_chunks_with_schema
+
+    schema, fields = _resolve_chunk_schema(
+        raw_texts,
+        organization_id=organization_id,
+        service_id=service_id,
+        ers_service_id=ers_service_id,
+    )
+    if not raw_texts:
+        return [], fields
     if schema is not None and schema.sections:
-        return normalise_chunks_with_schema(schema, raw_texts, schema.chunk_section_map)
-    return [normalize_form_checkbox_text(text) for text in raw_texts]
+        return (
+            normalise_chunks_with_schema(schema, raw_texts, schema.chunk_section_map),
+            fields,
+        )
+    return [normalize_form_checkbox_text(text) for text in raw_texts], fields
 
 
 def build_document_chunk_state(
     rows: list[dict[str, Any]],
     organization_id: str = "",
     service_id: str = "",
+    ers_service_id: str = "",
 ) -> dict[str, Any]:
     """Map Neo4j chunk rows to pipeline state (sentences + encounter_text)."""
     sentences: list[dict[str, Any]] = []
@@ -147,10 +175,11 @@ def build_document_chunk_state(
             continue
         prepared.append({"chunk_id": chunk_id, "text_raw": text_raw, "row": row})
 
-    normalised_texts = _normalise_chunk_texts(
+    normalised_texts, schema_fields = _normalise_chunk_texts(
         [p["text_raw"] for p in prepared],
         organization_id=organization_id,
         service_id=service_id,
+        ers_service_id=ers_service_id,
     )
 
     for idx, item in enumerate(prepared):
@@ -185,6 +214,7 @@ def build_document_chunk_state(
         "sentences": sentences,
         "encounter_text": encounter_text,
         "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
+        **schema_fields,
     }
 
 
@@ -193,19 +223,24 @@ def load_document_chunks_from_neo4j(
     chunk_ids: list[str],
     organization_id: str = "",
     service_id: str = "",
+    ers_service_id: str = "",
 ) -> dict[str, Any]:
     if not chunk_ids:
+        from libs.pipeline.form_schema_store import form_schema_state_fields
+
         return {
             "sentences": [],
             "encounter_text": "",
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
             "errors": ["document_chunks mode requires non-empty chunk_ids"],
+            **form_schema_state_fields("none"),
         }
     rows = client.run(GET_CHUNKS_BY_IDS, chunk_ids=chunk_ids)
     loaded = build_document_chunk_state(
         rows or [],
         organization_id=organization_id,
         service_id=service_id,
+        ers_service_id=ers_service_id,
     )
     if not loaded.get("sentences"):
         loaded["errors"] = ["no Chunk nodes found for supplied chunk_ids"]
