@@ -1,0 +1,833 @@
+{
+  "form_name": "Sherwood Forest Hospitals NHS Foundation Trust -- Gynaecology Urgent Suspected Cancer Pathway (2WW)",
+  "sections": [
+    {
+      "section_id": "section_a_cancer_type",
+      "section_type": "checkbox",
+      "label": "Section A: Gynaecological Cancer type suspected",
+      "start_pattern": "Section A",
+      "items": [
+        {
+          "pattern": "Ovary",
+          "entity_text": "Suspected ovarian cancer",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Cervix",
+          "entity_text": "Suspected cervical cancer",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Endometrium",
+          "entity_text": "Suspected endometrial cancer",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Vagina",
+          "entity_text": "Suspected vaginal cancer",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Vulva",
+          "entity_text": "Suspected vulval cancer",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": [
+        "394586005"
+      ]
+    },
+    {
+      "section_id": "section_b_symptoms",
+      "section_type": "checkbox",
+      "label": "Section B: Signs/symptoms for 14-day rule criteria",
+      "start_pattern": "Section B",
+      "items": [
+        {
+          "pattern": "B1. Lesion suspicious of cancer of cervix or vagina on speculum examination",
+          "entity_text": "Lesion suspicious of cervical or vaginal cancer on speculum",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "B2. Lesion suspicious of cancer on clinical examination of the vulva",
+          "entity_text": "Lesion suspicious of vulval cancer on examination",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "B3. Palpable pelvic mass not obvious fibroids",
+          "entity_text": "Palpable pelvic mass (not fibroids)",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "B4. Suspicious pelvic mass on pelvic ultrasound",
+          "entity_text": "Suspicious pelvic mass on ultrasound",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "B5. More than one or a single heavy episode of postmenopausal bleeding (PMB) in woman aged >55 who are NOT on HRT",
+          "entity_text": "Postmenopausal bleeding in woman aged over 55 not on HRT",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "B6. Postcoital bleeding (PCB) age >35 years that persists for more than 4 weeks",
+          "entity_text": "Postcoital bleeding persisting more than 4 weeks, age over 35",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "B7. HRT: Unexpected or prolonged bleeding persisting for more than 4 weeks after STOPPING HRT",
+          "entity_text": "Unexpected bleeding more than 4 weeks after stopping HRT",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "B8. HRT: bleeding persisting AFTER 6 months of HRT use, if on continuous combined HRT",
+          "entity_text": "Bleeding persisting after 6 months of continuous combined HRT",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "B9. Suspicion of ovarian cancer and increased CA125 postmenopausal",
+          "entity_text": "Suspicion of ovarian cancer with raised CA125, postmenopausal",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": [
+        "394586005"
+      ]
+    },
+    {
+      "section_id": "primary_care_pathway",
+      "section_type": "checkbox",
+      "label": "Primary Care Pathway (PMB pathway -- if all ticked no USC referral)",
+      "start_pattern": "For post menopausal bleeding",
+      "items": [
+        {
+          "pattern": "New presentation with PMB (first episode)",
+          "entity_text": "New first-episode postmenopausal bleeding",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Patient is not taking tamoxifen and BMI less than 40",
+          "entity_text": "Not on tamoxifen and BMI below 40",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Clinical examination including cervix looks normal",
+          "entity_text": "Normal clinical examination including cervix",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "On TV USS the endometrial thickness <4mm and regular",
+          "entity_text": "Endometrial thickness less than 4mm on transvaginal ultrasound",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "patient_awareness",
+      "section_type": "checkbox",
+      "label": "Patient Awareness",
+      "start_pattern": "Does the patient know",
+      "items": [
+        {
+          "pattern": "Patient knows or suspects the risk of cancer",
+          "entity_text": "Patient is aware of possible cancer",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Patient is aware they have been referred on an urgent basis",
+          "entity_text": "Patient aware of urgent referral",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Patient has no holiday plans in the next 2 months",
+          "entity_text": "No holiday plans in the next 2 months",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Has the patient been told of the suspicion of cancer",
+          "entity_text": "Patient told of cancer suspicion",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Patient has no holidays planned in the next 3 weeks",
+          "entity_text": "No holidays planned in the next 3 weeks",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "section_c_clinical_details",
+      "section_type": "free_text",
+      "label": "Section C: Further Clinical details",
+      "start_pattern": "Section C",
+      "items": [
+        {
+          "pattern": "BMI",
+          "entity_text": "Body mass index",
+          "semantic_tag": "observable entity",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Co-morbidities",
+          "entity_text": "Co-morbidities",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Cognitive Impairment",
+          "entity_text": "Cognitive impairment",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Clinical narrative",
+          "entity_text": "Clinical narrative and examination findings",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": "Free text clinical details"
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "section_d_investigations",
+      "section_type": "ordered_tests",
+      "label": "Section D: Investigations performed",
+      "start_pattern": "Section D",
+      "items": [
+        {
+          "pattern": "FBC",
+          "entity_text": "Complete blood count",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "26604007",
+          "procedure_display": "Complete blood count",
+          "analytes": [
+            {
+              "label": "Hb",
+              "snomed_code": "1022431000000105",
+              "display": "Haemoglobin estimation"
+            },
+            {
+              "label": "WCC",
+              "snomed_code": "1110441000000100",
+              "display": "White blood cell count in blood"
+            },
+            {
+              "label": "Plts",
+              "snomed_code": "1022651000000100",
+              "display": "Platelet count"
+            },
+            {
+              "label": "MCV",
+              "snomed_code": "1022491000000106",
+              "display": "Mean corpuscular volume"
+            },
+            {
+              "label": "Neut",
+              "snomed_code": "1022551000000104",
+              "display": "Neutrophil count"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "UE",
+          "entity_text": "Measurement of urea and electrolytes",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "252167001",
+          "procedure_display": "Measurement of urea and electrolytes",
+          "analytes": [
+            {
+              "label": "Na",
+              "snomed_code": "1000661000000107",
+              "display": "Serum sodium level"
+            },
+            {
+              "label": "K",
+              "snomed_code": "1000651000000109",
+              "display": "Serum potassium level"
+            },
+            {
+              "label": "Urea",
+              "snomed_code": "1000951000000103",
+              "display": "Serum urea level"
+            },
+            {
+              "label": "Creat",
+              "snomed_code": "1000731000000107",
+              "display": "Serum creatinine level"
+            },
+            {
+              "label": "eGFR",
+              "snomed_code": "1011481000000105",
+              "display": "Estimated glomerular filtration rate"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "LFT",
+          "entity_text": "Hepatic function panel",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "26958001",
+          "procedure_display": "Hepatic function panel",
+          "analytes": [
+            {
+              "label": "ALT",
+              "snomed_code": "1018251000000107",
+              "display": "Serum alanine aminotransferase level"
+            },
+            {
+              "label": "Alk Phos",
+              "snomed_code": "1000621000000104",
+              "display": "Serum alkaline phosphatase level"
+            },
+            {
+              "label": "Bili",
+              "snomed_code": "997591000000109",
+              "display": "Serum total bilirubin level"
+            },
+            {
+              "label": "Alb",
+              "snomed_code": "1000821000000103",
+              "display": "Serum albumin level"
+            },
+            {
+              "label": "GGT",
+              "snomed_code": "1000861000000106",
+              "display": "Serum gamma-glutamyl transferase level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Bone",
+          "entity_text": "Bone profile",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "167036008",
+          "procedure_display": "Bone profile",
+          "analytes": [
+            {
+              "label": "Ca",
+              "snomed_code": "1000691000000101",
+              "display": "Serum calcium level"
+            },
+            {
+              "label": "Ca cor",
+              "snomed_code": "",
+              "display": "Corrected serum calcium level"
+            },
+            {
+              "label": "Ca adj",
+              "snomed_code": "935051000000108",
+              "display": "Serum adjusted calcium concentration"
+            },
+            {
+              "label": "Phos",
+              "snomed_code": "1000701000000101",
+              "display": "Serum inorganic phosphate level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "CRP",
+          "entity_text": "Serum C reactive protein level",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "135842001",
+          "procedure_display": "Serum C reactive protein level",
+          "analytes": [
+            {
+              "label": "CRP",
+              "snomed_code": "1001371000000100",
+              "display": "Serum C reactive protein level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "TFTs",
+          "entity_text": "Thyroid panel",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "35650009",
+          "procedure_display": "Thyroid panel",
+          "analytes": [
+            {
+              "label": "TSH",
+              "snomed_code": "1022791000000101",
+              "display": "Serum thyroid stimulating hormone level"
+            },
+            {
+              "label": "Free T4",
+              "snomed_code": "1030801000000101",
+              "display": "Free thyroxine level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Iron",
+          "entity_text": "Iron studies",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "Iron studies",
+          "analytes": [
+            {
+              "label": "Ferritin",
+              "snomed_code": "993381000000106",
+              "display": "Serum ferritin level"
+            },
+            {
+              "label": "Iron Saturation",
+              "snomed_code": "991831000000103",
+              "display": "Transferrin saturation index"
+            },
+            {
+              "label": "TIBC",
+              "snomed_code": "1015451000000101",
+              "display": "Serum total iron binding capacity"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Vitamins",
+          "entity_text": "B12/folate level",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "395144002",
+          "procedure_display": "B12/folate level",
+          "analytes": [
+            {
+              "label": "B12",
+              "snomed_code": "993391000000108",
+              "display": "Serum vitamin B12 level"
+            },
+            {
+              "label": "Folate",
+              "snomed_code": "993411000000108",
+              "display": "Serum folate level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Lipids",
+          "entity_text": "Lipid panel",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "16254007",
+          "procedure_display": "Lipid panel",
+          "analytes": [
+            {
+              "label": "Chol",
+              "snomed_code": "1005671000000105",
+              "display": "Serum cholesterol level"
+            },
+            {
+              "label": "LDL",
+              "snomed_code": "1022191000000100",
+              "display": "Serum low density lipoprotein cholesterol level"
+            },
+            {
+              "label": "HDL",
+              "snomed_code": "1005681000000107",
+              "display": "Serum high density lipoprotein cholesterol level"
+            },
+            {
+              "label": "Chol:HDL ratio",
+              "snomed_code": "1015681000000109",
+              "display": "Serum cholesterol/high density lipoprotein ratio"
+            },
+            {
+              "label": "Tri",
+              "snomed_code": "1005691000000109",
+              "display": "Serum triglycerides level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Random Glucose",
+          "entity_text": "Random blood glucose measurement",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "271061004",
+          "procedure_display": "Random blood glucose measurement",
+          "analytes": [
+            {
+              "label": "Random glucose",
+              "snomed_code": "1089381000000101",
+              "display": "Random blood glucose level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Fasting Glucose",
+          "entity_text": "Fasting blood glucose measurement",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "271062006",
+          "procedure_display": "Fasting blood glucose measurement",
+          "analytes": [
+            {
+              "label": "Fasting glucose",
+              "snomed_code": "997681000000108",
+              "display": "Fasting blood glucose level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "HbA1c",
+          "entity_text": "Hemoglobin A1c measurement",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "43396009",
+          "procedure_display": "Hemoglobin A1c measurement",
+          "analytes": [
+            {
+              "label": "HbA1c",
+              "snomed_code": "1003671000000109",
+              "display": "Haemoglobin A1c level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "CA 125",
+          "entity_text": "Measurement of cancer antigen 125 in serum specimen",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "909121000000107",
+          "procedure_display": "Measurement of cancer antigen 125 in serum specimen",
+          "analytes": [
+            {
+              "label": "CA 125",
+              "snomed_code": "1000461000000109",
+              "display": "Serum cancer antigen 125 level"
+            }
+          ],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "section_e_performance",
+      "section_type": "checkbox",
+      "label": "Section E: Performance Status (Clinical Frailty Scale)",
+      "start_pattern": "Section E",
+      "items": [
+        {
+          "pattern": "1. Very Fit",
+          "entity_text": "Very fit - exercises regularly, very fit for age",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "2. Fit",
+          "entity_text": "Fit - no active disease symptoms, exercises occasionally",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "3. Managing well",
+          "entity_text": "Managing well - medical problems well controlled",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "4. Very Mild",
+          "entity_text": "Very mild frailty - not fully independent",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "5. Mild",
+          "entity_text": "Mild frailty - limited in some instrumental activities",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "6. Moderate",
+          "entity_text": "Moderate frailty - needs help with all outside activities",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "7. Severe",
+          "entity_text": "Severe frailty - completely dependent for personal care",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "8. Very Severe",
+          "entity_text": "Very severe frailty - approaching end of life",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "9. Terminally ill",
+          "entity_text": "Terminally ill - life expectancy less than 6 months",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    }
+  ],
+  "saved_by": "seed_sfh_gynae_2ww_template",
+  "status": "active",
+  "organization_id": "sfh-nhs-trust",
+  "service_id": "sfh-gynae-2ww",
+  "completeness_groups": [
+    {
+      "name": "cancer_type_required",
+      "kind": "required_section",
+      "required": true,
+      "min_count": 1,
+      "semantic_categories": [],
+      "concept_ids": [],
+      "members": [
+        {
+          "section_id": "section_a_cancer_type"
+        }
+      ]
+    },
+    {
+      "name": "symptom_criterion_required",
+      "kind": "at_least_one",
+      "required": true,
+      "min_count": 1,
+      "semantic_categories": [],
+      "concept_ids": [],
+      "members": [
+        {
+          "section_id": "section_b_symptoms",
+          "item_pattern": "B1."
+        },
+        {
+          "section_id": "section_b_symptoms",
+          "item_pattern": "B2."
+        },
+        {
+          "section_id": "section_b_symptoms",
+          "item_pattern": "B3."
+        },
+        {
+          "section_id": "section_b_symptoms",
+          "item_pattern": "B4."
+        },
+        {
+          "section_id": "section_b_symptoms",
+          "item_pattern": "B5."
+        },
+        {
+          "section_id": "section_b_symptoms",
+          "item_pattern": "B6."
+        },
+        {
+          "section_id": "section_b_symptoms",
+          "item_pattern": "B7."
+        },
+        {
+          "section_id": "section_b_symptoms",
+          "item_pattern": "B8."
+        },
+        {
+          "section_id": "section_b_symptoms",
+          "item_pattern": "B9."
+        }
+      ]
+    },
+    {
+      "name": "clinical_details_present",
+      "kind": "recommended_section",
+      "required": false,
+      "min_count": 1,
+      "semantic_categories": [],
+      "concept_ids": [],
+      "members": [
+        {
+          "section_id": "section_c_clinical_details"
+        }
+      ]
+    }
+  ]
+}
