@@ -6,7 +6,6 @@ Atlas trace:
 
 from __future__ import annotations
 
-import json
 import pytest
 
 from libs.pipeline.form_schema_normalizer import (
@@ -254,12 +253,15 @@ def test_free_text_header_with_body_on_following_lines_in_same_chunk() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Section-level semantic_tag
+# Section-level semantic_tags
+#
+# A blood results section can carry both procedure and observable, so the
+# field is a list. These tests pin the plural API.
 # ---------------------------------------------------------------------------
 
 
-def test_form_section_has_semantic_tag_field() -> None:
-    """FormSection has a semantic_tag field defaulting to 'finding'."""
+def test_form_section_has_semantic_tags_field() -> None:
+    """FormSection has a semantic_tags list defaulting to ['finding']."""
     section = FormSection(
         section_id="X",
         section_type="free_text",
@@ -267,35 +269,37 @@ def test_form_section_has_semantic_tag_field() -> None:
         start_pattern="test",
         items=[],
     )
-    assert section.semantic_tag == "finding"
+    assert section.semantic_tags == ["finding"]
 
 
-def test_form_section_semantic_tag_can_be_set() -> None:
+def test_form_section_semantic_tags_can_be_set() -> None:
     section = FormSection(
         section_id="X",
         section_type="checkbox_single",
         label="Test",
         start_pattern="test",
         items=[],
-        semantic_tag="situation",
+        semantic_tags=["situation"],
     )
-    assert section.semantic_tag == "situation"
+    assert section.semantic_tags == ["situation"]
 
 
 @pytest.mark.parametrize(
-    "section_type,expected_tag",
+    "section_type,expected_tags",
     [
-        ("admin", "none"),
-        ("template_noise", "none"),
-        ("checkbox_single", "situation"),
-        ("checkbox_yesno", "finding"),
-        ("checkbox_multi", "finding"),
-        ("free_text", "finding"),
-        ("scale", "observable"),
-        ("ordered_tests", "procedure"),
-        ("observable", "observable"),
+        ("admin", ["none"]),
+        ("template_noise", ["none"]),
+        ("checkbox_single", ["situation"]),
+        ("checkbox_yesno", ["finding"]),
+        ("checkbox_multi", ["finding"]),
+        ("free_text", ["finding"]),
+        ("scale", ["observable"]),
+        ("ordered_tests", ["procedure"]),
+        ("observable", ["observable"]),
     ],
 )
-def test_section_type_semantic_tag_map(section_type: str, expected_tag: str) -> None:
-    """SECTION_TYPE_SEMANTIC_TAG maps each section type to the correct tag."""
-    assert SECTION_TYPE_SEMANTIC_TAG.get(section_type) == expected_tag
+def test_section_type_semantic_tag_map(
+    section_type: str, expected_tags: list[str]
+) -> None:
+    """SECTION_TYPE_SEMANTIC_TAG maps each section type to its tag list."""
+    assert SECTION_TYPE_SEMANTIC_TAG.get(section_type) == expected_tags
