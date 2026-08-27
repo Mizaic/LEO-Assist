@@ -10,7 +10,7 @@ from libs.cypher.extraction_review_queries import (
     CREATE_EXTRACTION_REVIEW_TASK,
     UNLOCK_PAUSED_EXTRACTION_STAGE,
 )
-from libs.pipeline.document_quality import score_document_quality
+from libs.pipeline.document_quality import form_fingerprint, score_document_quality
 from libs.pipeline.extraction_quality_gate import (
     TASK_TYPE,
     generic_hitl_resolve_allowed,
@@ -207,6 +207,18 @@ def test_review_detail_org_and_service_default_to_empty_when_absent() -> None:
     assert detail["organization_name"] == ""
     assert detail["service_id"] == ""
     assert detail["service_name"] == ""
+
+
+def test_review_detail_returns_content_fingerprint_hash() -> None:
+    letter = "Section A: Gynaecological Cancer type suspected\nOvary [ ] Cervix [X]"
+    task = persist_extraction_review_task(_req())
+    client = MagicMock()
+    client.run.return_value = [task]
+    store = MagicMock()
+    store.load_accumulated_state.return_value = {"encounter_text": letter}
+    detail = load_extraction_review_detail(client, task["task_id"], store=store)
+    assert detail["form_fingerprint"] == form_fingerprint(letter)
+    assert detail["form_fingerprint"] != "unknown"
 
 
 def test_review_detail_falls_back_to_graph_when_state_lacks_org_service() -> None:

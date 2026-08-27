@@ -100,6 +100,24 @@ export async function saveTaughtForm(args: {
     }),
   });
   if (!res.ok) {
-    throw new Error("Could not save the form schema. Try again.");
+    const detail = await readApiErrorDetail(res);
+    throw new Error(detail || "Could not save the form schema. Try again.");
   }
+}
+
+async function readApiErrorDetail(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { detail?: string | Array<{ msg?: string }> };
+    const detail = body.detail;
+    if (typeof detail === "string" && detail.trim()) {
+      return detail;
+    }
+    if (Array.isArray(detail)) {
+      const msg = detail.map((row) => row.msg ?? "").filter(Boolean).join("; ");
+      if (msg) return msg;
+    }
+  } catch {
+    /* ignore parse errors */
+  }
+  return "";
 }

@@ -102,6 +102,20 @@ describe("Teach form locked pickers -- pre-population from extraction context", 
     expect(DIALOG_SRC).toMatch(/initialServiceName/);
   });
 
+  it("ExtractionQualityReviewDialog uses content hash for teach fingerprint", () => {
+    expect(DIALOG_SRC).toMatch(/raw\.form_fingerprint/);
+    expect(DIALOG_SRC).not.toMatch(/form_fingerprint_id/);
+  });
+
+  it("extraction review backend returns form_fingerprint hash", () => {
+    const storeSrc = fs.readFileSync(
+      path.join(ROOT, "libs/pipeline/extraction_review_store.py"),
+      "utf8",
+    );
+    expect(storeSrc).toMatch(/form_fingerprint/);
+    expect(storeSrc).toMatch(/form_fingerprint\(letter\)/);
+  });
+
   it("extraction review backend query returns organization_id and service_id fields", () => {
     const storeSrc = fs.readFileSync(
       path.join(ROOT, "libs/pipeline/extraction_review_store.py"),

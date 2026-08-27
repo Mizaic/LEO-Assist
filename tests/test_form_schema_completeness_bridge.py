@@ -66,6 +66,7 @@ def test_save_form_schema_with_groups_calls_ensure_domain():
         service_id="svc-gynae",
         form_name="SFH Gynae 2WW",
         groups=groups,
+        require_blocking_groups=False,
     )
 
 

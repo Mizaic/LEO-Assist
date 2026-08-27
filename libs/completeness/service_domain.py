@@ -60,10 +60,19 @@ def ensure_service_completeness_domain(
     service_id: str,
     form_name: str,
     groups: list[dict[str, Any]] | None = None,
+    *,
+    require_blocking_groups: bool = True,
 ) -> dict[str, str]:
     """MERGE the service dataset domain and point the Service at it."""
     domain_id = domain_id_for_service(service_id)
-    schema_rows = normalise_completeness_groups(groups or []) if groups else []
+    schema_rows = (
+        normalise_completeness_groups(
+            groups or [],
+            require_blocking=require_blocking_groups,
+        )
+        if groups
+        else []
+    )
     rows = client.run(
         _ENSURE_SERVICE_DOMAIN,
         domain_id=domain_id,

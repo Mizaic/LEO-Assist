@@ -13,10 +13,14 @@ from typing import Any
 from libs.completeness.logic_groups import group_is_blocking, resolve_kind
 
 
-def normalise_completeness_groups(groups: list[Any]) -> list[dict[str, Any]]:
+def normalise_completeness_groups(
+    groups: list[Any],
+    *,
+    require_blocking: bool = True,
+) -> list[dict[str, Any]]:
     """Copy groups into the stored JSON shape, keeping logic fields."""
     rows = [_normalise_one(group) for group in groups]
-    if not any(group_is_blocking(row) for row in rows):
+    if require_blocking and not any(group_is_blocking(row) for row in rows):
         raise ValueError("Completeness schema needs at least one required group")
     return rows
 

@@ -30,7 +30,7 @@ from libs.pipeline.extraction_review_ids import (
     format_nhs_number,
     format_ubrn,
 )
-from libs.pipeline.document_quality import DocumentQuality
+from libs.pipeline.document_quality import DocumentQuality, form_fingerprint
 from libs.pipeline.extraction_learning_store import persist_review_learning
 from libs.pipeline.extraction_quality_gate import (
     build_review_task,
@@ -239,6 +239,8 @@ def load_extraction_review_detail(
         service_id = service_id or org_svc.get("service_id") or ""
         organization_name = organization_name or org_svc.get("organization_name") or ""
         service_name = service_name or org_svc.get("service_name") or ""
+    quality = json.loads(quality_raw) if quality_raw else {}
+    fp_hash = form_fingerprint(letter)
     return {
         "task_id": task.get("task_id") or task_id,
         "run_id": run_id,
@@ -246,7 +248,8 @@ def load_extraction_review_detail(
         "status": task.get("status") or "",
         "reason": task.get("reason") or "",
         "draft_entities": json.loads(draft_raw) if draft_raw else [],
-        "document_quality": json.loads(quality_raw) if quality_raw else {},
+        "document_quality": quality,
+        "form_fingerprint": fp_hash,
         "source_text": letter,
         "nhs_number": format_nhs_number(ids.nhs_number),
         "ubrn": format_ubrn(ids.ubrn),

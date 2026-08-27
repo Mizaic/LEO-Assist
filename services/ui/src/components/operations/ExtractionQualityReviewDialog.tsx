@@ -102,9 +102,7 @@ export default function ExtractionQualityReviewDialog({
           entities: Array.isArray(raw.draft_entities) ? (raw.draft_entities as DraftEntity[]) : [],
           quality: (raw.document_quality as DocumentQuality) ?? {},
           reason: String(raw.reason ?? ""),
-          formFingerprint: String(
-            (raw.document_quality as DocumentQuality | undefined)?.form_fingerprint_id ?? "",
-          ),
+          formFingerprint: String(raw.form_fingerprint ?? ""),
           nhsNumber: String(raw.nhs_number ?? ""),
           ubrn: String(raw.ubrn ?? ""),
           organization_id: String(raw.organization_id ?? ""),

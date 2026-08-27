@@ -97,6 +97,31 @@ def test_save_form_schema_ensures_service_completeness_domain():
     assert "completeness_domain" in cypher_blobs
 
 
+def test_save_form_schema_allows_optional_only_completeness_groups():
+    client = MagicMock()
+    client.run.return_value = [{"domain_id": "svc_svc-gynae", "subdomain": "minimum_dataset"}]
+    groups = [
+        {
+            "name": "Optional note",
+            "kind": "optional",
+            "required": False,
+            "semantic_categories": [],
+            "concept_ids": [],
+        }
+    ]
+    write = FormSchemaWrite(
+        fingerprint="fp-optional",
+        form_name="SFH Gynae",
+        sections=[_section()],
+        created_by="teacher@example.com",
+        organization_id="org-sfh",
+        service_id="svc-gynae",
+        completeness_groups=groups,
+    )
+    saved = save_form_schema(client, write)
+    assert saved.fingerprint == "fp-optional"
+
+
 def test_form_schema_dataclass_holds_scope_ids():
     schema = FormSchema(
         schema_id="s1",

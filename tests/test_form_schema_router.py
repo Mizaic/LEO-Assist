@@ -213,3 +213,25 @@ def test_save_forwards_organization_service_and_logic_groups(_mock_pg, mock_save
     assert write.service_id == "svc-gynae"
     assert write.completeness_groups[0]["kind"] == "mandatory"
     assert write.completeness_groups[1]["kind"] == "one_of"
+
+
+@patch("app.routers.form_schema.save_form_schema", return_value=_saved_schema())
+@patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
+def test_save_with_optional_only_completeness_groups(_mock_pg, mock_save):
+    body = {
+        **SAVE_BODY,
+        "organization_id": "org-sfh",
+        "service_id": "svc-gynae",
+        "completeness_groups": [
+            {
+                "name": "Optional note",
+                "kind": "optional",
+                "required": False,
+                "semantic_categories": [],
+                "concept_ids": [],
+            }
+        ],
+    }
+    resp = _client(_session("validation")).put("/form-schemas/fp-1", json=body)
+    assert resp.status_code == 200
+    mock_save.assert_called_once()

@@ -181,13 +181,14 @@ def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
         organization_id=schema.organization_id,
         service_id=schema.service_id,
     )
-    if schema.service_id:
+    if schema.service_id and write.completeness_groups:
         ensure_service_completeness_domain(
             client,
             organization_id=schema.organization_id,
             service_id=schema.service_id,
             form_name=schema.form_name,
-            groups=write.completeness_groups or None,
+            groups=write.completeness_groups,
+            require_blocking_groups=False,
         )
     _SCHEMA_CACHE[schema.fingerprint] = schema
     logger.info(

@@ -130,8 +130,12 @@ export default function FormSchemaAnnotator({
       });
       teach.setSaved(true);
       onSaved?.();
-    } catch {
-      setSaveError("Could not save the form schema. Try again.");
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.message.trim()
+          ? err.message
+          : "Could not save the form schema. Try again.";
+      setSaveError(msg);
       teach.setSaved(false);
     } finally {
       setScopeSaving(false);
