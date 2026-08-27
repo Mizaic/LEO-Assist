@@ -16,6 +16,7 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchemaItem,
     FormSection,
     apply_schema_to_text,
+    seed_ordered_tests_entities,
 )
 from libs.pipeline.form_schema_store import _SCHEMA_CACHE, reset_schema_cache
 from libs.pipeline.post_processing import run_post_processing
@@ -34,14 +35,12 @@ FBC_ITEM = FormSchemaItem(
     value_placeholder="{{NUMERIC_VALUE}} {{UNIT}}",
 )
 
-ORDERED_TESTS_TEXT = textwrap.dedent(
-    """\
+ORDERED_TESTS_TEXT = textwrap.dedent("""\
     Section D: Investigations performed
     MANDATORY the following tests must be undertaken
     FBC | 124 g/L | 12.5 |
     BLOODS DONE TODAY
-    """
-)
+    """)
 
 ORDERED_TESTS_SCHEMA = FormSchema(
     schema_id="test-ordered-tests",
@@ -168,3 +167,27 @@ def test_post_processing_applies_taught_analyte_codes() -> None:
     wcc = next(e for e in result if e.get("label") == "WCC")
     assert hb["snomed_code"] == "1022280009"
     assert wcc["snomed_code"] == "413892002"
+
+
+def test_enrichment_seeds_taught_analytes_from_schema() -> None:
+    """Extraction enrichment injects taught analytes when battery rows match."""
+    from libs.pipeline_graph.subgraphs.extraction import (
+        _enrich_with_blood_panel_entities,
+    )
+
+    _cache_schema(ORDERED_TESTS_SCHEMA)
+    text = ORDERED_TESTS_TEXT
+    result = _enrich_with_blood_panel_entities(
+        {"entities": [], "extraction_route": "llm"}, text, []
+    )
+    labels = {e.get("label") for e in result["entities"]}
+    assert "Hb" in labels
+    assert "WCC" in labels
+    assert "schema-seed" in result["extraction_route"]
+
+
+def test_seed_ordered_tests_entities_for_cached_schema() -> None:
+    _cache_schema(ORDERED_TESTS_SCHEMA)
+    text = "Section D\nFBC | Hb, WCC"
+    seeded = seed_ordered_tests_entities(text, ORDERED_TESTS_SCHEMA)
+    assert any(e.get("label") == "Hb" for e in seeded)

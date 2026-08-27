@@ -74,6 +74,17 @@ export function isIncompleteSchema(
   return clinical.every((s) => !sectionHasTaughtContent(s));
 }
 
+export function savedSchemaBlocksAutoDetect(
+  sections: Array<{ section_type: string; label?: string; start_pattern?: string; items?: FormSchemaItem[] }>,
+): boolean {
+  if (!sections.length) return false;
+  if (!isIncompleteSchema(sections)) return true;
+  return sections.some(
+    (section) =>
+      !SKIP_TYPES.has(section.section_type) && sectionHasTaughtContent(section),
+  );
+}
+
 export type CompletenessLogicGroup = {
   name: string;
   kind: string;

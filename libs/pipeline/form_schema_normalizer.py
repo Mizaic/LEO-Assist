@@ -173,7 +173,9 @@ def _section_has_taught_analytes(section: FormSection) -> bool:
     return any(_item_has_taught_analytes(item) for item in section.items)
 
 
-def _match_ordered_test_item(line: str, items: list[FormSchemaItem]) -> FormSchemaItem | None:
+def _match_ordered_test_item(
+    line: str, items: list[FormSchemaItem]
+) -> FormSchemaItem | None:
     for item in items:
         pattern = item.pattern
         if not pattern:
@@ -296,8 +298,6 @@ def apply_schema_analyte_codes(
     Returns:
         A new list of entity dicts (originals are not mutated).
     """
-    if not chunk_section_map:
-        return list(entities)
     taught_codes = _build_analyte_code_index(schema, chunk_section_map)
     if not taught_codes:
         return list(entities)
@@ -309,12 +309,16 @@ def _build_analyte_code_index(
     chunk_section_map: list[dict[str, Any]],
 ) -> dict[str, str]:
     """Build a label -> snomed_code lookup from active ordered_tests sections."""
-    active_ids = {entry.get("section_id") for entry in chunk_section_map}
+    active_ids = (
+        {entry.get("section_id") for entry in chunk_section_map}
+        if chunk_section_map
+        else None
+    )
     codes: dict[str, str] = {}
     for section in schema.sections:
         if section.section_type != "ordered_tests":
             continue
-        if section.section_id not in active_ids:
+        if active_ids is not None and section.section_id not in active_ids:
             continue
         for item in section.items:
             for analyte in item.analytes:
@@ -325,9 +329,112 @@ def _build_analyte_code_index(
     return codes
 
 
-def _apply_code(
-    entity: dict[str, Any], taught_codes: dict[str, str]
-) -> dict[str, Any]:
+def _find_label_span(text: str, label: str) -> tuple[int, int]:
+    """Return start/end char offsets for *label* in *text*, or (0, len)."""
+    if not label:
+        return 0, 0
+    try:
+        match = re.search(rf"\b{re.escape(label)}\b", text, re.IGNORECASE)
+    except re.error:
+        match = None
+    if match is None:
+        idx = text.lower().find(label.lower())
+        if idx < 0:
+            return 0, len(label)
+        return idx, idx + len(label)
+    return match.start(), match.end()
+
+
+def _battery_present_in_text(text: str, item: FormSchemaItem) -> bool:
+    if not item.pattern:
+        return False
+    for line in text.splitlines():
+        if _match_ordered_test_item(line, [item]) is not None:
+            return True
+    return False
+
+
+def _seed_battery_entity(
+    entities: list[dict[str, Any]],
+    seen: set[str],
+    text: str,
+    item: FormSchemaItem,
+) -> None:
+    label = (item.pattern or item.entity_text or "").strip()
+    if not label:
+        return
+    key = label.casefold()
+    if key in seen:
+        return
+    seen.add(key)
+    start, end = _find_label_span(text, label)
+    entities.append(
+        {
+            "text": label,
+            "label": label,
+            "entity_text": item.entity_text or item.procedure_display or label,
+            "snomed_code": item.procedure_snomed or "",
+            "start": start,
+            "end": end,
+            "assertion": item.assertion or "present",
+            "semantic_tag": item.semantic_tag or "procedure",
+            "__source": "form_schema_ordered_tests",
+        }
+    )
+
+
+def _seed_analyte_entity(
+    entities: list[dict[str, Any]],
+    seen: set[str],
+    text: str,
+    analyte: dict[str, str],
+    item: FormSchemaItem,
+) -> None:
+    label = str(analyte.get("label") or "").strip()
+    code = str(analyte.get("snomed_code") or "").strip()
+    if not label:
+        return
+    key = label.casefold()
+    if key in seen:
+        return
+    seen.add(key)
+    start, end = _find_label_span(text, label)
+    entities.append(
+        {
+            "text": label,
+            "label": label,
+            "snomed_code": code,
+            "start": start,
+            "end": end,
+            "assertion": item.assertion or "present",
+            "semantic_tag": "observable entity",
+            "__source": "form_schema_ordered_tests",
+        }
+    )
+
+
+def seed_ordered_tests_entities(
+    encounter_text: str,
+    schema: FormSchema,
+) -> list[dict[str, Any]]:
+    """Seed procedure and analyte entities from taught ordered_tests batteries."""
+    if not encounter_text.strip() or not schema.sections:
+        return []
+    entities: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for section in schema.sections:
+        if section.section_type != "ordered_tests":
+            continue
+        for item in section.items:
+            if not _battery_present_in_text(encounter_text, item):
+                continue
+            _seed_battery_entity(entities, seen, encounter_text, item)
+            for analyte in item.analytes:
+                _seed_analyte_entity(entities, seen, encounter_text, analyte, item)
+    return entities
+
+
+def _apply_code(entity: dict[str, Any], taught_codes: dict[str, str]) -> dict[str, Any]:
     """Return a copy of entity with snomed_code replaced if a taught code exists."""
     label = entity.get("label", "")
     code = taught_codes.get(label)

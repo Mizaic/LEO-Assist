@@ -14,6 +14,7 @@ import {
   emptySection,
   isIncompleteSchema,
   localDetectOrEmpty,
+  savedSchemaBlocksAutoDetect,
 } from "./formSchemaTeach";
 
 const FETCH_HDRS = { "X-Requested-With": "XMLHttpRequest" };
@@ -35,9 +36,10 @@ export function useFormSchemaTeach(
     setLoading(true);
     setError("");
     const saved = await loadSaved(fingerprint);
-    if (saved && !isIncompleteSchema(saved.sections)) {
+    if (saved && savedSchemaBlocksAutoDetect(saved.sections)) {
       setName(saved.form_name);
       setSections(saved.sections);
+      setSaved(true);
       return;
     }
     if (saved) setName(saved.form_name);

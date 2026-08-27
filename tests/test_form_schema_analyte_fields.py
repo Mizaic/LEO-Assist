@@ -19,6 +19,7 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchemaItem,
     FormSection,
     apply_schema_analyte_codes,
+    seed_ordered_tests_entities,
 )
 from libs.pipeline.form_schema_store import (
     _dict_to_item,
@@ -190,9 +191,7 @@ class TestExpandOrderedTestsRow:
             entity_text="eGFR",
             semantic_tag="procedure",
             assertion="present",
-            analytes=[
-                {"label": "eGFR", "snomed_code": "80274001", "display": "eGFR"}
-            ],
+            analytes=[{"label": "eGFR", "snomed_code": "80274001", "display": "eGFR"}],
             value_placeholder="{{VALUE}} mL/min",
         )
         result = expand_ordered_tests_row(item)
@@ -233,11 +232,11 @@ class TestApplySchemaAnalyteCodes:
         ferritin = next(e for e in result if e["label"] == "Ferritin")
         assert ferritin["snomed_code"] == "INFERRED-777"
 
-    def test_empty_chunk_section_map_leaves_entities_unchanged(self) -> None:
-        """No chunk map -- entities pass through unmodified."""
+    def test_empty_chunk_section_map_uses_all_ordered_tests_sections(self) -> None:
+        """No chunk map -- all ordered_tests sections contribute taught codes."""
         entities = [self._make_entity("Hb", "INFERRED-999")]
         result = apply_schema_analyte_codes(entities, SCHEMA, chunk_section_map=[])
-        assert result[0]["snomed_code"] == "INFERRED-999"
+        assert result[0]["snomed_code"] == "1022280009"
 
     def test_returns_copy_not_mutation(self) -> None:
         """Original entity dicts are not mutated."""
@@ -246,3 +245,92 @@ class TestApplySchemaAnalyteCodes:
         chunk_section_map = [{"chunk_idx": 0, "section_id": "S1"}]
         apply_schema_analyte_codes(entities, SCHEMA, chunk_section_map)
         assert entities[0]["snomed_code"] == original_code
+
+
+# ---------------------------------------------------------------------------
+# 4. seed_ordered_tests_entities
+# ---------------------------------------------------------------------------
+
+
+SHERWOOD_BLOOD_TEXT = """\
+Blood Results (Last):
+FBC | Hb, WCC, Plts, MCV, Neut
+UE | Na, K, Urea, Creat, eGFR
+LFT | ALT, Alk Phos, Bili, Alb, GGT
+"""
+
+SHERWOOD_BLOOD_SCHEMA = FormSchema(
+    schema_id="test-sherwood-blood",
+    fingerprint="fp-sherwood-blood",
+    form_name="Sherwood 2WW Gynaecology",
+    created_by="test",
+    sections=[
+        FormSection(
+            section_id="blood",
+            section_type="ordered_tests",
+            label="Blood Results",
+            start_pattern=r"(?i)blood results",
+            items=[
+                FormSchemaItem(
+                    pattern="FBC",
+                    entity_text="Full blood count",
+                    semantic_tag="procedure",
+                    assertion="planned",
+                    procedure_snomed="26604007",
+                    procedure_display="Full blood count",
+                    analytes=[
+                        {
+                            "label": "Hb",
+                            "snomed_code": "1022280009",
+                            "display": "Haemoglobin",
+                        },
+                        {
+                            "label": "WCC",
+                            "snomed_code": "413892002",
+                            "display": "White cell count",
+                        },
+                    ],
+                ),
+                FormSchemaItem(
+                    pattern="UE",
+                    entity_text="Urea and electrolytes",
+                    semantic_tag="procedure",
+                    assertion="planned",
+                    analytes=[
+                        {
+                            "label": "Na",
+                            "snomed_code": "365761005",
+                            "display": "Sodium",
+                        },
+                    ],
+                ),
+            ],
+        )
+    ],
+)
+
+
+class TestSeedOrderedTestsEntities:
+    def test_seeds_analytes_when_battery_row_present(self) -> None:
+        entities = seed_ordered_tests_entities(
+            SHERWOOD_BLOOD_TEXT, SHERWOOD_BLOOD_SCHEMA
+        )
+        labels = {e["label"] for e in entities}
+        assert "Hb" in labels
+        assert "WCC" in labels
+        assert "Na" in labels
+
+    def test_seeds_battery_procedure_entity(self) -> None:
+        entities = seed_ordered_tests_entities(
+            SHERWOOD_BLOOD_TEXT, SHERWOOD_BLOOD_SCHEMA
+        )
+        fbc = next(e for e in entities if e["label"] == "FBC")
+        assert fbc["snomed_code"] == "26604007"
+        assert fbc["semantic_tag"] == "procedure"
+
+    def test_skips_batteries_not_in_letter(self) -> None:
+        text = "Blood Results\nFBC | Hb, WCC"
+        entities = seed_ordered_tests_entities(text, SHERWOOD_BLOOD_SCHEMA)
+        labels = {e["label"] for e in entities}
+        assert "Na" not in labels
+        assert "Hb" in labels

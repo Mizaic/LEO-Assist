@@ -732,17 +732,40 @@ def _enrich_with_blood_panel_entities(
         extract_blood_panel_table_entities,
         merge_blood_panel_entities,
     )
+    from libs.pipeline.document_quality import form_fingerprint
+    from libs.pipeline.form_schema_normalizer import seed_ordered_tests_entities
+    from libs.pipeline.form_schema_store import get_cached_schema, load_form_schema
 
     panel = extract_blood_panel_table_entities(encounter_text, chunks)
-    if not panel:
-        return result
     merged = merge_blood_panel_entities(list(result.get("entities") or []), panel)
+
+    fingerprint = form_fingerprint(encounter_text)
+    schema = get_cached_schema(fingerprint)
+    if schema is None:
+        from libs.neo4j_client.client import PatientGraphClient
+
+        client = PatientGraphClient()
+        try:
+            schema = load_form_schema(client, fingerprint)
+        finally:
+            client.close()
+
+    seeded: list[dict[str, Any]] = []
+    if schema is not None:
+        seeded = seed_ordered_tests_entities(encounter_text, schema)
+        merged = merge_blood_panel_entities(merged, seeded)
+
     if len(merged) > len(result.get("entities") or []):
         route = str(result.get("extraction_route") or "")
-        suffix = "+blood-panel" if route else "blood-panel"
+        tags: list[str] = []
+        if panel:
+            tags.append("blood-panel")
+        if seeded:
+            tags.append("schema-seed")
+        suffix = "+".join(tags)
         result = dict(result)
         result["entities"] = merged
-        result["extraction_route"] = f"{route}{suffix}" if route else suffix
+        result["extraction_route"] = f"{route}+{suffix}" if route else suffix
     return result
 
 
