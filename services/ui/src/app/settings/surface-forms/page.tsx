@@ -212,6 +212,7 @@ function WorkspaceBody({
             onSave={state.handleSave}
             onPublish={() => void state.handlePublish()}
             onSendBack={() => void state.handleSendBack()}
+            onDismiss={() => void state.handleDismiss()}
           />
         </SpringSwap>
       ) : null}

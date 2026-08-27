@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { color, elevation } from "@leo/design-system/tokens";
 
 import { SnomedPickConfirmDialog } from "@/components/SnomedPickConfirmDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 import type { UncodedPhrase } from "./phraseMappingsApi";
 import type { SnomedPick } from "./PhraseSnomedPicker";
@@ -47,6 +48,7 @@ export function PhraseDetailPane({
   onSave,
   onPublish,
   onSendBack,
+  onDismiss,
   saving,
   error,
 }: {
@@ -55,6 +57,7 @@ export function PhraseDetailPane({
   onSave: (pick: SnomedPick | null, excludeReason: string) => void;
   onPublish?: () => void;
   onSendBack?: () => void;
+  onDismiss?: () => void;
   saving: boolean;
   error: string;
 }) {
@@ -62,6 +65,7 @@ export function PhraseDetailPane({
   const [pending, setPending] = useState<SnomedPick | null>(null);
   const [exclude, setExclude] = useState(false);
   const [reason, setReason] = useState("");
+  const [confirmDismiss, setConfirmDismiss] = useState(false);
 
   useEffect(() => {
     const next = restoreDraft(phrase);
@@ -69,6 +73,7 @@ export function PhraseDetailPane({
     setExclude(next.exclude);
     setReason(next.reason);
     setPending(null);
+    setConfirmDismiss(false);
   }, [phrase]);
 
   const canSave = exclude
@@ -132,6 +137,7 @@ export function PhraseDetailPane({
         onSave={() => onSave(pick, reason)}
         onPublish={onPublish}
         onSendBack={onSendBack}
+        onDismiss={mode === "inbox" ? () => setConfirmDismiss(true) : undefined}
       />
       {pending ? (
         <SnomedPickConfirmDialog
@@ -158,6 +164,25 @@ export function PhraseDetailPane({
             },
             onCancel: () => setPending(null),
           }}
+        />
+      ) : null}
+      {confirmDismiss ? (
+        <ConfirmDialog
+          title="Remove from inbox?"
+          body={
+            'Remove "' +
+            phrase.normalized +
+            '" from the inbox. This does not add a do-not-code rule. ' +
+            "The phrase can appear again if a later run rejects it."
+          }
+          confirmLabel="Remove from queue"
+          variant="danger"
+          busy={saving}
+          onConfirm={() => {
+            setConfirmDismiss(false);
+            onDismiss?.();
+          }}
+          onCancel={() => setConfirmDismiss(false)}
         />
       ) : null}
     </div>

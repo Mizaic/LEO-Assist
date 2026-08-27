@@ -18,6 +18,7 @@ from libs.cypher.uncoded_phrase_queries import (
     COUNT_MY_DRAFTS,
     COUNT_UNCODED_BY_STATUS,
     COUNT_UNCODED_PHRASES,
+    DISMISS_UNCODED_PHRASE,
     GET_UNCODED_PHRASE,
     LIST_UNCODED_PHRASES,
     SAVE_UNCODED_DRAFT,
@@ -225,6 +226,32 @@ def send_back(phrase_key: str) -> dict[str, Any]:
         rows = client.run(SEND_BACK_UNCODED_PHRASE, phrase_key=key)
         if not rows:
             raise HTTPException(status_code=404, detail="Phrase is not in review")
+        return rows[0]
+    finally:
+        client.close()
+
+
+def dismiss_phrase(phrase_key: str, *, actor: str) -> dict[str, Any]:
+    """Remove an inbox phrase. Does not publish a do-not-code rule."""
+    key = normalise_phrase(phrase_key)
+    if not key:
+        raise HTTPException(status_code=400, detail="Phrase is empty")
+    who = _actor(actor)
+    if not who:
+        raise HTTPException(status_code=401, detail="Sign in to remove a phrase")
+    client = _kg_client()
+    try:
+        rows = client.run(DISMISS_UNCODED_PHRASE, phrase_key=key)
+        if not rows:
+            raise HTTPException(
+                status_code=409,
+                detail="Only inbox phrases can be removed from the queue",
+            )
+        logger.info(
+            "phrase_mappings_dismiss phrase_key=%s actor=%s",
+            key,
+            who,
+        )
         return rows[0]
     finally:
         client.close()

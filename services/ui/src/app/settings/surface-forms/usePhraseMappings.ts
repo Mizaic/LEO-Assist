@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  dismissPhrase,
   fetchPhraseCounts,
   fetchPhraseMappings,
   publishPhrase,
@@ -139,6 +140,14 @@ export function usePhraseMappings() {
       await loadQueue("review");
     }, "Could not send back");
 
+  const handleDismiss = () =>
+    runAction(async () => {
+      if (!selected) return;
+      await dismissPhrase(selected.phrase_key);
+      setNotice("Removed from the inbox. This is not a do-not-code rule.");
+      await loadQueue("inbox");
+    }, "Could not remove this phrase");
+
   return {
     mode,
     setMode,
@@ -153,5 +162,6 @@ export function usePhraseMappings() {
     handleSubmit,
     handlePublish,
     handleSendBack,
+    handleDismiss,
   };
 }

@@ -24,6 +24,7 @@ export function PhraseDetailSaveDock({
   onSave,
   onPublish,
   onSendBack,
+  onDismiss,
 }: {
   mode: "inbox" | "drafts" | "review";
   canSave: boolean;
@@ -32,6 +33,7 @@ export function PhraseDetailSaveDock({
   onSave: () => void;
   onPublish?: () => void;
   onSendBack?: () => void;
+  onDismiss?: () => void;
 }) {
   const { reducedMotion } = useMotion();
   const frost = frostStyle(useReducedTransparency(), "light");
@@ -48,13 +50,28 @@ export function PhraseDetailSaveDock({
           onSendBack={onSendBack}
         />
       ) : (
-        <SaveDraftButton
-          disabled={disabled}
-          saving={saving}
-          exclude={exclude}
-          reducedMotion={reducedMotion}
-          onSave={onSave}
-        />
+        <>
+          {onDismiss ? (
+            <fm.button
+              type="button"
+              data-testid="phrase-dismiss-queue"
+              onClick={onDismiss}
+              disabled={saving}
+              whileTap={saving ? undefined : tapScale(reducedMotion)}
+              transition={springOrInstant(reducedMotion, springs.press)}
+              style={ghostBtn(color.status.danger)}
+            >
+              Remove from queue
+            </fm.button>
+          ) : null}
+          <SaveDraftButton
+            disabled={disabled}
+            saving={saving}
+            exclude={exclude}
+            reducedMotion={reducedMotion}
+            onSave={onSave}
+          />
+        </>
       )}
     </div>
   );
@@ -148,15 +165,16 @@ function dockHintStyle(): CSSProperties {
   };
 }
 
-function ghostBtn(): CSSProperties {
+function ghostBtn(colorOverride?: string): CSSProperties {
   return {
-    border: "1px solid " + color.surface.divider,
+    border: "1px solid " + (colorOverride || color.surface.divider),
     background: color.surface.raised,
     borderRadius: 10,
     padding: "10px 14px",
     fontWeight: 600,
     cursor: "pointer",
     fontFamily: typography.fontFamily.body,
+    color: colorOverride || color.text.primary,
   };
 }
 

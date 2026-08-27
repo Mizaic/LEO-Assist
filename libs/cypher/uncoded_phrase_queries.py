@@ -204,3 +204,11 @@ RETURN u.phrase_key AS phrase_key, u.status AS status,
        u.draft_concept_term AS draft_concept_term,
        u.draft_reason AS draft_reason
 """
+
+DISMISS_UNCODED_PHRASE = """
+MATCH (u:UncodedPhrase {phrase_key: $phrase_key})
+WHERE u.status = 'inbox'
+WITH u, u.phrase_key AS phrase_key, u.normalized AS normalized
+DETACH DELETE u
+RETURN phrase_key, normalized
+"""

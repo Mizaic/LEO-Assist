@@ -490,11 +490,18 @@ def test_extract_entities_outputs_resolved_form_schema_fingerprint(monkeypatch) 
             "extraction_model_version": "extraction v1",
             "extraction_model_requested_version": "",
             "extraction_model_version_mismatch": False,
+            "form_schema_fingerprint": SEEDED_FINGERPRINT,
+            "form_schema_match": "org_service",
+            "form_schema_label": "SFH Gynae 2WW",
         }
 
     monkeypatch.setattr(
         "libs.pipeline_graph.subgraphs.extraction._run_llm_extraction",
         _fake_llm,
+    )
+    monkeypatch.setattr(
+        "libs.pipeline_graph.subgraphs.extraction._enrich_from_state",
+        lambda result, *_args: result,
     )
 
     with patch(

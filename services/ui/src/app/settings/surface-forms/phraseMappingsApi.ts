@@ -143,6 +143,19 @@ export async function sendBackPhrase(phrase_key: string): Promise<unknown> {
   return readJson(res);
 }
 
+export async function dismissPhrase(phrase_key: string): Promise<{
+  phrase_key: string;
+  normalized: string;
+}> {
+  const res = await fetch(`${BASE}/dismiss`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ phrase_key }),
+  });
+  return readJson(res);
+}
+
 export async function publishPhrase(
   phrase_key: string,
   breakGlassReason = "",

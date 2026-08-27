@@ -80,9 +80,13 @@ describe("Phrase mappings workspace chrome", () => {
     expect(pane).toMatch(/PhraseDetailSaveDock/);
     expect(dock).toMatch(/phrase-save-dock/);
     expect(dock).toMatch(/Save mapping draft/);
+    expect(dock).toMatch(/Remove from queue/);
+    expect(dock).toMatch(/phrase-dismiss-queue/);
     expect(pane).toMatch(/Exclude is harder than map/);
     expect(pane).toMatch(/SnomedPickConfirmDialog/);
     expect(pane).toMatch(/Save this mapping draft\?/);
+    expect(pane).toMatch(/ConfirmDialog/);
+    expect(pane).toMatch(/Remove from inbox\?/);
     expect(pane).toMatch(/setPending\(next\)/);
   });
 
@@ -99,6 +103,7 @@ describe("Phrase mappings workspace chrome", () => {
     expect(hook).toMatch(/publishPhrase/);
     expect(hook).toMatch(/submitPhraseDrafts/);
     expect(hook).toMatch(/savePhraseDraft/);
+    expect(hook).toMatch(/dismissPhrase/);
   });
 
   it("reads q and phrase_key from the URL", () => {

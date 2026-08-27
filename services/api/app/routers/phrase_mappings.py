@@ -129,6 +129,14 @@ def send_back_phrase_mapping(
     return service.send_back(body.phrase_key)
 
 
+@router.post("/phrase-mappings/dismiss")
+def dismiss_phrase_mapping(
+    body: PhraseKeyRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    return service.dismiss_phrase(body.phrase_key, actor=scope.email)
+
+
 @router.post("/phrase-mappings/publish")
 def publish_phrase_mapping(
     body: PhraseKeyRequest,

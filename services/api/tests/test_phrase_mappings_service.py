@@ -38,6 +38,26 @@ def test_save_exclude_draft_requires_reason() -> None:
     assert exc.value.status_code == 400
 
 
+def test_dismiss_rejects_non_inbox_phrase() -> None:
+    client = MagicMock()
+    client.run.return_value = []
+    with patch.object(service, "_kg_client", return_value=client):
+        with pytest.raises(HTTPException) as exc:
+            service.dismiss_phrase("psa", actor="curator@example.com")
+    assert exc.value.status_code == 409
+
+
+def test_dismiss_removes_inbox_phrase() -> None:
+    client = MagicMock()
+    client.run.return_value = [{"phrase_key": "psa", "normalized": "psa"}]
+    with patch.object(service, "_kg_client", return_value=client):
+        result = service.dismiss_phrase("PSA", actor="curator@example.com")
+    assert result["phrase_key"] == "psa"
+    query = str(client.run.call_args.args[0])
+    assert "DETACH DELETE" in query
+    assert client.run.call_args.kwargs["phrase_key"] == "psa"
+
+
 def test_publish_rejects_same_person() -> None:
     client = MagicMock()
     client.run.return_value = [_row()]
