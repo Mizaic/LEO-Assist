@@ -511,7 +511,7 @@ function OrderedTestsItemEditor({
           <SnomedLookupField
             label="Analyte SNOMED"
             ariaLabel="Analyte SNOMED code"
-            semanticTags={["observable"]}
+            semanticTags={["observable_entity"]}
             testId="analyte-snomed-lookup"
             placeholder="e.g. haemoglobin"
             value={{

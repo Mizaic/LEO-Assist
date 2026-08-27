@@ -7,6 +7,7 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { triggerReauth } from "./client";
+import { normaliseTerminologyLookupTags } from "@/lib/terminologyLookupTags";
 
 const API_BASE =
   typeof window !== "undefined"
@@ -362,7 +363,7 @@ export async function searchTerms(
     limit: String(limit),
   });
   if (semanticTags && semanticTags.length > 0) {
-    for (const tag of semanticTags) {
+    for (const tag of normaliseTerminologyLookupTags(semanticTags)) {
       params.append("semantic_tag", tag);
     }
   }

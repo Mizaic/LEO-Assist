@@ -99,6 +99,7 @@ except Exception:  # pragma: no cover - compatibility for tests/import-only call
     DEDUPLICATE_SURFACE_FORM_RELS = ""
     AUDIT_SURFACE_FORM_DUPLICATES = ""
 from libs.cypher.terminology_queries import SEMANTIC_TAGS_QUERY
+from libs.terminology.semantic_tag import normalise_semantic_tag
 from services.terminology_api.app.services.surface_form_admin import (
     approve_surface_form_mapping,
     deactivate_surface_form_mapping,
@@ -135,8 +136,18 @@ def search_terms(
     client = CodingGraphClient()
     try:
         if semantic_tag:
+            normalised_tags = sorted(
+                {
+                    normalise_semantic_tag(tag)
+                    for tag in semantic_tag
+                    if str(tag).strip()
+                }
+            )
             return client.run(
-                TERMINOLOGY_SEARCH_FILTERED, q=q, limit=limit, tags=semantic_tag
+                TERMINOLOGY_SEARCH_FILTERED,
+                q=q,
+                limit=limit,
+                tags=normalised_tags,
             )
         return client.run(TERMINOLOGY_SEARCH, q=q, limit=limit)
     finally:

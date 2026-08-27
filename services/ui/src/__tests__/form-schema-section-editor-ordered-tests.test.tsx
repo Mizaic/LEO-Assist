@@ -68,8 +68,8 @@ describe("FormSchemaSectionEditor -- ordered_tests analyte editor", () => {
     expect(legacy).toMatch(/\/api\/terminology\/search/);
   });
 
-  test("TC-005c: Analyte SNOMED uses observable-filtered SnomedLookupField", () => {
-    expect(src).toMatch(/semanticTags=\{\["observable"\]\}/);
+  test("TC-005c: Analyte SNOMED uses observable_entity-filtered SnomedLookupField", () => {
+    expect(src).toMatch(/semanticTags=\{\["observable_entity"\]\}/);
     expect(src).toMatch(/testId="analyte-snomed-lookup"/);
     expect(src).toMatch(/snomed_code/);
     expect(src).not.toMatch(/label="SNOMED code"/);

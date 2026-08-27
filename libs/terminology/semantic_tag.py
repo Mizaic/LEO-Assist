@@ -42,6 +42,8 @@ _ALLOWED: set[str] = {
 _ALIASES: dict[str, str] = {
     "clinical_finding": "finding",
     "clinical finding": "finding",
+    "observable": "observable_entity",
+    "observation": "observable_entity",
     "observable entity": "observable_entity",
     "observable_entity": "observable_entity",
     "qualifier value": "qualifier_value",
