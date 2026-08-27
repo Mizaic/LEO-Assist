@@ -51,7 +51,8 @@ const PROTOCOL = [
 ] as const;
 
 test.describe("VAL-17DC94A2 audit template builder walkthrough @val", () => {
-  test.setTimeout(300_000);
+  // 12 protocol steps; each records screenshot evidence to Atlas.
+  test.setTimeout(900_000);
 
   test.beforeAll(() => {
     test.skip(!isAtlasValidationConfigured(), atlasValidationSkipReason());
@@ -100,10 +101,10 @@ test.describe("VAL-17DC94A2 audit template builder walkthrough @val", () => {
           ctx.lastCompletedStep.value = 0;
 
           // Open AI assistant and send intent
-          await ctx.page
-            .locator("button.MuiButton-outlined")
-            .filter({ hasText: /^AI$/ })
-            .click();
+          await ctx.page.getByRole("button", { name: "AI", exact: true }).click();
+          await expect(ctx.page.getByText("AI Draft Assistant")).toBeVisible({
+            timeout: 10_000,
+          });
           const intentResponse = ctx.page.waitForResponse(
             (response) =>
               response.url().includes("/api/audit-draft") &&

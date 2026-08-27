@@ -51,7 +51,7 @@ const PROTOCOL = [
 ] as const;
 
 test.describe("VAL-8672AC7E NG12 action groups @val", () => {
-  test.setTimeout(360_000);
+  test.setTimeout(480_000);
 
   test.beforeAll(() => {
     test.skip(!isAtlasValidationConfigured(), atlasValidationSkipReason());

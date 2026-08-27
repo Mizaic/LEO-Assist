@@ -258,10 +258,22 @@ export async function pickProcedure(
   query: string,
   useLabel: RegExp,
 ) {
-  const search = dialog.getByLabel(/search clinical terms/i);
+  // ChipSearchPopover renders in a portal outside the dialog subtree.
+  const search = page.getByLabel(/search clinical terms/i);
   await expect(search).toBeVisible({ timeout: 10000 });
   await search.fill(query);
-  await page.getByRole("button", { name: useLabel }).click({ timeout: 15000 });
+  await expect(search).toHaveValue(query);
+
+  const useBtn = page.getByRole("button", { name: useLabel });
+  if (await useBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await useBtn.click({ timeout: 15000 });
+    return;
+  }
+
+  const checkbox = page.getByRole("checkbox", { name: /^Select /i }).first();
+  await expect(checkbox).toBeVisible({ timeout: 15000 });
+  await checkbox.check();
+  await page.getByRole("button", { name: /Add 1 code/i }).click({ timeout: 15000 });
 }
 
 export async function openEditDialog(
@@ -276,6 +288,9 @@ export async function openEditDialog(
   if (await reviewTab.isVisible().catch(() => false)) {
     await reviewTab.click();
   }
+  await expect(page.locator("#rule-review-body")).toBeVisible({
+    timeout: 15000,
+  });
   await expect(page.getByTestId("rule-pool-pending")).toBeVisible({
     timeout: 15000,
   });

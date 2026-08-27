@@ -48,7 +48,7 @@ const PROTOCOL = [
 test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
   // 7 steps x 2 Atlas REST calls (recordStep + uploadEvidence) each up to 60s,
   // plus Playwright actions, html2canvas render and PDF download.
-  test.setTimeout(300_000);
+  test.setTimeout(720_000);
 
   test.beforeAll(() => {
     test.skip(!isAtlasValidationConfigured(), atlasValidationSkipReason());
@@ -130,8 +130,11 @@ test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
           ctx.lastCompletedStep.value = 1;
 
           // Step 3 -- override a tile parameter via the Parameters tab.
-          // Click the tile body to select it; the floating config panel slides in.
-          await p.locator("[data-testid='tile-body']").first().click();
+          await p
+            .locator("[data-testid='canvas-tile']")
+            .filter({ hasText: "Referral STT Rate" })
+            .first()
+            .click();
           // The config panel tab "Parameters" only renders when the selected
           // metric's param_schema is non-empty (referral_stt_rate has one).
           const paramsTab = p.getByRole("tab", { name: "Parameters" });

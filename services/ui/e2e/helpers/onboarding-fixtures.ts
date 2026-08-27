@@ -196,33 +196,52 @@ export async function stubOnboardingRoutes(page: Page) {
     fulfillJson(route, ["disorder", "finding", "observable_entity"]),
   );
 
-  await page.route("**/api/sbar/scenario-runs/scenarios*", (route) =>
-    fulfillJson(route, { cases: [], total: 0 }),
+  await page.route("**/api/validation-lab/findings", (route) =>
+    fulfillJson(route, []),
   );
 
-  await page.route("**/api/sbar/scenario-runs", (route) => {
+  await page.route("**/api/validation-lab/cases", (route) => {
     if (route.request().method() === "GET") {
-      return fulfillJson(route, {
-        runs: [
-          {
-            run_id: SCENARIO_RUN_ID,
-            status: "completed",
-            case_ids: ["case-onboard-1"],
-            child_runs: {},
-            guideline_id: "NG12",
-            completeness_domain: DOMAIN_ID,
-            completeness_subdomain: SUBDOMAIN,
-            completed_count: 1,
-            failed_count: 0,
-            running_count: 0,
-            case_count: 1,
-            triggered_at: "2026-06-25T14:00:00Z",
-            completed_at: "2026-06-25T14:00:00Z",
-          },
-        ],
-      });
+      return fulfillJson(route, [
+        {
+          id: "case-onboard-1",
+          title: "Onboarding baseline case",
+          case_type: "referral",
+          scenario_type: "generic_referral",
+          has_gold: true,
+          tags: [],
+          runs: [
+            {
+              id: SCENARIO_RUN_ID,
+              status: "completed",
+              completed_at: "2026-06-25T14:00:00Z",
+            },
+          ],
+        },
+      ]);
     }
     return route.continue();
+  });
+
+  await page.route("**/api/validation-lab/cases/*", (route) => {
+    if (route.request().method() !== "GET") {
+      return route.continue();
+    }
+    return fulfillJson(route, {
+      id: "case-onboard-1",
+      title: "Onboarding baseline case",
+      case_type: "referral",
+      scenario_type: "generic_referral",
+      has_gold: true,
+      referral_text: "Baseline referral for onboarding walkthrough.",
+      runs: [
+        {
+          id: SCENARIO_RUN_ID,
+          status: "completed",
+          completed_at: "2026-06-25T14:00:00Z",
+        },
+      ],
+    });
   });
 }
 

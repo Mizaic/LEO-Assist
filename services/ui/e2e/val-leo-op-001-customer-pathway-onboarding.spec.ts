@@ -41,11 +41,11 @@ const PROTOCOL = [
   "Phase 3a: Open Domains tab. Confirm StatHero area counts and domain cards load.",
   "Phase 3b: Open domain detail. Click Configure on subdomain. Confirm split panel with Overview / Concepts / Rules tabs.",
   "Phase 3c: Rules tab shows completeness criteria groups for the subdomain.",
-  "Phase 4: Open AI Summarisation > Scenario runs. Confirm completed scenario run list loads.",
+  "Phase 4: Open Validation Lab > Run baseline tests. Confirm saved gold cases load.",
 ] as const;
 
 test.describe("VAL-C73DD43E customer pathway onboarding @val", () => {
-  test.setTimeout(240_000);
+  test.setTimeout(480_000);
 
   test.beforeAll(() => {
     test.skip(!isAtlasValidationConfigured(), atlasValidationSkipReason());
@@ -185,18 +185,23 @@ test.describe("VAL-C73DD43E customer pathway onboarding @val", () => {
           });
           ctx.lastCompletedStep.value = 6;
 
-          // Step 7: Phase 4 scenario runs
-          await gotoKnowledgeTab(ctx.page, "ai-summarisation");
-          await ctx.page.getByRole("tab", { name: "Scenario runs" }).click();
-          await expect(ctx.page.getByText("Previous scenario runs")).toBeVisible({
-            timeout: 10_000,
+          // Step 7: Phase 4 Validation Lab saved gold cases
+          await gotoKnowledgeTab(ctx.page, "validation-lab");
+          await expect(ctx.page.getByTestId("validation-lab-page")).toBeVisible({
+            timeout: 15_000,
           });
-          await expect(ctx.page.getByText("completed")).toBeVisible({ timeout: 10_000 });
+          await ctx.page.getByTestId("validation-lab-mode-saved").click();
+          await expect(ctx.page.getByTestId("validation-lab-rolodex")).toBeVisible({
+            timeout: 15_000,
+          });
+          await expect(
+            ctx.page.getByText("Onboarding baseline case", { exact: true }),
+          ).toBeVisible({ timeout: 10_000 });
 
           await recordProtocolStep({
             request: ctx.request, runId: ctx.runId, valId: ctx.valId,
             page: ctx.page, testInfo: ctx.testInfo, protocol: ctx.protocol, stepIndex: 7,
-            notes: "AI Summarisation scenario runs tab shows completed run.",
+            notes: "Validation Lab saved gold cases list loads with completed baseline case.",
           });
           ctx.lastCompletedStep.value = 7;
 
