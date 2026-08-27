@@ -3,10 +3,14 @@
  *
  * Reuses the tenant-drawer catalog: listOrgs and listOrgServices.
  * Atlas trace: UN-3B25A20E, DI-26546721
+ *
+ * When locked=true, pickers are replaced with read-only Chip elements.
+ * Use this when org and service are already known from a pipeline context.
  */
 "use client";
 
 import Autocomplete from "@mui/material/Autocomplete";
+import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -20,6 +24,7 @@ interface Props {
   serviceId: string;
   onOrganization: (id: string) => void;
   onService: (id: string) => void;
+  locked?: boolean;
 }
 
 export function FormSchemaScopeFields({
@@ -27,12 +32,14 @@ export function FormSchemaScopeFields({
   serviceId,
   onOrganization,
   onService,
+  locked = false,
 }: Props) {
   const [orgs, setOrgs] = useState<NamedId[]>([]);
   const [services, setServices] = useState<NamedId[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (locked) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -51,11 +58,11 @@ export function FormSchemaScopeFields({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [locked]);
 
   useEffect(() => {
-    if (!organizationId) {
-      setServices([]);
+    if (locked || !organizationId) {
+      if (!locked) setServices([]);
       return;
     }
     let cancelled = false;
@@ -80,7 +87,16 @@ export function FormSchemaScopeFields({
     return () => {
       cancelled = true;
     };
-  }, [organizationId]);
+  }, [organizationId, locked]);
+
+  if (locked) {
+    return (
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
+        <LockedScopePicker label="Organisation" value={organizationId} />
+        <LockedScopePicker label="Service" value={serviceId} />
+      </Stack>
+    );
+  }
 
   return (
     <Stack spacing={1} sx={{ mt: 1 }}>
@@ -107,6 +123,28 @@ export function FormSchemaScopeFields({
           disabled={!organizationId}
         />
       </Stack>
+    </Stack>
+  );
+}
+
+function LockedScopePicker({ label, value }: { label: string; value: string }) {
+  return (
+    <Stack spacing={0.5} sx={{ flex: 1 }}>
+      <Typography variant="caption" color="text.secondary">
+        {label}
+      </Typography>
+      {value ? (
+        <Chip
+          label={value}
+          size="small"
+          aria-label={`${label}: ${value}`}
+          sx={{ alignSelf: "flex-start" }}
+        />
+      ) : (
+        <Typography variant="caption" color="text.disabled">
+          Not set
+        </Typography>
+      )}
     </Stack>
   );
 }

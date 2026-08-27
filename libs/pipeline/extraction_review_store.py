@@ -228,6 +228,8 @@ def load_extraction_review_detail(
         "source_text": letter,
         "nhs_number": format_nhs_number(ids.nhs_number),
         "ubrn": format_ubrn(ids.ubrn),
+        "organization_id": str((state or {}).get("healthcare_service_org_id") or ""),
+        "service_id": str((state or {}).get("healthcare_service_id") or ""),
     }
 
 

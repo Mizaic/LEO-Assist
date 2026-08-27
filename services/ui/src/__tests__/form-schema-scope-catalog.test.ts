@@ -52,3 +52,57 @@ describe("Teach form org/service catalog", () => {
     expect(ADMIN_ROUTER).toMatch(/require_org_catalog_reader|FORM_TEACHER|validation/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Locked pickers: pre-population from extraction context
+// ---------------------------------------------------------------------------
+
+const ANNOTATOR_SRC = fs.readFileSync(
+  path.join(ROOT, "services/ui/src/components/operations/FormSchemaAnnotator.tsx"),
+  "utf8",
+);
+const DIALOG_SRC = fs.readFileSync(
+  path.join(ROOT, "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx"),
+  "utf8",
+);
+
+describe("Teach form locked pickers -- pre-population from extraction context", () => {
+  it("FormSchemaAnnotator accepts initialOrganizationId and initialServiceId props", () => {
+    expect(ANNOTATOR_SRC).toMatch(/initialOrganizationId/);
+    expect(ANNOTATOR_SRC).toMatch(/initialServiceId/);
+  });
+
+  it("FormSchemaAnnotator passes locked flag to FormSchemaScopeFields when initial values set", () => {
+    expect(ANNOTATOR_SRC).toMatch(/locked/);
+  });
+
+  it("FormSchemaScopeFields accepts a locked prop", () => {
+    expect(SCOPE_SRC).toMatch(/locked[\s?:]/);
+  });
+
+  it("FormSchemaScopeFields renders Chip elements in locked mode", () => {
+    expect(SCOPE_SRC).toMatch(/Chip/);
+    expect(SCOPE_SRC).toMatch(/locked/);
+  });
+
+  it("ExtractionQualityReviewDialog reads organization_id and service_id from API response", () => {
+    expect(DIALOG_SRC).toMatch(/organization_id/);
+    expect(DIALOG_SRC).toMatch(/service_id/);
+  });
+
+  it("ExtractionQualityReviewDialog passes initialOrganizationId and initialServiceId to FormSchemaAnnotator", () => {
+    expect(DIALOG_SRC).toMatch(/initialOrganizationId/);
+    expect(DIALOG_SRC).toMatch(/initialServiceId/);
+  });
+
+  it("extraction review backend query returns organization_id and service_id fields", () => {
+    const storeSrc = fs.readFileSync(
+      path.join(ROOT, "libs/pipeline/extraction_review_store.py"),
+      "utf8",
+    );
+    expect(storeSrc).toMatch(/organization_id/);
+    expect(storeSrc).toMatch(/service_id/);
+    expect(storeSrc).toMatch(/healthcare_service_org_id/);
+    expect(storeSrc).toMatch(/healthcare_service_id/);
+  });
+});

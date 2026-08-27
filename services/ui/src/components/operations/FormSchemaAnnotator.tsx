@@ -39,6 +39,8 @@ interface Props {
   onSectionsChange?: (sections: FormSchemaSection[]) => void;
   pendingSelection?: { pattern: string; entity_text: string; sectionId: string } | null;
   onPendingConsumed?: () => void;
+  initialOrganizationId?: string;
+  initialServiceId?: string;
 }
 
 export default function FormSchemaAnnotator({
@@ -51,10 +53,13 @@ export default function FormSchemaAnnotator({
   onSectionsChange,
   pendingSelection = null,
   onPendingConsumed,
+  initialOrganizationId = "",
+  initialServiceId = "",
 }: Props) {
   const teach = useFormSchemaTeach(fingerprint, sourceText, formName, onSaved);
-  const [organizationId, setOrganizationId] = useState("");
-  const [serviceId, setServiceId] = useState("");
+  const [organizationId, setOrganizationId] = useState(initialOrganizationId);
+  const [serviceId, setServiceId] = useState(initialServiceId);
+  const scopeLocked = Boolean(initialOrganizationId || initialServiceId);
   const [groups, setGroups] = useState<CompletenessLogicGroup[]>([]);
   const [scopeSaving, setScopeSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -161,6 +166,7 @@ export default function FormSchemaAnnotator({
         name={teach.name}
         organizationId={organizationId}
         serviceId={serviceId}
+        locked={scopeLocked}
         onName={(value) => {
           teach.setName(value);
           teach.setSaved(false);
@@ -258,6 +264,7 @@ function TeachHeader({
   name,
   organizationId,
   serviceId,
+  locked,
   onName,
   onOrganization,
   onService,
@@ -265,6 +272,7 @@ function TeachHeader({
   name: string;
   organizationId: string;
   serviceId: string;
+  locked?: boolean;
   onName: (value: string) => void;
   onOrganization: (id: string) => void;
   onService: (id: string) => void;
@@ -291,6 +299,7 @@ function TeachHeader({
       <FormSchemaScopeFields
         organizationId={organizationId}
         serviceId={serviceId}
+        locked={locked}
         onOrganization={onOrganization}
         onService={onService}
       />

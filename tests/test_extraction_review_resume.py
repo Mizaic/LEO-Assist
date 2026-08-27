@@ -169,6 +169,34 @@ def test_review_detail_returns_letter_and_draft() -> None:
     assert detail["task_id"] == task["task_id"]
 
 
+def test_review_detail_includes_org_and_service_from_pipeline_state() -> None:
+    """Detail must expose organization_id and service_id for pre-populating teach form."""
+    task = persist_extraction_review_task(_req())
+    client = MagicMock()
+    client.run.return_value = [task]
+    store = MagicMock()
+    store.load_accumulated_state.return_value = {
+        "encounter_text": "Cervix [X]",
+        "healthcare_service_org_id": "org-spoa-1",
+        "healthcare_service_id": "svc-gynaecology",
+    }
+    detail = load_extraction_review_detail(client, task["task_id"], store=store)
+    assert detail["organization_id"] == "org-spoa-1"
+    assert detail["service_id"] == "svc-gynaecology"
+
+
+def test_review_detail_org_and_service_default_to_empty_when_absent() -> None:
+    """If the pipeline state has no service scope, defaults are empty strings."""
+    task = persist_extraction_review_task(_req())
+    client = MagicMock()
+    client.run.return_value = [task]
+    store = MagicMock()
+    store.load_accumulated_state.return_value = {"encounter_text": "Some letter"}
+    detail = load_extraction_review_detail(client, task["task_id"], store=store)
+    assert detail["organization_id"] == ""
+    assert detail["service_id"] == ""
+
+
 def test_generic_hitl_resolve_does_not_unlock_extraction_review() -> None:
     assert generic_hitl_resolve_allowed(TASK_TYPE) is False
     assert generic_hitl_resolve_allowed("exclusion_conflict") is True

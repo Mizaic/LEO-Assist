@@ -47,6 +47,8 @@ interface ReviewData {
   formFingerprint: string;
   nhsNumber: string;
   ubrn: string;
+  organization_id: string;
+  service_id: string;
 }
 
 interface Props {
@@ -103,6 +105,8 @@ export default function ExtractionQualityReviewDialog({
           ),
           nhsNumber: String(raw.nhs_number ?? ""),
           ubrn: String(raw.ubrn ?? ""),
+          organization_id: String(raw.organization_id ?? ""),
+          service_id: String(raw.service_id ?? ""),
         };
         setData(loaded);
         setEntities(loaded.entities);
@@ -245,6 +249,8 @@ export default function ExtractionQualityReviewDialog({
             onSectionsChange={setTeachSections}
             pendingSelection={pendingSelection}
             onPendingConsumed={() => setPendingSelection(null)}
+            initialOrganizationId={data?.organization_id ?? ""}
+            initialServiceId={data?.service_id ?? ""}
           >
             <ReviewFactsPane
               entities={entities}
@@ -398,6 +404,8 @@ function ReviewRightPane({
   onSectionsChange,
   pendingSelection,
   onPendingConsumed,
+  initialOrganizationId,
+  initialServiceId,
   children,
 }: {
   tab: "facts" | "teach";
@@ -410,6 +418,8 @@ function ReviewRightPane({
   onSectionsChange: (sections: FormSchemaSection[]) => void;
   pendingSelection: { pattern: string; entity_text: string; sectionId: string } | null;
   onPendingConsumed: () => void;
+  initialOrganizationId?: string;
+  initialServiceId?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -445,6 +455,8 @@ function ReviewRightPane({
             onSectionsChange={onSectionsChange}
             pendingSelection={pendingSelection}
             onPendingConsumed={onPendingConsumed}
+            initialOrganizationId={initialOrganizationId}
+            initialServiceId={initialServiceId}
           />
         </Box>
       )}
