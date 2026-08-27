@@ -22,7 +22,9 @@ Node: :FormSchema
 
 Relationship: (:FormSchema)-[:SCHEMA_FOR]->(:FormFingerprint)
 Relationship: (:FormSchema)-[:USED_BY_ORG]->(:Organization)
+  Match Organization by id or ods_code. Do not create Organization.
 Relationship: (:FormSchema)-[:USED_BY_SERVICE]->(:Service)
+  Match Service by id or ers_service_id. Do not create Service.
 """
 
 FORM_SCHEMA_CONSTRAINTS = [
@@ -62,12 +64,16 @@ WITH s
 MERGE (f:FormFingerprint {fingerprint: $fingerprint})
 MERGE (s)-[:SCHEMA_FOR]->(f)
 WITH s
-OPTIONAL MATCH (org:Organization {id: $organization_id})
+OPTIONAL MATCH (org:Organization)
+WHERE $organization_id <> ''
+  AND (org.id = $organization_id OR org.ods_code = $organization_id)
 FOREACH (_ IN CASE WHEN org IS NOT NULL THEN [1] ELSE [] END |
     MERGE (s)-[:USED_BY_ORG]->(org)
 )
 WITH s
-OPTIONAL MATCH (svc:Service {id: $service_id})
+OPTIONAL MATCH (svc:Service)
+WHERE $service_id <> ''
+  AND (svc.id = $service_id OR svc.ers_service_id = $service_id)
 FOREACH (_ IN CASE WHEN svc IS NOT NULL THEN [1] ELSE [] END |
     MERGE (s)-[:USED_BY_SERVICE]->(svc)
 )

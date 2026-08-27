@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+from libs.cypher.form_schema_queries import UPSERT_FORM_SCHEMA
 from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
@@ -42,6 +43,19 @@ def test_record_to_schema_reads_organization_and_service_ids():
     )
     assert schema.organization_id == "org-sfh"
     assert schema.service_id == "svc-gynae"
+
+
+def test_upsert_merges_org_and_service_edges_without_creating_nodes():
+    """Save links FormSchema to existing Organization/Service for Bloom."""
+    assert "USED_BY_ORG" in UPSERT_FORM_SCHEMA
+    assert "USED_BY_SERVICE" in UPSERT_FORM_SCHEMA
+    assert "SCHEMA_FOR" in UPSERT_FORM_SCHEMA
+    assert "MERGE (org:Organization" not in UPSERT_FORM_SCHEMA
+    assert "MERGE (svc:Service" not in UPSERT_FORM_SCHEMA
+    assert "CREATE (org:Organization" not in UPSERT_FORM_SCHEMA
+    assert "CREATE (svc:Service" not in UPSERT_FORM_SCHEMA
+    assert "org.ods_code" in UPSERT_FORM_SCHEMA
+    assert "svc.ers_service_id" in UPSERT_FORM_SCHEMA
 
 
 def test_save_form_schema_persists_org_and_service_ids():
