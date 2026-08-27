@@ -1,0 +1,248 @@
+"""TDD tests for ordered_tests analyte enrichment.
+
+Covers:
+  - FormSchemaItem analyte fields roundtrip through the store layer.
+  - Template generator expands analytes with {{NUMERIC_VALUE}} {{UNIT}} markers.
+  - apply_schema_analyte_codes overrides inferred observable codes.
+
+Atlas trace: DI-5C9CA57B
+"""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from libs.pipeline.form_schema_normalizer import (
+    FormSchema,
+    FormSchemaItem,
+    FormSection,
+    apply_schema_analyte_codes,
+)
+from libs.pipeline.form_schema_store import (
+    _dict_to_item,
+    _dict_to_section,
+    _schema_to_sections_json,
+)
+from libs.pipeline.form_schema_template import expand_ordered_tests_row
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+FBC_ITEM = FormSchemaItem(
+    pattern="FBC",
+    entity_text="Full blood count",
+    semantic_tag="procedure",
+    assertion="present",
+    procedure_snomed="26604007",
+    procedure_display="Full blood count",
+    analytes=[
+        {"label": "Hb", "snomed_code": "1022280009", "display": "Haemoglobin"},
+        {"label": "WCC", "snomed_code": "413892002", "display": "White cell count"},
+        {"label": "Plts", "snomed_code": "61928009", "display": "Platelet count"},
+    ],
+    value_placeholder="{{NUMERIC_VALUE}} {{UNIT}}",
+)
+
+BARE_ITEM = FormSchemaItem(
+    pattern="LFTs",
+    entity_text="Liver function tests",
+    semantic_tag="procedure",
+    assertion="present",
+)
+
+FBC_SECTION = FormSection(
+    section_id="S1",
+    section_type="ordered_tests",
+    label="Blood Tests",
+    start_pattern=r"Blood Tests",
+    items=[FBC_ITEM, BARE_ITEM],
+)
+
+SCHEMA = FormSchema(
+    schema_id="test-schema-1",
+    fingerprint="fp-test",
+    form_name="Test Form",
+    sections=[FBC_SECTION],
+    created_by="test",
+)
+
+
+# ---------------------------------------------------------------------------
+# 1. Roundtrip through store serialisation / deserialisation
+# ---------------------------------------------------------------------------
+
+
+class TestFormSchemaItemRoundtrip:
+    def test_analyte_fields_survive_to_dict(self) -> None:
+        """FormSchemaItem with analytes serialises all new fields."""
+        raw = {
+            "pattern": "FBC",
+            "entity_text": "Full blood count",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "procedure_snomed": "26604007",
+            "procedure_display": "Full blood count",
+            "analytes": [
+                {"label": "Hb", "snomed_code": "1022280009", "display": "Haemoglobin"}
+            ],
+            "value_placeholder": "{{NUMERIC_VALUE}} {{UNIT}}",
+        }
+        item = _dict_to_item(raw)
+        assert item.procedure_snomed == "26604007"
+        assert item.procedure_display == "Full blood count"
+        assert len(item.analytes) == 1
+        assert item.analytes[0]["label"] == "Hb"
+        assert item.value_placeholder == "{{NUMERIC_VALUE}} {{UNIT}}"
+
+    def test_backward_compat_missing_analyte_fields(self) -> None:
+        """Old items without analyte fields default safely."""
+        raw = {
+            "pattern": "LFTs",
+            "entity_text": "Liver function tests",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+        }
+        item = _dict_to_item(raw)
+        assert item.procedure_snomed == ""
+        assert item.procedure_display == ""
+        assert item.analytes == []
+        assert item.value_placeholder == ""
+
+    def test_sections_json_includes_analytes(self) -> None:
+        """_schema_to_sections_json writes analyte fields to JSON."""
+        json_str = _schema_to_sections_json(SCHEMA)
+        data = json.loads(json_str)
+        fbc_items = data[0]["items"]
+        fbc = next(i for i in fbc_items if i["pattern"] == "FBC")
+        assert fbc["procedure_snomed"] == "26604007"
+        assert len(fbc["analytes"]) == 3
+        assert fbc["value_placeholder"] == "{{NUMERIC_VALUE}} {{UNIT}}"
+
+    def test_sections_json_bare_item_defaults(self) -> None:
+        """Bare items round-trip with empty analyte defaults."""
+        json_str = _schema_to_sections_json(SCHEMA)
+        data = json.loads(json_str)
+        fbc_items = data[0]["items"]
+        lft = next(i for i in fbc_items if i["pattern"] == "LFTs")
+        assert lft["procedure_snomed"] == ""
+        assert lft["analytes"] == []
+
+    def test_dict_to_section_preserves_analytes(self) -> None:
+        """_dict_to_section round-trips analyte data."""
+        raw_section = {
+            "section_id": "S1",
+            "section_type": "ordered_tests",
+            "label": "Blood Tests",
+            "start_pattern": "Blood Tests",
+            "items": [
+                {
+                    "pattern": "FBC",
+                    "entity_text": "Full blood count",
+                    "semantic_tag": "procedure",
+                    "assertion": "present",
+                    "procedure_snomed": "26604007",
+                    "procedure_display": "Full blood count",
+                    "analytes": [
+                        {
+                            "label": "Hb",
+                            "snomed_code": "1022280009",
+                            "display": "Haemoglobin",
+                        }
+                    ],
+                    "value_placeholder": "{{NUMERIC_VALUE}} {{UNIT}}",
+                }
+            ],
+        }
+        section = _dict_to_section(raw_section)
+        assert section.items[0].analytes[0]["label"] == "Hb"
+
+
+# ---------------------------------------------------------------------------
+# 2. Template generator -- expand_ordered_tests_row
+# ---------------------------------------------------------------------------
+
+
+class TestExpandOrderedTestsRow:
+    def test_expands_analytes_with_placeholders(self) -> None:
+        """expand_ordered_tests_row produces label + placeholder per analyte."""
+        result = expand_ordered_tests_row(FBC_ITEM)
+        assert "Hb {{NUMERIC_VALUE}} {{UNIT}}" in result
+        assert "WCC {{NUMERIC_VALUE}} {{UNIT}}" in result
+        assert "Plts {{NUMERIC_VALUE}} {{UNIT}}" in result
+
+    def test_row_contains_battery_label(self) -> None:
+        """Battery label appears at the start of the expanded row."""
+        result = expand_ordered_tests_row(FBC_ITEM)
+        assert result.startswith("FBC")
+
+    def test_bare_item_no_analytes(self) -> None:
+        """Items with no analytes return the entity_text unchanged."""
+        result = expand_ordered_tests_row(BARE_ITEM)
+        assert result == "Liver function tests"
+
+    def test_custom_placeholder(self) -> None:
+        """value_placeholder is respected when set."""
+        item = FormSchemaItem(
+            pattern="eGFR",
+            entity_text="eGFR",
+            semantic_tag="procedure",
+            assertion="present",
+            analytes=[
+                {"label": "eGFR", "snomed_code": "80274001", "display": "eGFR"}
+            ],
+            value_placeholder="{{VALUE}} mL/min",
+        )
+        result = expand_ordered_tests_row(item)
+        assert "{{VALUE}} mL/min" in result
+
+
+# ---------------------------------------------------------------------------
+# 3. apply_schema_analyte_codes
+# ---------------------------------------------------------------------------
+
+
+class TestApplySchemaAnalyteCodes:
+    def _make_entity(self, label: str, snomed: str) -> dict:
+        return {
+            "label": label,
+            "snomed_code": snomed,
+            "entity_type": "observable",
+        }
+
+    def test_overrides_inferred_code_with_taught_code(self) -> None:
+        """Entities in the analyte list get the taught SNOMED code."""
+        entities = [
+            self._make_entity("Hb", "INFERRED-999"),
+            self._make_entity("WCC", "INFERRED-888"),
+        ]
+        chunk_section_map = [{"chunk_idx": 0, "section_id": "S1"}]
+        result = apply_schema_analyte_codes(entities, SCHEMA, chunk_section_map)
+        hb = next(e for e in result if e["label"] == "Hb")
+        assert hb["snomed_code"] == "1022280009"
+        wcc = next(e for e in result if e["label"] == "WCC")
+        assert wcc["snomed_code"] == "413892002"
+
+    def test_unlisted_entities_unchanged(self) -> None:
+        """Entities not in the analyte list are left alone."""
+        entities = [self._make_entity("Ferritin", "INFERRED-777")]
+        chunk_section_map = [{"chunk_idx": 0, "section_id": "S1"}]
+        result = apply_schema_analyte_codes(entities, SCHEMA, chunk_section_map)
+        ferritin = next(e for e in result if e["label"] == "Ferritin")
+        assert ferritin["snomed_code"] == "INFERRED-777"
+
+    def test_empty_chunk_section_map_leaves_entities_unchanged(self) -> None:
+        """No chunk map -- entities pass through unmodified."""
+        entities = [self._make_entity("Hb", "INFERRED-999")]
+        result = apply_schema_analyte_codes(entities, SCHEMA, chunk_section_map=[])
+        assert result[0]["snomed_code"] == "INFERRED-999"
+
+    def test_returns_copy_not_mutation(self) -> None:
+        """Original entity dicts are not mutated."""
+        original_code = "INFERRED-999"
+        entities = [self._make_entity("Hb", original_code)]
+        chunk_section_map = [{"chunk_idx": 0, "section_id": "S1"}]
+        apply_schema_analyte_codes(entities, SCHEMA, chunk_section_map)
+        assert entities[0]["snomed_code"] == original_code

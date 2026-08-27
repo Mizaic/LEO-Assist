@@ -12,6 +12,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from libs.pipeline.form_schema_normalizer import FormSchemaItem
+
 # -- Replacement token constants --
 _T_NHS = "{{NHS_NUMBER}}"
 _T_DOB = "{{DOB}}"
@@ -39,6 +41,33 @@ _ADDR_LABELS = re.compile(
 _TABLE_RESULT = re.compile(r"\|\s*([\d\.,]+(?:\s*[a-z/]+)?)\s*\|", re.I)
 
 _SECTION_RE = re.compile(r"(?i)section\s+[a-z]\b")
+
+
+def expand_ordered_tests_row(item: FormSchemaItem) -> str:
+    """Return a human-readable row for one ordered_tests item.
+
+    When the item has taught analytes, each analyte label is followed by the
+    item's value placeholder (default ``{{NUMERIC_VALUE}} {{UNIT}}``).
+    When there are no analytes the item's ``entity_text`` is returned as-is.
+
+    Example output:
+        FBC | Hb {{NUMERIC_VALUE}} {{UNIT}} , WCC {{NUMERIC_VALUE}} {{UNIT}} |
+
+    Args:
+        item: A ``FormSchemaItem`` from an ``ordered_tests`` section.
+
+    Returns:
+        A single-line string describing the battery and its analyte slots.
+    """
+    if not item.analytes:
+        return item.entity_text
+    placeholder = item.value_placeholder or "{{NUMERIC_VALUE}} {{UNIT}}"
+    analyte_parts = [
+        f"{a.get('label', '')} {placeholder}"
+        for a in item.analytes
+        if a.get("label")
+    ]
+    return f"{item.pattern} | {' , '.join(analyte_parts)} |"
 
 
 def generate_normalised_template(

@@ -24,6 +24,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import {
+  type AnalyteEntry,
   type FormSchemaItem,
   type FormSchemaSection,
   type SectionType,
@@ -71,6 +72,7 @@ const ITEM_SECTION_TYPES: SectionType[] = [
   "checkbox_multi",
   "scale",
   "observable",
+  "ordered_tests",
 ];
 
 export function FormSchemaSectionEditor({
@@ -197,22 +199,45 @@ export function FormSchemaSectionEditor({
       {showItems ? (
         <Collapse in={expanded}>
           <Box sx={{ p: 1.5 }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mb: 1, display: "block" }}
-            >
-              For each option: enter the label pattern that appears in the form,
-              and the entity text to use when it is checked.
-            </Typography>
-            {section.items.map((item, iIdx) => (
-              <ItemRow
-                key={iIdx}
-                item={item}
-                onPatch={(patch) => onPatchItem(iIdx, patch)}
-                onRemove={() => onRemoveItem(iIdx)}
-              />
-            ))}
+            {section.section_type === "ordered_tests" ? (
+              <>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mb: 1, display: "block" }}
+                >
+                  For each blood test battery: enter the label, procedure
+                  SNOMED code, and the individual analytes (test result rows).
+                </Typography>
+                {section.items.map((item, iIdx) => (
+                  <OrderedTestsItemEditor
+                    key={iIdx}
+                    item={item}
+                    onPatch={(patch) => onPatchItem(iIdx, patch)}
+                    onRemove={() => onRemoveItem(iIdx)}
+                  />
+                ))}
+              </>
+            ) : (
+              <>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mb: 1, display: "block" }}
+                >
+                  For each option: enter the label pattern that appears in the
+                  form, and the entity text to use when it is checked.
+                </Typography>
+                {section.items.map((item, iIdx) => (
+                  <ItemRow
+                    key={iIdx}
+                    item={item}
+                    onPatch={(patch) => onPatchItem(iIdx, patch)}
+                    onRemove={() => onRemoveItem(iIdx)}
+                  />
+                ))}
+              </>
+            )}
             <Button
               size="small"
               startIcon={<AddIcon />}
@@ -390,5 +415,119 @@ function ItemRow({
         <DeleteIcon fontSize="small" />
       </IconButton>
     </Stack>
+  );
+}
+
+function OrderedTestsItemEditor({
+  item,
+  onPatch,
+  onRemove,
+}: {
+  item: FormSchemaItem;
+  onPatch: (patch: Partial<FormSchemaItem>) => void;
+  onRemove: () => void;
+}) {
+  const analytes: AnalyteEntry[] = item.analytes ?? [];
+
+  function patchAnalyte(idx: number, patch: Partial<AnalyteEntry>) {
+    const updated = analytes.map((a, i) => (i === idx ? { ...a, ...patch } : a));
+    onPatch({ analytes: updated });
+  }
+
+  function addAnalyte() {
+    onPatch({ analytes: [...analytes, { label: "", snomed_code: "", display: "" }] });
+  }
+
+  function removeAnalyte(idx: number) {
+    onPatch({ analytes: analytes.filter((_, i) => i !== idx) });
+  }
+
+  return (
+    <Box
+      sx={{ mb: 1.5, p: 1, border: "1px solid", borderColor: "divider", borderRadius: 1 }}
+      data-testid="ordered-tests-item-editor"
+    >
+      <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mb: 1 }}>
+        <TextField
+          label="Battery label pattern"
+          value={item.pattern}
+          onChange={(e) => onPatch({ pattern: e.target.value })}
+          size="small"
+          sx={{ flex: 1 }}
+          placeholder="e.g. FBC"
+        />
+        <TextField
+          label="Procedure SNOMED code"
+          value={item.procedure_snomed ?? ""}
+          onChange={(e) => onPatch({ procedure_snomed: e.target.value })}
+          size="small"
+          sx={{ flex: 1 }}
+          placeholder="e.g. 26604007"
+          inputProps={{ "aria-label": "Procedure SNOMED code" }}
+        />
+        <TextField
+          label="Procedure display name"
+          value={item.procedure_display ?? ""}
+          onChange={(e) => onPatch({ procedure_display: e.target.value })}
+          size="small"
+          sx={{ flex: 2 }}
+          placeholder="e.g. Full blood count"
+        />
+        <IconButton size="small" onClick={onRemove} aria-label="Remove test battery">
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Stack>
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+        Analytes (individual result rows in this battery)
+      </Typography>
+      {analytes.map((analyte, aIdx) => (
+        <Stack
+          key={aIdx}
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ mb: 0.5 }}
+          data-testid="analyte-row"
+        >
+          <TextField
+            label="Short label"
+            value={analyte.label}
+            onChange={(e) => patchAnalyte(aIdx, { label: e.target.value })}
+            size="small"
+            sx={{ flex: 1 }}
+            placeholder="e.g. Hb"
+            inputProps={{ "aria-label": "Analyte short label" }}
+          />
+          <TextField
+            label="SNOMED code"
+            value={analyte.snomed_code}
+            onChange={(e) => patchAnalyte(aIdx, { snomed_code: e.target.value })}
+            size="small"
+            sx={{ flex: 1 }}
+            placeholder="e.g. 1022280009"
+            inputProps={{ "aria-label": "Analyte SNOMED code" }}
+          />
+          <TextField
+            label="Display name"
+            value={analyte.display}
+            onChange={(e) => patchAnalyte(aIdx, { display: e.target.value })}
+            size="small"
+            sx={{ flex: 2 }}
+            placeholder="e.g. Haemoglobin"
+            inputProps={{ "aria-label": "Analyte display name" }}
+          />
+          <IconButton
+            size="small"
+            onClick={() => removeAnalyte(aIdx)}
+            aria-label="Remove analyte"
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      ))}
+      <Button size="small" startIcon={<AddIcon />} onClick={addAnalyte} sx={{ mt: 0.25 }}>
+        Add analyte
+      </Button>
+    </Box>
   );
 }

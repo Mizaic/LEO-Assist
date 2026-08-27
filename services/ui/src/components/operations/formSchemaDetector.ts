@@ -24,11 +24,22 @@ export type SectionType =
   | "admin"
   | "template_noise";
 
+export interface AnalyteEntry {
+  label: string;
+  snomed_code: string;
+  display: string;
+}
+
 export interface FormSchemaItem {
   pattern: string;
   entity_text: string;
   semantic_tag: string;
   assertion: string;
+  // ordered_tests enrichment fields
+  procedure_snomed?: string;
+  procedure_display?: string;
+  analytes?: AnalyteEntry[];
+  value_placeholder?: string;
 }
 
 export interface FormSchemaSection {

@@ -105,11 +105,18 @@ def _load_semantic_tags(raw: dict[str, Any]) -> list[str]:
 
 
 def _dict_to_item(raw: dict[str, Any]) -> FormSchemaItem:
+    analytes = raw.get("analytes") or []
+    if not isinstance(analytes, list):
+        analytes = []
     return FormSchemaItem(
         pattern=raw.get("pattern") or "",
         entity_text=raw.get("entity_text") or "",
         semantic_tag=raw.get("semantic_tag") or "finding",
         assertion=raw.get("assertion") or "present",
+        procedure_snomed=raw.get("procedure_snomed") or "",
+        procedure_display=raw.get("procedure_display") or "",
+        analytes=[dict(a) for a in analytes if isinstance(a, dict)],
+        value_placeholder=raw.get("value_placeholder") or "",
     )
 
 
@@ -127,6 +134,10 @@ def _schema_to_sections_json(schema: FormSchema) -> str:
                     "entity_text": i.entity_text,
                     "semantic_tag": i.semantic_tag,
                     "assertion": i.assertion,
+                    "procedure_snomed": i.procedure_snomed,
+                    "procedure_display": i.procedure_display,
+                    "analytes": i.analytes,
+                    "value_placeholder": i.value_placeholder,
                 }
                 for i in s.items
             ],
@@ -179,7 +190,11 @@ def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
             groups=write.completeness_groups or None,
         )
     _SCHEMA_CACHE[schema.fingerprint] = schema
-    logger.info("Saved FormSchema %s for fingerprint %s", schema.schema_id, schema.fingerprint)
+    logger.info(
+        "Saved FormSchema %s for fingerprint %s",
+        schema.schema_id,
+        schema.fingerprint,
+    )
     return schema
 
 

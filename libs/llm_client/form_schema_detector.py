@@ -133,6 +133,29 @@ For each option provide:
   "entity_text" : CLINICAL meaning when checked, e.g. "Cervical cancer suspected"
   "semantic_tag": always "finding"
   "assertion"   : always "present"
+  "procedure_snomed" : "" (leave blank -- filled by the teacher)
+  "procedure_display": "" (leave blank)
+  "analytes"    : [] (leave empty)
+  "value_placeholder": ""
+
+ITEMS (for ordered_tests sections -- blood results tables):
+For each test battery row provide:
+  "pattern"     : the battery label as it appears in the form, e.g. "FBC"
+  "entity_text" : full display name, e.g. "Full blood count"
+  "semantic_tag": "procedure"
+  "assertion"   : "present"
+  "procedure_snomed" : "" (leave blank -- filled by the teacher or SNOMED lookup)
+  "procedure_display": the battery display name, e.g. "Full blood count"
+  "analytes"    : list of individual result entries visible in the battery row.
+                  Each analyte:
+                    {"label": "<short name>", "snomed_code": "", "display": "<name>"}
+                  Example for FBC: [
+                    {"label": "Hb",   "snomed_code": "", "display": "Haemoglobin"},
+                    {"label": "WCC",  "snomed_code": "", "display": "White cell count"},
+                    {"label": "Plts", "snomed_code": "", "display": "Platelet count"}
+                  ]
+                  Leave snomed_code blank -- the teacher fills it in the UI.
+  "value_placeholder": "{{NUMERIC_VALUE}} {{UNIT}}"
 
 Use precise clinical language for entity_text. Examples:
   "Cervix"      in cancer referral  -> "Cervical cancer suspected"
@@ -185,12 +208,36 @@ _OUTPUT_SCHEMA: dict[str, Any] = {
                                 "entity_text",
                                 "semantic_tag",
                                 "assertion",
+                                "procedure_snomed",
+                                "procedure_display",
+                                "analytes",
+                                "value_placeholder",
                             ],
                             "properties": {
                                 "pattern": {"type": "string"},
                                 "entity_text": {"type": "string"},
                                 "semantic_tag": {"type": "string"},
                                 "assertion": {"type": "string"},
+                                "procedure_snomed": {"type": "string"},
+                                "procedure_display": {"type": "string"},
+                                "analytes": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "additionalProperties": False,
+                                        "required": [
+                                            "label",
+                                            "snomed_code",
+                                            "display",
+                                        ],
+                                        "properties": {
+                                            "label": {"type": "string"},
+                                            "snomed_code": {"type": "string"},
+                                            "display": {"type": "string"},
+                                        },
+                                    },
+                                },
+                                "value_placeholder": {"type": "string"},
                             },
                         },
                     },
@@ -289,9 +336,25 @@ def _coerce_semantic_tags(raw: dict[str, Any]) -> list[str]:
 
 
 def _validate_item(raw: dict[str, Any]) -> dict[str, Any]:
+    analytes = raw.get("analytes") or []
+    if not isinstance(analytes, list):
+        analytes = []
+    safe_analytes = [
+        {
+            "label": str(a.get("label", "")),
+            "snomed_code": str(a.get("snomed_code", "")),
+            "display": str(a.get("display", "")),
+        }
+        for a in analytes
+        if isinstance(a, dict)
+    ]
     return {
         "pattern": str(raw.get("pattern", "")),
         "entity_text": str(raw.get("entity_text", "")),
         "semantic_tag": str(raw.get("semantic_tag", "finding")),
         "assertion": str(raw.get("assertion", "present")),
+        "procedure_snomed": str(raw.get("procedure_snomed", "")),
+        "procedure_display": str(raw.get("procedure_display", "")),
+        "analytes": safe_analytes,
+        "value_placeholder": str(raw.get("value_placeholder", "")),
     }
