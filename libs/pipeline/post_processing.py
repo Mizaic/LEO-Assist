@@ -26,7 +26,7 @@ Layer order
                              spans on lab-shaped lines the model missed
 3c. Request Reason Recovery -- add clinically meaningful findings embedded in
                              lab request reason text.
-we h3c2. Breast Screening Outcome Recovery -- NHS breast programme + abnormal
+3c2. Breast Screening Outcome Recovery -- NHS breast programme + abnormal
                              (68621) as a finding (SNOMED 171176006).
 3d. Cross-Line Lab Finding Merge -- DI-B5C78811 / DO-728930A1. Extend an
                              observable_entity span forward across at most

@@ -5,6 +5,11 @@ alwaysApply: true
 
 # Dual-path architecture: unified pipeline + operations Ask LEO
 
+> **Scheduled for deletion.** This rule only exists because the assertion
+> vocabulary is copied by hand into nine places. Slice 3 of the pipeline
+> refactor replaces those copies with one shared module, and this rule goes
+> with them. Do not extend the tables below. Fix the duplication instead.
+
 Post-processing layers (lab-value guard, scope guard, observable normalisation,
 entity-type normalisation, value-unit linking, ConText, situation lookup, and
 the disorder gate) are shared via `libs/pipeline/post_processing.py`
@@ -18,7 +23,12 @@ escalation path, since escalation runs independently of post-processing.
 
 ## Unified post-processing pipeline (shared)
 
-All 9 layers live in `libs/pipeline/post_processing.py`.
+All layers live in `libs/pipeline/post_processing.py`. The table below is
+**indicative, not complete**: 23 layers execute in
+`run_post_processing_with_trace()` (count the `_run_layer(...)` calls), not 9.
+The extra layers are lettered sub-steps such as `layer_2b`, `layer_3c`, and
+`layer_7d`. Read the module docstring and the `_run_layer` calls for the real
+order before you change anything.
 
 | Layer | Module |
 |-------|--------|
@@ -34,23 +44,37 @@ All 9 layers live in `libs/pipeline/post_processing.py`.
 
 ## Consumers of `run_post_processing()`
 
+Verified 2026-08-28. `services/coding_worker/app/pipeline/pipeline_service.py`
+no longer exists; the runtime consumer is the LangGraph subgraph.
+
 | Consumer | File |
 |----------|------|
-| Runtime pipeline | `services/coding_worker/app/pipeline/pipeline_service.py` (`_run_unified_post_processing`) |
-| Training / label verifier | `services/api/app/services/label_verifier.py` (`_process_label`) |
+| Runtime pipeline subgraph | `libs/pipeline_graph/subgraphs/post_processing.py` (`run_post_process`) |
+| Training / label verifier | `services/api/app/services/label_verifier.py` (line 1455) |
+| Synthetic training data | `services/api/app/routers/training_synthetic_data.py` (line 1089) |
+| Model registry replay | `services/api/app/routers/model_registry.py` (line 1245) |
+| Public wrapper | `libs/pipeline/post_processing.py` (`run_post_processing` calls `run_post_processing_with_trace`) |
+| Training data evaluation | `scripts/evaluate_training_data.py` (line 445) |
+| Extraction probe | `scripts/probe_extraction.py` (line 84) |
 
 ## Path 2 -- /operations Ask LEO (review UI)
 
 Processes CodingReview nodes when a reviewer clicks "Ask LEO".
 
+Verified 2026-08-28. The Ask LEO endpoints and `_ASSERTION_NOTES` have moved
+out of `services/api/app/routers/training.py`. They now live in
+`_training_askleo.py` and are attached to the coding-review router by
+`register_askleo_routes`.
+
 | Layer | File |
 |-------|------|
 | Escalation prompts | `libs/llm_client/escalation.py` (`_CANDIDATES_SYSTEM`, `escalate_coding`) |
-| Ask LEO smart endpoint | `services/api/app/routers/training.py` (`ask_leo_smart`) |
-| Ask LEO rank endpoint | `services/api/app/routers/training.py` (`ask_leo_rank_candidates`, inline prompt) |
+| Ask LEO smart endpoint | `services/api/app/routers/_training_askleo.py` (`ask_leo_smart`) |
+| Ask LEO rank endpoint | `services/api/app/routers/_training_askleo.py` (`ask_leo_rank_candidates`, inline prompt) |
+| Ask LEO route attachment | `services/api/app/routers/coding_review.py` (`register_askleo_routes`) |
 | Disorder verifier | `libs/llm_client/disorder_verifier.py` (`_SYSTEM_PROMPT`) |
-| Assertion notes | `services/api/app/routers/training.py` (`_ASSERTION_NOTES`) |
-| Assertion validation | `services/api/app/routers/training.py` (`_VALID_ASSERTIONS`) |
+| Assertion notes | `services/api/app/routers/_training_askleo.py` (`_ASSERTION_NOTES`) |
+| Assertion validation | `services/api/app/routers/coding_review.py` (`_VALID_ASSERTIONS`) |
 | Label verifier | `services/api/app/services/label_verifier.py` (`_AUTO_CODE_BLOCKED`, `_ASSERTION_QUEUE_SET`) |
 
 ## Shared graph + UI
@@ -59,7 +83,7 @@ Processes CodingReview nodes when a reviewer clicks "Ask LEO".
 |-------|------|
 | Document writes | `libs/cypher/documents_queries.py` (`_NON_PRESENT`, `_assertion_context`) |
 | Coding review queries | `libs/cypher/coding_review_queries.py` (assertion filters) |
-| UI assertion options | `services/ui/src/components/operations/CodingReviewCasesModal.tsx` (`ASSERTION_OPTIONS`) |
+| UI assertion options | `services/ui/src/components/operations/codingReviewUtils.ts` (`ASSERTION_OPTIONS`), plus local copies in `operations/ExtractionReviewFacts.tsx` and `gold-dataset/GoldDatasetPanel.tsx` |
 | UI assertion chips | `services/ui/src/lib/types.ts` (`ASSERTION_CHIP`), `services/ui/src/components/AssertionChip.tsx` |
 | Training adapter | `libs/model_registry/training_adapter.py` (`_VALID_ASSERTIONS`) |
 
@@ -68,10 +92,19 @@ Processes CodingReview nodes when a reviewer clicks "Ask LEO".
 1. If it is a post-processing layer change, update the shared module in `libs/pipeline/post_processing.py` (both paths inherit automatically)
 2. Update the runtime extraction prompt (`libs/prompts/extraction_v1.py`)
 3. Update the escalation prompts (`libs/llm_client/escalation.py`)
-4. Update the ask-leo-rank inline prompt (`training.py`)
-5. Update ALL `_VALID_ASSERTIONS` sets (at least 3 locations)
-6. Update `_AUTO_CODE_BLOCKED` sets (at least 2 locations)
-7. Update `_ASSERTION_QUEUE_SET` if the assertion needs human review
+4. Update the ask-leo-rank inline prompt (`_training_askleo.py`)
+5. Update ALL `_VALID_ASSERTIONS` sets. Verified 2026-08-28, there are six:
+   `services/api/app/routers/coding_review.py`,
+   `services/api/app/routers/training_synthetic_data.py`,
+   `services/coding_worker/app/pipeline/llm_extractor.py`,
+   `libs/pipeline_graph/subgraphs/_extractor.py` (named
+   `_VALID_ASSERTIONS_EXTRACT`), `libs/model_registry/training_adapter.py`,
+   and `libs/prompts/test_patient_scenario_v1.py`
+6. Update both `_AUTO_CODE_BLOCKED` sets:
+   `libs/coding_engine/tier_classifier.py` and
+   `services/api/app/services/label_verifier.py`
+7. Update `_ASSERTION_QUEUE_SET` in `services/api/app/services/label_verifier.py`
+   if the assertion needs human review
 8. Update `_assertion_context()` in `documents_queries.py`
 9. Update `_NON_PRESENT` if the assertion should block patient-level shortcuts
 10. Update assertion review queue Cypher filters if needed
