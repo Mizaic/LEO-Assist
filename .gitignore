@@ -346,3 +346,7 @@ services/ui/e2e/screenshots/*.png
 
 # Signed LEO-UM-CG-001 Guide me assets are tracked under
 # compliance/policy/assets/leo-um-cg-001/
+
+# Pre-migration graph snapshots. Rollback evidence for one environment,
+# not source. Keep them with the change record, not in the repo.
+scripts/snapshots/
