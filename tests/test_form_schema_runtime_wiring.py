@@ -6,6 +6,7 @@ Atlas trace: DI-5C9CA57B, DI-0C766F85
 from __future__ import annotations
 
 import textwrap
+from dataclasses import replace
 
 import pytest
 
@@ -16,8 +17,8 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchemaItem,
     FormSection,
     apply_schema_to_text,
-    seed_ordered_tests_entities,
 )
+from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
 from libs.pipeline.form_schema_store import _SCHEMA_CACHE, reset_schema_cache
 from libs.pipeline.post_processing import run_post_processing
 
@@ -54,6 +55,42 @@ ORDERED_TESTS_SCHEMA = FormSchema(
             label="Section D",
             start_pattern=r"(?i)section\s+d:",
             items=[FBC_ITEM],
+        ),
+    ],
+    chunk_section_map=[{"chunk_idx": 0, "section_id": "D"}],
+)
+
+
+# The same section with each value beside the analyte it belongs to.
+# GGT is taught but is not one of the abbreviations the deterministic
+# blood-panel extractor knows, so only schema seeding can produce it.
+RESULTED_TESTS_TEXT = textwrap.dedent("""\
+    Section D: Investigations performed
+    MANDATORY the following tests must be undertaken
+    FBC | 23.06.26 | Hb 124 g/L , WCC 12.5 x10^9/L , GGT 30 U/L |
+    BLOODS DONE TODAY
+    """)
+
+RESULTED_FBC_ITEM = replace(
+    FBC_ITEM,
+    analytes=[
+        *FBC_ITEM.analytes,
+        {"label": "GGT", "snomed_code": "1000861000000106", "display": "Gamma GT"},
+    ],
+)
+
+RESULTED_TESTS_SCHEMA = FormSchema(
+    schema_id="test-resulted-tests",
+    fingerprint=form_fingerprint(RESULTED_TESTS_TEXT),
+    form_name="Ordered Tests Form",
+    created_by="test",
+    sections=[
+        FormSection(
+            section_id="D",
+            section_type="ordered_tests",
+            label="Section D",
+            start_pattern=r"(?i)section\s+d:",
+            items=[RESULTED_FBC_ITEM],
         ),
     ],
     chunk_section_map=[{"chunk_idx": 0, "section_id": "D"}],
@@ -175,19 +212,28 @@ def test_enrichment_seeds_taught_analytes_from_schema() -> None:
         _enrich_with_blood_panel_entities,
     )
 
-    _cache_schema(ORDERED_TESTS_SCHEMA)
-    text = ORDERED_TESTS_TEXT
+    _cache_schema(RESULTED_TESTS_SCHEMA)
     result = _enrich_with_blood_panel_entities(
-        {"entities": [], "extraction_route": "llm"}, text, []
+        {"entities": [], "extraction_route": "llm"}, RESULTED_TESTS_TEXT, []
     )
+    texts = {e.get("text") for e in result["entities"]}
     labels = {e.get("label") for e in result["entities"]}
-    assert "Hb" in labels
-    assert "WCC" in labels
+    assert {"Hb", "WCC"} <= texts
+    assert "GGT" in labels
     assert "schema-seed" in result["extraction_route"]
 
 
 def test_seed_ordered_tests_entities_for_cached_schema() -> None:
     _cache_schema(ORDERED_TESTS_SCHEMA)
-    text = "Section D\nFBC | Hb, WCC"
+    text = "Section D\nFBC | Hb 124 g/L, WCC 6.1 x10^9/L"
     seeded = seed_ordered_tests_entities(text, ORDERED_TESTS_SCHEMA)
     assert any(e.get("label") == "Hb" for e in seeded)
+
+
+def test_seeding_skips_an_unresulted_battery_row() -> None:
+    """A battery row with no result seeds nothing for the cached schema."""
+    _cache_schema(ORDERED_TESTS_SCHEMA)
+    seeded = seed_ordered_tests_entities(
+        "Section D\nFBC | Hb, WCC", ORDERED_TESTS_SCHEMA
+    )
+    assert seeded == []

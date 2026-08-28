@@ -12,20 +12,15 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from libs.pipeline.form_schema_normalizer import (
     FormSchema,
     FormSchemaItem,
     FormSection,
     apply_schema_analyte_codes,
-    seed_ordered_tests_entities,
 )
-from libs.pipeline.form_schema_store import (
-    _dict_to_item,
-    _dict_to_section,
-    _schema_to_sections_json,
-)
+from libs.pipeline.form_schema_request import dict_to_item, dict_to_section
+from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
+from libs.pipeline.form_schema_store import _schema_to_sections_json
 from libs.pipeline.form_schema_template import expand_ordered_tests_row
 
 # ---------------------------------------------------------------------------
@@ -91,7 +86,7 @@ class TestFormSchemaItemRoundtrip:
             ],
             "value_placeholder": "{{NUMERIC_VALUE}} {{UNIT}}",
         }
-        item = _dict_to_item(raw)
+        item = dict_to_item(raw)
         assert item.procedure_snomed == "26604007"
         assert item.procedure_display == "Full blood count"
         assert len(item.analytes) == 1
@@ -106,7 +101,7 @@ class TestFormSchemaItemRoundtrip:
             "semantic_tag": "procedure",
             "assertion": "present",
         }
-        item = _dict_to_item(raw)
+        item = dict_to_item(raw)
         assert item.procedure_snomed == ""
         assert item.procedure_display == ""
         assert item.analytes == []
@@ -157,7 +152,7 @@ class TestFormSchemaItemRoundtrip:
                 }
             ],
         }
-        section = _dict_to_section(raw_section)
+        section = dict_to_section(raw_section)
         assert section.items[0].analytes[0]["label"] == "Hb"
 
 
@@ -252,10 +247,19 @@ class TestApplySchemaAnalyteCodes:
 # ---------------------------------------------------------------------------
 
 
-SHERWOOD_BLOOD_TEXT = """\
+# The printed table as it arrives when no test was resulted.
+SHERWOOD_BLANK_BLOOD_TEXT = """\
 Blood Results (Last):
 FBC | Hb, WCC, Plts, MCV, Neut
 UE | Na, K, Urea, Creat, eGFR
+LFT | ALT, Alk Phos, Bili, Alb, GGT
+"""
+
+# The same table once the laboratory results are reported.
+SHERWOOD_BLOOD_TEXT = """\
+Blood Results (Last):
+FBC | Hb 118 g/L, WCC 7.2 x10^9/L, Plts 250, MCV, Neut
+UE | Na 138 mmol/L, K, Urea, Creat, eGFR
 LFT | ALT, Alk Phos, Bili, Alb, GGT
 """
 
@@ -288,6 +292,11 @@ SHERWOOD_BLOOD_SCHEMA = FormSchema(
                             "label": "WCC",
                             "snomed_code": "413892002",
                             "display": "White cell count",
+                        },
+                        {
+                            "label": "MCV",
+                            "snomed_code": "1022491000000106",
+                            "display": "Mean cell volume",
                         },
                     ],
                 ),
@@ -329,8 +338,40 @@ class TestSeedOrderedTestsEntities:
         assert fbc["semantic_tag"] == "procedure"
 
     def test_skips_batteries_not_in_letter(self) -> None:
-        text = "Blood Results\nFBC | Hb, WCC"
+        """A battery absent from the letter is never seeded.
+
+        The letter must also report a result before the battery it does
+        name may be seeded, so the FBC row carries values here.
+        """
+        text = "Blood Results\nFBC | Hb 118 g/L, WCC 7.2 x10^9/L"
         entities = seed_ordered_tests_entities(text, SHERWOOD_BLOOD_SCHEMA)
         labels = {e["label"] for e in entities}
+        assert "UE" not in labels
         assert "Na" not in labels
         assert "Hb" in labels
+
+    def test_skips_batteries_named_but_not_resulted(self) -> None:
+        """A battery named with no result at all is never seeded.
+
+        The printed table lists every battery whether or not the test was
+        done, so a bare label may not seed a procedure or an analyte.
+        """
+        text = "Blood Results\nFBC | Hb, WCC"
+        entities = seed_ordered_tests_entities(text, SHERWOOD_BLOOD_SCHEMA)
+        assert entities == []
+
+    def test_blank_printed_table_seeds_nothing(self) -> None:
+        """Every row of the printed table is unresulted -- seed nothing."""
+        entities = seed_ordered_tests_entities(
+            SHERWOOD_BLANK_BLOOD_TEXT, SHERWOOD_BLOOD_SCHEMA
+        )
+        assert entities == []
+
+    def test_seeds_only_the_analytes_that_carry_a_value(self) -> None:
+        """MCV is taught for FBC but is unresulted on this row."""
+        entities = seed_ordered_tests_entities(
+            SHERWOOD_BLOOD_TEXT, SHERWOOD_BLOOD_SCHEMA
+        )
+        labels = {e["label"] for e in entities}
+        assert "Hb" in labels
+        assert "MCV" not in labels

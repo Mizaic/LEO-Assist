@@ -31,8 +31,8 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchemaItem,
     FormSection,
     normalise_chunks_with_schema,
-    seed_ordered_tests_entities,
 )
+from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
 from libs.pipeline.form_section_splitter import split_form_sections
 
 FIXTURE = (
@@ -153,7 +153,9 @@ def test_chunk_map_built_over_another_segmentation_does_not_misroute(
     site = _section(
         "A",
         r"(?i)Section A: Gynaecological Cancer type suspected",
-        items=[FormSchemaItem(pattern="Cervix", entity_text="Cervical cancer suspected")],
+        items=[
+            FormSchemaItem(pattern="Cervix", entity_text="Cervical cancer suspected")
+        ],
     )
     schema = FormSchema(
         schema_id="s",
@@ -174,7 +176,9 @@ def test_chunk_map_with_null_chunk_idx_falls_back_to_position(
     site = _section(
         "A",
         r"(?i)Section A: Gynaecological Cancer type suspected",
-        items=[FormSchemaItem(pattern="Cervix", entity_text="Cervical cancer suspected")],
+        items=[
+            FormSchemaItem(pattern="Cervix", entity_text="Cervical cancer suspected")
+        ],
     )
     schema = FormSchema(
         schema_id="s",
@@ -217,9 +221,7 @@ def _blood_section() -> FormSection:
             {"label": "Plts", "snomed_code": "61928009", "display": "Platelet count"},
         ],
     )
-    esr = FormSchemaItem(
-        pattern="ESR", entity_text="ESR", procedure_snomed="165416008"
-    )
+    esr = FormSchemaItem(pattern="ESR", entity_text="ESR", procedure_snomed="165416008")
     return _section(
         "BLOOD",
         r"(?i)Blood Results",
@@ -228,47 +230,49 @@ def _blood_section() -> FormSection:
     )
 
 
-def test_battery_and_analytes_seed_from_comma_separated_pipe_cell(
-    chunks: list[str],
-) -> None:
-    schema = FormSchema(
+def _blood_schema() -> FormSchema:
+    return FormSchema(
         schema_id="s",
         fingerprint="f",
         form_name="x",
         sections=[_blood_section()],
         created_by="t",
     )
-    seeded = seed_ordered_tests_entities(chunks[9], schema)
+
+
+# The same table shape as fixture chunk 9, once the laboratory reports
+# results: a specimen-date cell, values beside their analytes, and two
+# batteries sharing one row.
+RESULTED_BLOOD_TABLE = """\
+Blood Results (Last ):
+
+| FBC | 23.06.26 | Hb 118 g/L , WCC 7.2 x10^9/L , Plts 250 |  |  |
+| CRP | 23.06.26 | 4 mg/L | ESR | 12 mm/hr |
+"""
+
+
+def test_battery_and_analytes_seed_from_comma_separated_pipe_cell() -> None:
+    seeded = seed_ordered_tests_entities(RESULTED_BLOOD_TABLE, _blood_schema())
     labels = {e["label"] for e in seeded}
     assert {"FBC", "Hb", "WCC", "Plts", "ESR"} <= labels
 
 
-def test_battery_seeds_from_a_later_column_of_a_shared_row(
-    chunks: list[str],
-) -> None:
-    """``| CRP |  |  | ESR |  |`` must still seed the taught ESR battery."""
-    schema = FormSchema(
-        schema_id="s",
-        fingerprint="f",
-        form_name="x",
-        sections=[_blood_section()],
-        created_by="t",
-    )
-    seeded = seed_ordered_tests_entities(chunks[9], schema)
+def test_battery_seeds_from_a_later_column_of_a_shared_row() -> None:
+    """A resulted ``| CRP | ... | ESR | ... |`` row seeds the taught ESR."""
+    seeded = seed_ordered_tests_entities(RESULTED_BLOOD_TABLE, _blood_schema())
     esr = [e for e in seeded if e["label"] == "ESR"]
     assert esr and esr[0]["snomed_code"] == "165416008"
 
 
-def test_untaught_battery_is_not_seeded(chunks: list[str]) -> None:
-    schema = FormSchema(
-        schema_id="s",
-        fingerprint="f",
-        form_name="x",
-        sections=[_blood_section()],
-        created_by="t",
-    )
-    seeded = seed_ordered_tests_entities(chunks[9], schema)
+def test_untaught_battery_is_not_seeded() -> None:
+    seeded = seed_ordered_tests_entities(RESULTED_BLOOD_TABLE, _blood_schema())
     assert "CRP" not in {e["label"] for e in seeded}
+
+
+def test_printed_table_with_no_results_seeds_nothing(chunks: list[str]) -> None:
+    """Fixture chunk 9 prints the table with every result cell empty."""
+    seeded = seed_ordered_tests_entities(chunks[9], _blood_schema())
+    assert seeded == []
 
 
 # -- Defect 6: the detector must be told the input is markdown --------------

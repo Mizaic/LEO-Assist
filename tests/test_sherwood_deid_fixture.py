@@ -23,10 +23,9 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchema,
     FormSchemaItem,
     FormSection,
-    _battery_present_in_text,
     _resolve_default_sections,
-    seed_ordered_tests_entities,
 )
+from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
 
 FIXTURE = (
     Path(__file__).parent
@@ -170,12 +169,10 @@ def test_separator_rows_are_skipped(chunk_texts):
 def test_battery_matching_in_pipe_table_row(chunk_texts):
     """Chunk 9 is the blood-results table with pipe-delimited battery rows.
 
-    _battery_present_in_text must find batteries whose names sit in the
-    first cell of a row such as '| FBC |  | Hb , WCC , Plts |  |  |'.
-    Batteries whose analyte list lives in a later cell (CRP analyte in
-    col 3) must also be found.
-    seed_ordered_tests_entities must emit entities for all taught analytes
-    that appear anywhere in the row's cells.
+    Every result cell in the fixture is empty, so the printed table must
+    seed nothing at all. The same rows carrying results must seed the
+    battery named in the first cell and each analyte from a later cell,
+    including a battery whose analyte list lives in column 3.
     """
     blood_chunk = chunk_texts[9]
     assert "FBC" in blood_chunk, "Fixture chunk 9 no longer contains FBC"
@@ -204,13 +201,6 @@ def test_battery_matching_in_pipe_table_row(chunk_texts):
         ],
     )
 
-    assert _battery_present_in_text(
-        blood_chunk, fbc_item
-    ), "FBC battery not found in chunk 9 pipe-table row"
-    assert _battery_present_in_text(
-        blood_chunk, crp_item
-    ), "CRP battery not found in chunk 9 pipe-table row"
-
     blood_section = FormSection(
         section_id="BLOOD",
         section_type="ordered_tests",
@@ -218,7 +208,6 @@ def test_battery_matching_in_pipe_table_row(chunk_texts):
         start_pattern="Date specimen collected",
         items=[fbc_item, crp_item],
     )
-    encounter_text = blood_chunk
     schema = FormSchema(
         schema_id="s",
         fingerprint="fp",
@@ -227,13 +216,16 @@ def test_battery_matching_in_pipe_table_row(chunk_texts):
         created_by="pytest",
     )
 
-    entities = seed_ordered_tests_entities(encounter_text, schema)
-    labels = {e["label"] for e in entities}
+    # The fixture prints the table with no results, so nothing is seeded.
+    assert seed_ordered_tests_entities(blood_chunk, schema) == []
 
-    # Battery procedure entities must be seeded.
+    # The same rows, once resulted, seed the battery and its analytes.
+    resulted = (
+        "| FBC | 23.06.26 | Hb 118 g/L , WCC 7.2 x10^9/L , Plts 250 |  |  |\n"
+        "| CRP | 23.06.26 | CRP 4 mg/L |  |  |\n"
+    )
+    labels = {e["label"] for e in seed_ordered_tests_entities(resulted, schema)}
     assert "FBC" in labels, f"FBC procedure not seeded; got {labels}"
     assert "CRP" in labels, f"CRP procedure not seeded; got {labels}"
-
-    # Analytes from comma-separated cells must also be seeded.
     assert "Hb" in labels, f"Hb analyte not seeded; got {labels}"
     assert "WCC" in labels, f"WCC analyte not seeded; got {labels}"

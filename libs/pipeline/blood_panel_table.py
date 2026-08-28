@@ -56,10 +56,15 @@ _ABBREV_PATTERN = "|".join(
     re.escape(a) for a in sorted(_BLOOD_ABBREVS, key=len, reverse=True)
 )
 
+# A reported numeric result, with or without a comparator ("<0.5").
+VALUE_PATTERN = r"[<>]?\s*\d+(?:\.\d+)?"
+# A unit of measure, including compound blood-count units ("x10^9/L").
+UNIT_PATTERN = r"(?:x10\^?\d+/?[A-Za-z]+|[A-Za-z][A-Za-z0-9%/^]+)"
+
 _CELL_PAIR_RE = re.compile(
     rf"\b(?P<name>{_ABBREV_PATTERN})\s+"
-    r"(?P<value>[<>]?\s*\d+(?:\.\d+)?)\s*"
-    r"(?P<unit>(?:x10\^?\d+/?[A-Za-z]+|[A-Za-z][A-Za-z0-9%/^]+))"
+    rf"(?P<value>{VALUE_PATTERN})\s*"
+    rf"(?P<unit>{UNIT_PATTERN})"
     r"(?=\s*,|\s*\||\s*;|\s|$)",
     re.IGNORECASE,
 )
@@ -119,6 +124,11 @@ def _entity_from_match(
         "__source_meta": {},
         "__relations": [],
     }
+
+
+def has_value_unit_pair(text: str) -> bool:
+    """Return True when *text* holds an ``abbrev value unit`` result cluster."""
+    return _CELL_PAIR_RE.search(text) is not None
 
 
 def _pairs_from_text(text: str) -> list[tuple[str, str, str, int, int]]:

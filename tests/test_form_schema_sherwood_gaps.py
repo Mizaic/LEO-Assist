@@ -22,8 +22,8 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchemaItem,
     FormSection,
     apply_schema_to_text,
-    seed_ordered_tests_entities,
 )
+from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
 
 AWARENESS_SECTION = FormSection(
     section_id="AW",
@@ -169,7 +169,15 @@ def test_untaught_row_is_still_marked_non_extractable() -> None:
 
 
 def test_seeding_covers_both_batteries_on_a_shared_row() -> None:
-    text = "Blood Results (Last ):\n| CRP |  |  | ESR |  |\n"
+    """Both resulted batteries on one row are seeded, not just the first."""
+    text = "Blood Results (Last ):\n| CRP | 4 mg/L |  | ESR | 12 mm/hr |\n"
     seeded = seed_ordered_tests_entities(text, _schema(_preset_section()))
     labels = {e["label"] for e in seeded}
     assert {"CRP", "ESR"} <= labels
+
+
+def test_seeding_skips_a_shared_row_with_no_results() -> None:
+    """The printed row names both batteries but reports neither result."""
+    text = "Blood Results (Last ):\n| CRP |  |  | ESR |  |\n"
+    seeded = seed_ordered_tests_entities(text, _schema(_preset_section()))
+    assert seeded == []

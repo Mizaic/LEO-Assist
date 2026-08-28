@@ -811,7 +811,7 @@ def _enrich_with_blood_panel_entities(
         merge_blood_panel_entities,
     )
     from libs.pipeline.document_quality import form_fingerprint
-    from libs.pipeline.form_schema_normalizer import seed_ordered_tests_entities
+    from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
     from libs.pipeline.form_schema_store import get_cached_schema, resolve_form_schema
 
     panel = extract_blood_panel_table_entities(encounter_text, chunks)
