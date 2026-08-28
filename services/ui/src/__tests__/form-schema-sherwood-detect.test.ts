@@ -226,10 +226,13 @@ describe("seedCompletenessGroups Sherwood 2WW gynae", () => {
     expect(group?.then_group?.name.toLowerCase()).toMatch(/ca125|ca 125/);
   });
 
-  it("seeds Section D bloods as mandatory", () => {
+  it("seeds Section D bloods as at-least-one of the panel", () => {
     const group = groups.find((item) => /blood|section d|mandatory test/i.test(item.name));
-    expect(group?.kind).toBe("mandatory");
+    expect(group?.kind).toBe("n_of");
     expect(group?.required).toBe(true);
+    expect((group?.members ?? []).map((m) => m.name.toLowerCase())).toEqual(
+      expect.arrayContaining(["fbc", "lft", "ue", "calcium"]),
+    );
   });
 
   it("seeds Minimum Dataset BP and HR as mandatory observables", () => {

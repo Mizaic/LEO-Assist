@@ -51,9 +51,9 @@ def test_blood_pressure_group_has_concept_id_or_semantic_tag():
     assert g is not None, "Expected a Blood pressure group"
     has_code = bool(g.get("concept_ids"))
     has_tag = bool(g.get("semantic_categories"))
-    assert has_code or has_tag, (
-        f"Blood pressure group has no concept_ids or semantic_categories: {g}"
-    )
+    assert (
+        has_code or has_tag
+    ), f"Blood pressure group has no concept_ids or semantic_categories: {g}"
 
 
 def test_heart_rate_group_has_concept_id_or_semantic_tag():
@@ -61,9 +61,9 @@ def test_heart_rate_group_has_concept_id_or_semantic_tag():
     assert g is not None, "Expected a Heart rate group"
     has_code = bool(g.get("concept_ids"))
     has_tag = bool(g.get("semantic_categories"))
-    assert has_code or has_tag, (
-        f"Heart rate group has no concept_ids or semantic_categories: {g}"
-    )
+    assert (
+        has_code or has_tag
+    ), f"Heart rate group has no concept_ids or semantic_categories: {g}"
 
 
 def test_tvus_then_arm_has_concept_id_or_semantic_tag():
@@ -73,9 +73,9 @@ def test_tvus_then_arm_has_concept_id_or_semantic_tag():
     then_arm = g.get("then_group") or {}
     has_code = bool(then_arm.get("concept_ids"))
     has_tag = bool(then_arm.get("semantic_categories"))
-    assert has_code or has_tag, (
-        f"TVUS then-arm has no concept_ids or semantic_categories: {then_arm}"
-    )
+    assert (
+        has_code or has_tag
+    ), f"TVUS then-arm has no concept_ids or semantic_categories: {then_arm}"
 
 
 def test_ca125_then_arm_has_concept_id_or_semantic_tag():
@@ -85,9 +85,35 @@ def test_ca125_then_arm_has_concept_id_or_semantic_tag():
     then_arm = g.get("then_group") or {}
     has_code = bool(then_arm.get("concept_ids"))
     has_tag = bool(then_arm.get("semantic_categories"))
-    assert has_code or has_tag, (
-        f"Ca125 then-arm has no concept_ids or semantic_categories: {then_arm}"
+    assert (
+        has_code or has_tag
+    ), f"Ca125 then-arm has no concept_ids or semantic_categories: {then_arm}"
+
+
+def test_section_d_bloods_members_have_codes():
+    """Universal blood-panel members must be matchable."""
+    g = _find(_groups(), "mandatory bloods")
+    assert g is not None, "Expected a Section D mandatory bloods group"
+    members = {m["name"].lower(): m for m in g.get("members") or []}
+    for name in ("fbc", "lft", "ue", "calcium"):
+        member = members.get(name)
+        assert member is not None, f"Expected member {name}"
+        assert member.get("concept_ids") or member.get(
+            "semantic_categories"
+        ), f"{name} member has no codes: {member}"
+
+
+def test_section_a_sites_have_no_form_specific_codes():
+    """Cancer-site members stay as names so the UI can attach codes per form."""
+    g = _find(_groups(), "suspected sites")
+    assert g is not None, "Expected a Section A suspected sites group"
+    cervix = next(
+        (m for m in g.get("members") or [] if m["name"].lower() == "cervix"), None
     )
+    assert cervix is not None, "Expected a Cervix member"
+    assert not cervix.get(
+        "concept_ids"
+    ), f"Cervix must not carry a hardcoded concept id: {cervix}"
 
 
 def test_evaluator_matches_blood_pressure_entity():
@@ -102,6 +128,6 @@ def test_evaluator_matches_blood_pressure_entity():
         present_concept_ids=set(bp["concept_ids"]) if bp.get("concept_ids") else set(),
         present_semantic_tags=set(bp.get("semantic_categories") or []),
     )
-    assert result["complete"] is True, (
-        f"BP group not matched. missing={result['missing_groups']}"
-    )
+    assert (
+        result["complete"] is True
+    ), f"BP group not matched. missing={result['missing_groups']}"
