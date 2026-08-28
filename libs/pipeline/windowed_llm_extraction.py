@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 RunLlmExtraction = Callable[..., dict[str, Any]]
 
+INCOMPLETE_EXTRACTION_WARNING = "extraction_incomplete"
+
 
 @dataclass
 class _WindowRun:
@@ -137,6 +139,36 @@ def _empty_token_bucket() -> dict[str, Any]:
     }
 
 
+def _slice_window_chunks(
+    window: Any, chunks: list[SentenceChunk]
+) -> list[SentenceChunk]:
+    """Narrow each chunk to the part this window covers.
+
+    An oversized chunk is split across several windows, so a window must be
+    shown only its own slice. Offsets stay in document coordinates so span
+    resolution still lands in the right place.
+    """
+    text_slice = getattr(window, "text_slice", None)
+    if text_slice is None:
+        return chunks
+    start, end = text_slice
+    sliced: list[SentenceChunk] = []
+    for chunk in chunks:
+        if window.chunk_ids != (str(chunk.sentence_id or ""),):
+            sliced.append(chunk)
+            continue
+        part = str(chunk.text or "")[start:end]
+        sliced.append(
+            SentenceChunk(
+                sentence_id=chunk.sentence_id,
+                text=part,
+                start=chunk.start + start,
+                end=chunk.start + start + len(part),
+            )
+        )
+    return sliced
+
+
 def _run_one_window(
     window: Any,
     ctx: _WindowRun,
@@ -144,12 +176,14 @@ def _run_one_window(
     """Return (partial, error, truncated) for one extraction window."""
     from libs.pipeline.extraction_prompt import CONTEXT_MODE_WINDOW_LOCAL
 
-    window_llm_chunks = [
-        ctx.llm_by_id[cid] for cid in window.chunk_ids if cid in ctx.llm_by_id
-    ]
-    window_orig_chunks = [
-        ctx.orig_by_id[cid] for cid in window.chunk_ids if cid in ctx.orig_by_id
-    ]
+    window_llm_chunks = _slice_window_chunks(
+        window,
+        [ctx.llm_by_id[cid] for cid in window.chunk_ids if cid in ctx.llm_by_id],
+    )
+    window_orig_chunks = _slice_window_chunks(
+        window,
+        [ctx.orig_by_id[cid] for cid in window.chunk_ids if cid in ctx.orig_by_id],
+    )
     if not window_llm_chunks:
         return None, None, False
     window_context, was_truncated = _build_window_context(
@@ -274,12 +308,48 @@ def run_windowed_llm_extraction(
         "extraction_context_mode": context_mode,
         "extraction_window_count": len(windows),
         "extraction_window_truncated_count": collected["truncated_windows"],
+        "extraction_windows_completed": collected["completed"],
         "few_shot_max_similarity": min(window_sims) if window_sims else None,
         **collected["model_fields"],
     }
+    result.update(
+        _incomplete_extraction_fields(
+            planned=len(windows),
+            completed=collected["completed"],
+            truncated_windows=collected["truncated_windows"],
+        )
+    )
     if collected["errors"]:
         result["errors"] = collected["errors"]
     return result
+
+
+def _incomplete_extraction_fields(
+    *, planned: int, completed: int, truncated_windows: int
+) -> dict[str, Any]:
+    """Mark a run that did not read the whole letter.
+
+    Findings in the unread part come back absent, and absent reads as "not
+    present". Failing to look and finding nothing must not produce the same
+    output, so a short read is stated rather than left to be inferred from
+    what is missing.
+    """
+    unread = max(0, planned - completed)
+    if not unread and not truncated_windows:
+        return {}
+    reasons: list[str] = []
+    if unread:
+        reasons.append(f"{unread} of {planned} parts of the letter were not read")
+    if truncated_windows:
+        reasons.append(f"{truncated_windows} part(s) were too long to read in full")
+    return {
+        "extraction_partial": True,
+        "warnings": [
+            f"{INCOMPLETE_EXTRACTION_WARNING}: a person needs to check this "
+            f"referral against the letter. We did not read all of it: "
+            f"{'; '.join(reasons)}. Some findings may be missing."
+        ],
+    }
 
 
 def _collect_windows(windows: list[Any], ctx: _WindowRun) -> dict[str, Any]:
@@ -288,6 +358,7 @@ def _collect_windows(windows: list[Any], ctx: _WindowRun) -> dict[str, Any]:
     usages: list[Any] = []
     merged_tokens = _empty_token_bucket()
     truncated_windows = 0
+    completed = 0
     model_fields: dict[str, Any] = {}
     errors: list[str] = []
     window_similarities: list[float] = []
@@ -298,6 +369,7 @@ def _collect_windows(windows: list[Any], ctx: _WindowRun) -> dict[str, Any]:
         if error:
             errors.append(error)
             break
+        completed += 1
         if partial is None:
             continue
         model_fields = _record_window_partial(
@@ -316,6 +388,7 @@ def _collect_windows(windows: list[Any], ctx: _WindowRun) -> dict[str, Any]:
         "usages": usages,
         "merged_tokens": merged_tokens,
         "truncated_windows": truncated_windows,
+        "completed": completed,
         "model_fields": model_fields,
         "errors": errors,
         "window_similarities": window_similarities,

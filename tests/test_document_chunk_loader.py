@@ -106,11 +106,28 @@ def _make_rows(*texts: str) -> list[dict]:
     ]
 
 
-def test_build_encounter_text_strips_pdf_wrapper() -> None:
+def test_build_encounter_text_keeps_the_pdf_attachment() -> None:
+    """encounter_text carries every chunk, so quotes stay resolvable.
+
+    This used to assert the opposite. Stripping the attachment here while
+    ``sentences`` kept it (see the test below) split the coordinate space:
+    the model could quote a phrase that SpanResolver could not then find,
+    the span fell open to offset 0 -- the document banner -- and ConText
+    decided the assertion from the banner instead of the real sentence.
+    Stripping now happens only in ``bundle_fingerprint``.
+    """
     rows = _make_rows(_DOC_CHUNK, _PDF_CHUNK)
     state = build_document_chunk_state(rows)
-    assert "Clinical Information Summary" not in state["encounter_text"]
-    assert "No information provided" not in state["encounter_text"]
+    assert "Clinical Information Summary" in state["encounter_text"]
+    assert "No information provided" in state["encounter_text"]
+
+
+def test_every_sentence_is_findable_in_encounter_text() -> None:
+    """The invariant the coordinate space rests on."""
+    rows = _make_rows(_DOC_CHUNK, _PDF_CHUNK)
+    state = build_document_chunk_state(rows)
+    for sentence in state["sentences"]:
+        assert sentence["text_raw"] in state["encounter_text"]
 
 
 def test_build_encounter_text_keeps_gp_form_content() -> None:

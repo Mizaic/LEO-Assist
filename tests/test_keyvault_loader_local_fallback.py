@@ -18,6 +18,23 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _restore_environ():
+    """Put os.environ back the way it was found.
+
+    ``load_keyvault_secrets`` writes straight into ``os.environ``, which
+    monkeypatch cannot undo. Without this, values such as
+    ``NEO4J_URI=from-kv`` leak into every later test in the session, and
+    anything that builds a Neo4j client then fails on a URI with no
+    scheme.
+    """
+    before = dict(os.environ)
+    yield
+    for key in set(os.environ) - set(before):
+        os.environ.pop(key, None)
+    os.environ.update(before)
+
+
 @pytest.fixture
 def loader_module(monkeypatch, tmp_path):
     """Import a fresh loader module pointed at a temp secrets/.env.secrets.

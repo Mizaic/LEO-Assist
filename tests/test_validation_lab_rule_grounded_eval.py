@@ -36,16 +36,6 @@ _redis_mod = ModuleType("redis")
 _redis_mod.Redis = MagicMock  # type: ignore[attr-defined]
 sys.modules.setdefault("redis", _redis_mod)
 
-_obs_eval_mod = ModuleType(
-    "services.terminology_api.app.services.observation_evaluator"
-)
-_obs_eval_mod.observation_matches = MagicMock(  # type: ignore[attr-defined]
-    return_value=False
-)
-sys.modules.setdefault(
-    "services.terminology_api.app.services.observation_evaluator", _obs_eval_mod
-)
-
 
 def _variant(**overrides: Any) -> dict[str, Any]:
     data = {

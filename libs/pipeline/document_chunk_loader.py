@@ -32,6 +32,20 @@ _PDF_BOUNDARY_RE = re.compile(
     re.DOTALL | re.IGNORECASE,
 )
 
+# Chunks whose content must not be extracted from.
+# These are detected by leading text patterns, not form schema section type:
+#   - PDF attachment headers (e-RS Clinical Information wrapper -- routing admin)
+#   - "Points to remember" blocks (printed guidance on the form template)
+# The raw text is kept in encounter_text for span resolution; only the
+# model-facing normalised text is blanked with [NON_EXTRACTABLE].
+_NON_EXTRACTABLE_CHUNK_RE = re.compile(
+    r"^\s*---\s*Document:[^\n]+\.pdf\s*---"
+    r"|^\s*Points\s+to\s+remember",
+    re.IGNORECASE,
+)
+
+NON_EXTRACTABLE_MARKER = "[NON_EXTRACTABLE]"
+
 DOCUMENT_CHUNKS_MODE = "document_chunks"
 ENCOUNTER_SENTENCES_MODE = "encounter_sentences"
 CHUNK_TEXT_SEPARATOR = "\n\n"
@@ -48,53 +62,70 @@ ORDER BY ordinal ASC
 """
 
 
+def _mark_non_extractable_chunk(text: str) -> str:
+    """Return text unchanged, or prepend [NON_EXTRACTABLE] if it is admin content.
+
+    A PDF document header or "Points to remember" block is template chrome,
+    not patient narrative. Prepending the marker tells the LLM to skip the
+    whole chunk. The raw text is still in encounter_text so span resolution
+    works -- extraction skipping is enforced by the model instruction, not
+    by text removal.
+    """
+    if not text or not _NON_EXTRACTABLE_CHUNK_RE.search(text):
+        return text
+    return f"{NON_EXTRACTABLE_MARKER} {text.strip()}"
+
+
 def strip_pdf_attachments(text: str) -> str:
-    """Remove PDF attachment sections from a referral bundle encounter text.
+    """Remove PDF attachment sections, for fingerprinting only.
 
     The HCCP bundle assembler prefixes every document with a header line:
         --- Document: {title} ---
-    This function removes the first PDF-titled section and everything after
-    it, keeping only the primary referral form content (the .doc file).
+    This removes the first PDF-titled section and everything after it,
+    keeping only the primary referral form content (the .doc file).
 
-    The individual :Chunk sentences are left untouched so SNOMED concept
-    provenance can still be linked back to the correct chunk node.
+    The only caller is ``bundle_fingerprint``. The attachment differs
+    between referrals of the same form, so hashing it would give one form
+    a different fingerprint per referral and the taught :FormSchema would
+    never bind. This deliberately does NOT touch ``encounter_text``:
+    extraction reads the whole bundle, because on some referrals the
+    attachment carries clinical content found nowhere else.
     """
-    return _PDF_BOUNDARY_RE.sub("", text).strip()
+    stripped = _PDF_BOUNDARY_RE.sub("", text).strip()
+    if stripped:
+        return stripped
+    # A bundle that is nothing but the attachment would otherwise hash the
+    # empty string, and every such referral would collide on one hash.
+    return (text or "").strip()
 
 
-def pdf_attachment_deletions(text: str) -> tuple[Deletion, ...]:
-    """Return the ranges ``strip_pdf_attachments`` removes from ``text``.
+def bundle_trim_deletions(text: str) -> tuple[Deletion, ...]:
+    """Return the ranges trimmed from ``text`` to build ``encounter_text``.
 
-    Same removals, expressed as coordinates instead of a new string, so
-    ``SourceText`` can remap offsets around them.  Rebuilding ``text``
-    minus these ranges reproduces ``strip_pdf_attachments`` byte for
-    byte -- that equivalence is pinned by test.
+    Extraction reads the whole bundle, attachments included, so the only
+    difference between the raw join and what extraction sees is the outer
+    whitespace. Expressed as coordinates rather than a new string so
+    ``SourceText`` can remap offsets. Rebuilding ``text`` minus these
+    ranges reproduces ``text.strip()`` byte for byte -- pinned by test.
     """
-    match = _PDF_BOUNDARY_RE.search(text)
-    kept_end = match.start() if match else len(text)
-    kept = text[:kept_end]
+    if not text:
+        return ()
+    if not text.strip():
+        return (Deletion(kind="leading_whitespace", raw_start=0, raw_end=len(text)),)
 
     deletions: list[Deletion] = []
-    leading = len(kept) - len(kept.lstrip())
+    leading = len(text) - len(text.lstrip())
     if leading:
         deletions.append(
             Deletion(kind="leading_whitespace", raw_start=0, raw_end=leading)
         )
-    trailing = len(kept) - len(kept.rstrip())
+    trailing = len(text) - len(text.rstrip())
     if trailing:
         deletions.append(
             Deletion(
                 kind="trailing_whitespace",
-                raw_start=kept_end - trailing,
-                raw_end=kept_end,
-            )
-        )
-    if match:
-        deletions.append(
-            Deletion(
-                kind="pdf_attachment",
-                raw_start=match.start(),
-                raw_end=match.end(),
+                raw_start=len(text) - trailing,
+                raw_end=len(text),
             )
         )
     return tuple(deletions)
@@ -105,7 +136,7 @@ def build_chunk_source_text(chunk_id_texts: list[tuple[str, str]]) -> SourceText
     return build_source_text(
         [RawChunk(chunk_id=cid, text=text) for cid, text in chunk_id_texts],
         separator=CHUNK_TEXT_SEPARATOR,
-        normalise=pdf_attachment_deletions,
+        normalise=bundle_trim_deletions,
     )
 
 
@@ -189,9 +220,21 @@ def _normalise_chunk_texts(
     organization_id: str = "",
     service_id: str = "",
     ers_service_id: str = "",
+    resolve_schema: bool = True,
 ) -> tuple[list[str], dict[str, str]]:
-    """Normalise chunk texts, using chunk_section_map when a schema is known."""
+    """Normalise chunk texts, using chunk_section_map when a schema is known.
+
+    ``resolve_schema=False`` skips the taught-form lookup for callers whose
+    chunks are not a referral form bundle, such as an attachment on a
+    clinician's email. There is nothing to resolve, and the lookup would
+    otherwise make the caller depend on the graph being reachable.
+    """
     from libs.pipeline.form_schema_normalizer import normalise_chunks_with_schema
+
+    if not resolve_schema:
+        from libs.pipeline.form_schema_store import form_schema_state_fields
+
+        return list(raw_texts), form_schema_state_fields("not_applicable")
 
     schema, fields = _resolve_chunk_schema(
         raw_texts,
@@ -202,11 +245,10 @@ def _normalise_chunk_texts(
     if not raw_texts:
         return [], fields
     if schema is not None and schema.sections:
-        return (
-            normalise_chunks_with_schema(schema, raw_texts, schema.chunk_section_map),
-            fields,
-        )
-    return [normalize_form_checkbox_text(text) for text in raw_texts], fields
+        normalised = normalise_chunks_with_schema(schema, raw_texts, schema.chunk_section_map)
+    else:
+        normalised = [normalize_form_checkbox_text(text) for text in raw_texts]
+    return [_mark_non_extractable_chunk(t) for t in normalised], fields
 
 
 def _prepare_chunk_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -239,25 +281,46 @@ def _legacy_chunk_bounds(
     return int(char_start), int(char_end), offset
 
 
+def chunk_sentence_label(index: int) -> str:
+    """Return the model-facing label for the chunk at ``index``.
+
+    Every few-shot example in ``libs/prompts/extraction_examples.py``
+    answers with an ``s0``-style id, so that is the only id the model
+    reliably echoes.  Handed a 32-character chunk hash it copied the
+    first one onto every fact instead.
+    """
+    return f"s{index}"
+
+
 def _build_legacy_sentences(
-    prepared: list[dict[str, Any]], normalised_texts: list[str]
-) -> list[dict[str, Any]]:
-    """Build the legacy sentence dicts, offsets and all."""
+    prepared: list[dict[str, Any]],
+    normalised_texts: list[str],
+) -> tuple[list[dict[str, Any]], dict[str, str]]:
+    """Build the legacy sentence dicts and the label to chunk-id map.
+
+    ``sentence_id`` is the short label the extractor speaks.  The real
+    Neo4j chunk id travels alongside it, on the sentence and in the
+    returned map, because that is what a :DOCUMENTS write must match.
+    """
     sentences: list[dict[str, Any]] = []
+    chunk_id_by_sentence_id: dict[str, str] = {}
     offset = 0
     for index, item in enumerate(prepared):
         text_raw = item["text_raw"]
         start, end, offset = _legacy_chunk_bounds(item["row"], text_raw, offset)
+        label = chunk_sentence_label(index)
+        chunk_id_by_sentence_id[label] = item["chunk_id"]
         sentences.append(
             {
-                "sentence_id": item["chunk_id"],
+                "sentence_id": label,
+                "chunk_id": item["chunk_id"],
                 "text": normalised_texts[index],
                 "text_raw": text_raw,
                 "start": start,
                 "end": end,
             }
         )
-    return sentences
+    return sentences, chunk_id_by_sentence_id
 
 
 def build_document_chunk_state(
@@ -265,21 +328,35 @@ def build_document_chunk_state(
     organization_id: str = "",
     service_id: str = "",
     ers_service_id: str = "",
+    resolve_schema: bool = True,
 ) -> dict[str, Any]:
-    """Map Neo4j chunk rows to pipeline state (sentences + encounter_text)."""
+    """Map Neo4j chunk rows to pipeline state (sentences + encounter_text).
+
+    Set ``resolve_schema=False`` when the chunks are not a referral form
+    bundle, so no taught-form lookup is attempted.
+    """
     prepared = _prepare_chunk_rows(rows)
     normalised_texts, schema_fields = _normalise_chunk_texts(
         [p["text_raw"] for p in prepared],
         organization_id=organization_id,
         service_id=service_id,
         ers_service_id=ers_service_id,
+        resolve_schema=resolve_schema,
     )
-    sentences = _build_legacy_sentences(prepared, normalised_texts)
+    sentences, chunk_id_by_sentence_id = _build_legacy_sentences(
+        prepared, normalised_texts
+    )
     text_parts = [p["text_raw"] for p in prepared]
 
-    encounter_text = strip_pdf_attachments(CHUNK_TEXT_SEPARATOR.join(text_parts))
+    # Every chunk, attachments included. This is the one coordinate space:
+    # SpanResolver looks quotes up here, ConText decides the assertion here,
+    # and lab-value recovery scans here. Anything shown to the model that is
+    # missing from this string resolves to offset 0 -- the document banner --
+    # and the assertion is then decided by the wrong text.
+    encounter_text = CHUNK_TEXT_SEPARATOR.join(text_parts).strip()
     return {
         "sentences": sentences,
+        "chunk_id_by_sentence_id": chunk_id_by_sentence_id,
         "encounter_text": encounter_text,
         "source_text": build_chunk_source_text(
             [(p["chunk_id"], p["text_raw"]) for p in prepared]
@@ -301,6 +378,7 @@ def load_document_chunks_from_neo4j(
 
         return {
             "sentences": [],
+            "chunk_id_by_sentence_id": {},
             "encounter_text": "",
             "source_text": build_chunk_source_text([]),
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,

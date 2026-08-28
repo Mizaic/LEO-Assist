@@ -26,6 +26,21 @@ from langgraph.graph.state import CompiledStateGraph
 
 logger = logging.getLogger(__name__)
 
+DOCUMENT_CHUNKS_MODE = "document_chunks"
+COMMUNICATION_THREAD_MODE = "communication_thread"
+
+# Plain-English warning key. A run that reaches this has lost clinical
+# facts, so it must be visible to a person, not only in a log line.
+UNWRITABLE_FACTS_WARNING = "facts_not_linked"
+
+# The short, model-facing sentence label the extraction prompt is primed
+# on. It is not the identity of any node in the graph.
+_SHORT_SENTENCE_LABEL = re.compile(r"^s\d+$")
+
+# Stamped on a fact that arrived without a sentence. It means "we do not
+# know where this came from", so it can never address a source node.
+FALLBACK_SENTENCE_ID = "s-fallback"
+
 
 class PersistState(TypedDict, total=False):
     patient_id: str
@@ -43,6 +58,8 @@ class PersistState(TypedDict, total=False):
     documents_written: int
     training_labels_written: int
     text_segmentation_mode: str
+    chunk_id_by_sentence_id: dict[str, str]
+    warnings: list[str]
     errors: list[str]
 
 
@@ -101,6 +118,153 @@ def _resolve_entity_sentence(
 
     fallback_text = str(entity.get("text") or "").strip()
     return "__fallback__", fallback_text
+
+
+def resolve_chunk_source_id(
+    sentence_id: str,
+    chunk_id_by_sentence_id: dict[str, str],
+) -> str | None:
+    """Return the :Chunk id a sentence label stands for, or ``None``.
+
+    The graph write matches ``(src:Chunk {id: $source_id})``. A short
+    ``s0`` label matches no node, so the write touches nothing and still
+    reports success. Per fail-closed-boundary rule 2 this lookup has
+    three answers: the real id, a pass-through for an id that is already
+    real, and ``None`` for a label nothing stands behind.
+    """
+    sid = str(sentence_id or "").strip()
+    if not sid or sid == FALLBACK_SENTENCE_ID:
+        return None
+    mapped = str((chunk_id_by_sentence_id or {}).get(sid) or "").strip()
+    if mapped:
+        return mapped
+    if _SHORT_SENTENCE_LABEL.match(sid):
+        return None
+    return sid
+
+
+def default_source_label(text_segmentation_mode: str) -> str:
+    """Return the node label sentences link from in this mode."""
+    mode = str(text_segmentation_mode or "")
+    if mode == DOCUMENT_CHUNKS_MODE:
+        return "Chunk"
+    if mode == COMMUNICATION_THREAD_MODE:
+        return "Communication"
+    return "Encounter"
+
+
+def _log_unlinked_terms(sentence_id: str, terms: list[dict[str, Any]]) -> None:
+    if not terms:
+        return
+    logger.error(
+        "%s: %d fact(s) name sentence %r, which is not a source we can find "
+        "in the graph. They were not saved.",
+        UNWRITABLE_FACTS_WARNING,
+        len(terms),
+        sentence_id,
+    )
+
+
+def _payload_source_id(
+    sentence: dict[str, Any],
+    default_label: str,
+    reverse: dict[str, str],
+) -> str | None:
+    """Return the id to write this sentence's facts against."""
+    sid = str(sentence.get("sentence_id") or "")
+    label = str(sentence.get("persist_source_label") or default_label).strip()
+    if label != "Chunk":
+        return sid
+    return resolve_chunk_source_id(sid, reverse)
+
+
+def _fallback_payload_rows(
+    encounter_text: str,
+    pending: dict[str, list[dict[str, Any]]],
+    default_label: str,
+    reverse: dict[str, str],
+) -> list[dict[str, Any]]:
+    """Rows for facts whose sentence is not in the sentence list."""
+    rows: list[dict[str, Any]] = []
+    for sid, terms in pending.items():
+        source_id = (
+            resolve_chunk_source_id(sid, reverse) if default_label == "Chunk" else sid
+        )
+        if source_id is None:
+            _log_unlinked_terms(sid, terms)
+            continue
+        rows.append({"sentence_id": source_id, "text": encounter_text, "terms": terms})
+    return rows
+
+
+def build_sentences_payload(
+    state: dict[str, Any],
+    terms_by_sentence: dict[str, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    """Build the write payload, translating labels to real chunk ids.
+
+    A sentence whose label cannot be translated is dropped rather than
+    written against an id that matches nothing. Dropping is counted, so
+    the run can tell a person facts went missing.
+    """
+    default_label = default_source_label(state.get("text_segmentation_mode") or "")
+    reverse = dict(state.get("chunk_id_by_sentence_id") or {})
+    pending = {sid: list(terms) for sid, terms in (terms_by_sentence or {}).items()}
+    payload: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for sentence in state.get("sentences") or []:
+        sid = str(sentence.get("sentence_id") or "")
+        if not sid or sid in seen:
+            continue
+        seen.add(sid)
+        terms = pending.pop(sid, [])
+        source_id = _payload_source_id(sentence, default_label, reverse)
+        if source_id is None:
+            _log_unlinked_terms(sid, terms)
+            continue
+        payload.append(
+            {
+                "sentence_id": source_id,
+                "text": sentence.get("text", ""),
+                "terms": terms,
+                "persist_source_label": sentence.get("persist_source_label"),
+            }
+        )
+    payload.extend(
+        _fallback_payload_rows(
+            str(state.get("encounter_text") or ""), pending, default_label, reverse
+        )
+    )
+    return payload
+
+
+def _unlinked_count(
+    terms_by_sentence: dict[str, list[dict[str, Any]]],
+    payload: list[dict[str, Any]],
+) -> int:
+    offered = sum(len(terms) for terms in (terms_by_sentence or {}).values())
+    carried = sum(len(row.get("terms") or []) for row in payload)
+    return max(0, offered - carried)
+
+
+def unwritable_term_count(
+    state: dict[str, Any],
+    terms_by_sentence: dict[str, list[dict[str, Any]]],
+) -> int:
+    """How many facts cannot reach a real source node in the graph."""
+    return _unlinked_count(
+        terms_by_sentence, build_sentences_payload(state, terms_by_sentence)
+    )
+
+
+def unwritable_facts_warning(count: int) -> str:
+    """Plain-English warning text for facts that could not be saved."""
+    facts = "fact" if count == 1 else "facts"
+    return (
+        f"{UNWRITABLE_FACTS_WARNING}: we could not match {count} {facts} to the "
+        "part of the referral they came from, so they were not saved. "
+        "Please ask someone to check this run."
+    )
 
 
 def _split_sentence_lines(sentence_text: str) -> list[str]:
@@ -257,7 +421,7 @@ def _entity_persist_term(
         "extraction_model_version": entity.get("__model_version", ""),
         "contract_version": entity.get("__contract_version", ""),
         "domain": entity.get("domain", "clinical"),
-        "__sentence_id": entity.get("__sentence_id") or "s-fallback",
+        "__sentence_id": entity.get("__sentence_id") or FALLBACK_SENTENCE_ID,
     }
 
 
@@ -355,21 +519,22 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
 
     entities = state.get("entities") or []
     raw_sentences = state.get("sentences") or []
-    encounter_text = state.get("encounter_text") or ""
     encounter_id = state.get("encounter_id") or ""
     patient_id = state.get("patient_id") or ""
     run_id = state.get("run_id") or ""
     tier_decisions = state.get("tier_decisions") or []
     llm_check_changes = state.get("llm_check_changes") or []
     errors = list(state.get("errors") or [])
+    warnings = list(state.get("warnings") or [])
 
     if not entities:
-        return {"documents_written": 0, "errors": errors}
+        return {"documents_written": 0, "errors": errors, "warnings": warnings}
     if _has_coding_qc_hold(llm_check_changes):
         logger.info("Skipping patient graph write due to coding QC hold")
         return {
             "documents_written": 0,
             "errors": errors,
+            "warnings": warnings,
             "status": "held_pending_review",
         }
 
@@ -399,42 +564,18 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                     sentence_id = str(term.pop("__sentence_id"))
                     terms_by_sentence.setdefault(sentence_id, []).append(term)
 
-                sentences_payload: list[dict[str, Any]] = []
-                seen_ids: set[str] = set()
-                for s in raw_sentences:
-                    sid = str(s.get("sentence_id") or "")
-                    if not sid or sid in seen_ids:
-                        continue
-                    seen_ids.add(sid)
-                    sentences_payload.append(
-                        {
-                            "sentence_id": sid,
-                            "text": s.get("text", ""),
-                            "terms": terms_by_sentence.pop(sid, []),
-                            "persist_source_label": s.get("persist_source_label"),
-                        }
-                    )
-                # Include any terms that did not carry a sentence_id.
-                for sid, terms in terms_by_sentence.items():
-                    fallback_text = encounter_text
-                    sentences_payload.append(
-                        {"sentence_id": sid, "text": fallback_text, "terms": terms}
-                    )
-
                 mode = str(state.get("text_segmentation_mode") or "")
-                if mode == "document_chunks":
-                    default_source_label = "Chunk"
-                elif mode == "communication_thread":
-                    default_source_label = "Communication"
-                else:
-                    default_source_label = "Encounter"
+                sentences_payload = build_sentences_payload(state, terms_by_sentence)
+                unlinked = _unlinked_count(terms_by_sentence, sentences_payload)
+                if unlinked:
+                    warnings.append(unwritable_facts_warning(unlinked))
                 docs_written = write_documents_from_sentences_payload(
                     encounter_id=encounter_id,
                     sentences_payload=sentences_payload,
                     session=session,
                     source="pipeline",
                     run_id=run_id,
-                    source_label=default_source_label,
+                    source_label=default_source_label(mode),
                 )
 
                 n = _write_coding_decisions(
@@ -455,11 +596,15 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
             n,
             encounter_id,
         )
-        return {"documents_written": docs_written, "errors": errors}
+        return {
+            "documents_written": docs_written,
+            "errors": errors,
+            "warnings": warnings,
+        }
     except Exception as exc:
         logger.exception("Patient graph persist failed")
         errors.append(f"persist_patient_graph: {exc}")
-        return {"documents_written": 0, "errors": errors}
+        return {"documents_written": 0, "errors": errors, "warnings": warnings}
 
 
 def write_gold_training(state: PersistState) -> dict[str, Any]:
@@ -724,6 +869,7 @@ def write_both(state: PersistState) -> dict[str, Any]:
         "documents_written": pg.get("documents_written", 0),
         "training_labels_written": gt.get("training_labels_written", 0),
         "errors": combined_errors,
+        "warnings": list(pg.get("warnings") or []),
     }
 
 

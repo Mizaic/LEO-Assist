@@ -51,6 +51,9 @@ class ExtractionState(TypedDict, total=False):
     strict_model_version: bool
     prompt_config: dict[str, Any]
     sentences: list[dict[str, Any]]
+    # Short sentence label -> real Neo4j :Chunk id. The extractor answers
+    # with the label; a graph write must match the chunk id.
+    chunk_id_by_sentence_id: dict[str, str]
     entities: list[dict[str, Any]]
     extraction_model_name: str
     extraction_model_version: str
@@ -107,6 +110,7 @@ class PersistState(TypedDict, total=False):
     patient_id: str
     encounter_id: str
     entities: list[dict[str, Any]]
+    chunk_id_by_sentence_id: dict[str, str]
     tier_decisions: list[dict[str, Any]]
     output_target: str
     documents_written: int
@@ -163,6 +167,7 @@ class PipelineState(TypedDict, total=False):
     encounter: EncounterContext
     source_text: SourceText | None
     sentences: list[dict[str, Any]]
+    chunk_id_by_sentence_id: dict[str, str]
     entities: list[dict[str, Any]]
     resolved_entities: list[dict[str, Any]]
     tier_decisions: list[dict[str, Any]]
@@ -180,4 +185,7 @@ class PipelineState(TypedDict, total=False):
     # Metadata
     run_id: str
     errors: list[str]
+    # Degradations a person must see, e.g. facts that could not be linked
+    # back to the part of the referral they came from.
+    warnings: list[str]
     checkpoints: list[str]

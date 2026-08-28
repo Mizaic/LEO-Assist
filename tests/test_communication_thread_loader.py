@@ -149,7 +149,10 @@ def test_build_thread_state_appends_cr_level_attachments_before_agr_when_present
         agr_response_text="Formal response",
     )
     ids = [s["sentence_id"] for s in loaded["sentences"]]
-    assert ids == ["c1", "cr-chunk", "cr-1:response"]
+    # Attachment chunks carry the short label the extractor echoes back;
+    # comms notes keep their own ids. Order is what this test pins.
+    assert ids == ["c1", "s0", "cr-1:response"]
+    assert loaded["chunk_id_by_sentence_id"] == {"s0": "cr-chunk"}
     assert loaded["sentences"][1]["persist_source_label"] == "Chunk"
 
 

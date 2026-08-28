@@ -52,6 +52,20 @@ def _index_sentences(
     return out
 
 
+@dataclass(frozen=True)
+class SpanResolution:
+    """Where a term was placed, and whether it was really found there.
+
+    ``resolved=False`` means the offsets are a fallback guess rather than a
+    match, so anything downstream that reads the text at those offsets is
+    reading text the term did not come from.
+    """
+
+    start: int
+    end: int
+    resolved: bool
+
+
 @dataclass
 class SpanResolver:
     """Resolve absolute encounter offsets for ordered LLM-extracted terms.
@@ -87,24 +101,47 @@ class SpanResolver:
         found anywhere in the encounter; this preserves backward-compatible
         behaviour for malformed extractor output while ensuring correct output
         in the common case.
+
+        Prefer ``resolve_traced`` on any path that records a clinical fact:
+        this two-value form cannot tell a found span from a guessed one.
+        """
+        outcome = self.resolve_traced(term_text, sentence_id)
+        return outcome.start, outcome.end
+
+    def resolve_traced(
+        self, term_text: str, sentence_id: str | None = None
+    ) -> SpanResolution:
+        """Resolve ``term_text`` and say whether it was actually found.
+
+        The fallback offsets are deliberately unchanged, so no run behaves
+        differently because of this method. What is new is that the caller
+        can tell a match from a guess. A guessed span is how a fact ends up
+        cited against the bundle's opening ``--- Document: ... ---`` banner,
+        which then decides its assertion from the wrong text.
         """
         term = (term_text or "").strip()
         fallback_len = max(len(term), 1)
         if not term:
-            return 0, fallback_len
+            return SpanResolution(start=0, end=fallback_len, resolved=False)
 
         sid = str(sentence_id or "")
         sentence = self._sentences.get(sid) if sid else None
         if sentence is not None:
             abs_span = self._match_in_sentence(sentence, term)
             if abs_span is not None:
-                return abs_span
-            return sentence.start, sentence.start + fallback_len
+                return SpanResolution(start=abs_span[0], end=abs_span[1], resolved=True)
+            return SpanResolution(
+                start=sentence.start,
+                end=sentence.start + fallback_len,
+                resolved=False,
+            )
 
         encounter_span = self._match_in_encounter(term)
         if encounter_span is not None:
-            return encounter_span
-        return 0, fallback_len
+            return SpanResolution(
+                start=encounter_span[0], end=encounter_span[1], resolved=True
+            )
+        return SpanResolution(start=0, end=fallback_len, resolved=False)
 
     def _match_in_sentence(
         self, sentence: _ResolvedSentence, term: str

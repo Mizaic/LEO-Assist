@@ -54,6 +54,7 @@ from libs.pipeline.form_schema_request import (
 )
 from libs.pipeline.form_schema_section_types import validate_section_type
 from libs.pipeline.form_schema_store import (
+    FormSchemaLookupError,
     FormSchemaWrite,
     delete_form_schema,
     load_form_schema,
@@ -77,6 +78,13 @@ from libs.pipeline.form_schema_similarity import (
 )
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
+
+# A failed lookup must never read as "this form was never taught".
+_LOOKUP_UNAVAILABLE = (
+    "We could not reach the form database, so we cannot tell you whether "
+    "this form has been taught. Nothing was changed. Please try again in a "
+    "moment, and tell support if it keeps happening."
+)
 
 require_form_teacher = require_role(*FORM_TEACHER_ROLES)
 
@@ -304,6 +312,8 @@ def get_schema(
             service_id=service_id,
             ers_service_id=ers_service_id,
         )
+    except FormSchemaLookupError as exc:
+        raise HTTPException(status_code=503, detail=_LOOKUP_UNAVAILABLE) from exc
     finally:
         client.close()
     if schema is None:
@@ -417,6 +427,8 @@ def generate_template(
         )
     except HTTPException:
         raise
+    except FormSchemaLookupError as exc:
+        raise HTTPException(status_code=503, detail=_LOOKUP_UNAVAILABLE) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:

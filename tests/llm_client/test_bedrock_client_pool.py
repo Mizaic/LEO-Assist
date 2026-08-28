@@ -50,14 +50,18 @@ class TestBedrockMaxPoolConnections:
         monkeypatch.delenv("SB_MAX_CONCURRENT_CALLS", raising=False)
         assert bedrock_max_pool_connections() == 48
 
-    def test_scales_with_sb_concurrency_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_scales_with_sb_concurrency_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from libs.llm_client.bedrock_client import bedrock_max_pool_connections
 
         monkeypatch.delenv("BEDROCK_MAX_POOL_CONNECTIONS", raising=False)
         monkeypatch.setenv("SB_MAX_CONCURRENT_CALLS", "8")
         assert bedrock_max_pool_connections() == 32
 
-    def test_scales_with_sb_concurrency_high(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_scales_with_sb_concurrency_high(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from libs.llm_client.bedrock_client import bedrock_max_pool_connections
 
         monkeypatch.delenv("BEDROCK_MAX_POOL_CONNECTIONS", raising=False)
@@ -129,9 +133,14 @@ class TestCreateLlmBedrockReuse:
     ) -> None:
         from libs.llm_client.factory import create_llm, reset_llm_cache
 
+        # Without this the factory honours the local AWS_LLM_ENABLED=false,
+        # quietly hands back an Azure client, and the test fails on the
+        # Azure endpoint it just deleted rather than on client reuse.
+        monkeypatch.setenv("AWS_LLM_ENABLED", "true")
         monkeypatch.setenv("AWS_SMALL_MODEL", "anthropic.claude-haiku-test")
         monkeypatch.setenv(
-            "AWS_BEDROCK_MODEL", "arn:aws:bedrock:eu-west-2::anthropic.claude-haiku-test"
+            "AWS_BEDROCK_MODEL",
+            "arn:aws:bedrock:eu-west-2::anthropic.claude-haiku-test",
         )
         monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
         reset_llm_cache()

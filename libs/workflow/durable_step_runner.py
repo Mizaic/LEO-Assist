@@ -77,6 +77,37 @@ _PIPELINE_QUEUE = "pipeline-jobs"
 
 _DEFAULT_PORTS = {"else", "default", "false"}
 
+_DEGRADED_WARNING = "degraded_safety_layer"
+
+# Plain English, action first. A person reads these in the work queue.
+_PAUSE_DEGRADED = (
+    "Check this letter by hand. A safety check could not run, so the "
+    "findings below may be wrong."
+)
+_PAUSE_ERRORED = (
+    "Check this letter by hand. Part of it could not be read, so some "
+    "findings may be missing."
+)
+_PAUSE_LOW_QUALITY = (
+    "Check this letter by hand. We are not confident we read this form " "correctly."
+)
+
+
+def _pause_reason(*, degraded: bool, errored: bool, low_quality: bool) -> str:
+    """Return the reason a person needs to look, or "" when none applies.
+
+    Errors alone do not open a pause. They keep the harder stop they
+    already had, so ``errored`` only chooses the wording once something
+    else has already asked for one.
+    """
+    if not (degraded or low_quality):
+        return ""
+    if degraded:
+        return _PAUSE_DEGRADED
+    if errored:
+        return _PAUSE_ERRORED
+    return _PAUSE_LOW_QUALITY
+
 
 # PlanAction (_Action) lives in plan_manifest -- pinned snapshot actions only.
 
@@ -324,39 +355,82 @@ def _capability_provenance(action: _Action) -> StepProvenance:
     )
 
 
+def _document_quality_from_payload(raw: Any) -> Any:
+    """Rebuild a DocumentQuality from step output, or None when absent."""
+    from libs.pipeline.document_quality import DocumentQuality
+
+    if not isinstance(raw, dict) or not raw:
+        return None
+    return DocumentQuality(
+        document_quality_score=float(raw.get("document_quality_score") or 0.0),
+        quality_reasons=list(raw.get("quality_reasons") or []),
+        form_fingerprint_id=str(raw.get("form_fingerprint_id") or "unknown"),
+        few_shot_max_similarity=float(raw.get("few_shot_max_similarity") or 0.0),
+    )
+
+
+def _apply_extraction_quality_gate(
+    payload: dict[str, Any],
+) -> tuple[dict[str, Any], bool]:
+    """Run the document-quality gate. Returns (payload, gate_asks_for_pause).
+
+    The gate runs whether or not the step recorded errors. An error must
+    never be the reason a run skips the pause -- see rule 4 of
+    .cursor/rules/fail-closed-boundary.mdc.
+    """
+    from libs.pipeline.extraction_quality_gate import apply_gate_to_step_output
+
+    quality = _document_quality_from_payload(payload.get("document_quality"))
+    if quality is None:
+        return payload, False
+    gated = apply_gate_to_step_output(payload, quality)
+    return gated["output"], gated["decision"].action == "pause"
+
+
 def _step_result_for_output(
     action: _Action, output: dict[str, Any] | None
 ) -> DurableStepResult:
+    """Build a step result, pausing for a person whenever something went wrong.
+
+    Two things force a pause, and an error can never remove either:
+      - the payload is marked ``degraded`` (a safety layer could not run)
+      - the document-quality gate asks for a pause
+
+    The gate now runs whether or not the step recorded errors. An error
+    must never be the reason a run skips the pause -- see rule 4 of
+    .cursor/rules/fail-closed-boundary.mdc.
+
+    Errors do not open a pause on their own. They keep the harder stop
+    they already had: ``_is_stage_failure`` sees the errors, marks the run
+    failed, and dispatches no successor. Turning that into a pause would
+    soften a hard stop, because ``_is_stage_failure`` ignores errors on a
+    paused result.
+    """
     payload = dict(output or {})
     warnings = list(payload.get("warnings") or [])
     errors = list(payload.get("errors") or [])
-    status = "completed"
-    if action.subgraph_id == "extraction" and not errors:
-        from libs.pipeline.document_quality import DocumentQuality
-        from libs.pipeline.extraction_quality_gate import apply_gate_to_step_output
-
-        raw = payload.get("document_quality")
-        if not raw:
-            return DurableStepResult(
-                status=status, output=payload, warnings=warnings, errors=errors
-            )
-        quality = DocumentQuality(
-            document_quality_score=float(raw.get("document_quality_score") or 0.0),
-            quality_reasons=list(raw.get("quality_reasons") or []),
-            form_fingerprint_id=str(raw.get("form_fingerprint_id") or "unknown"),
-            few_shot_max_similarity=float(raw.get("few_shot_max_similarity") or 0.0),
+    low_quality = False
+    if action.subgraph_id == "extraction":
+        payload, low_quality = _apply_extraction_quality_gate(payload)
+    degraded = payload.get("degraded") is True
+    reason = _pause_reason(
+        degraded=degraded, errored=bool(errors), low_quality=low_quality
+    )
+    if not reason:
+        return DurableStepResult(
+            status="completed", output=payload, warnings=warnings, errors=errors
         )
-        gated = apply_gate_to_step_output(payload, quality)
-        payload = gated["output"]
-        if gated["decision"].action == "pause":
-            status = "paused"
-            warnings.append("extraction_quality_pause")
+    payload["pause_reason"] = reason
+    if degraded:
+        warnings.append(_DEGRADED_WARNING)
+    if low_quality:
+        warnings.append("extraction_quality_pause")
     return DurableStepResult(
-        status=status,
+        status="paused",
         output=payload,
         warnings=warnings,
         errors=errors,
-        next_event_type=None if status == "paused" else None,
+        next_event_type=None,
     )
 
 

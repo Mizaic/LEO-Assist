@@ -133,7 +133,7 @@ class _PendingDocWrite:
     surface_form_span: str | None = None
 
 
-# Maps normalised semantic tag → Neo4j node label (mirrors patient_graph_writer.py)
+# Maps normalised semantic tag -> Neo4j node label (mirrors patient_graph_writer.py)
 _LABEL_BY_TAG: dict[str, str] = {
     "situation": "Situation",
     "clinicalfinding": "Clinical_finding",
@@ -176,7 +176,7 @@ _BLOCKED_SEMANTIC_TAGS: frozenset[str] = frozenset(
     }
 )
 
-# Maps Neo4j node label → patient-level relationship type
+# Maps Neo4j node label -> patient-level relationship type
 _REL_BY_LABEL: dict[str, str] = {
     "Clinical_finding": "HAS_FINDING",
     "Disease": "HAS_DISORDER",
@@ -464,33 +464,89 @@ def _assertion_context(assertion: str | None) -> dict:
     }
 
 
-def _select_evidence_sentence(sentence_text: str, span_text: str) -> str:
-    """Choose the smallest sentence/line containing span_text.
+def select_evidence_sentence_traced(
+    sentence_text: str, span_text: str
+) -> tuple[str, bool]:
+    """Choose the smallest sentence or line holding ``span_text``.
 
-    Some pipelines can pass a multi-line encounter block as sentence text.
-    We still persist sentence-level evidence by shrinking to the best
-    matching line/sentence before de-identification.
+    Returns ``(text, found)``. ``found=False`` means the fact's words are
+    not in the text we hold, so the returned text is context and not
+    evidence. This lookup used to have two answers, and the caller could
+    not tell a narrowed sentence from a whole document banner handed back
+    unchanged -- which is how every fact on a referral came to quote the
+    banner (fail-closed-boundary.mdc rule 2).
     """
     text = (sentence_text or "").strip()
     span = (span_text or "").strip()
     if not text or not span:
-        return text
+        return text, False
 
     span_lower = span.lower()
     if span_lower not in text.lower():
-        return text
+        return text, False
 
     lines = [ln.strip() for ln in re.split(r"\n+", text) if ln.strip()]
     line_hits = [ln for ln in lines if span_lower in ln.lower()]
     if line_hits:
-        return min(line_hits, key=len)
+        return min(line_hits, key=len), True
 
     sentence_parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", text) if p.strip()]
     sentence_hits = [p for p in sentence_parts if span_lower in p.lower()]
     if sentence_hits:
-        return min(sentence_hits, key=len)
+        return min(sentence_hits, key=len), True
 
-    return text
+    return text, True
+
+
+def _select_evidence_sentence(sentence_text: str, span_text: str) -> str:
+    """Backwards-compatible view of :func:`select_evidence_sentence_traced`."""
+    narrowed, _ = select_evidence_sentence_traced(sentence_text, span_text)
+    return narrowed
+
+
+def _link_source_id_for(
+    sentence: dict[str, Any], encounter_id: str, source_label: str
+) -> str:
+    """Which node a fact from *sentence* hangs off.
+
+    Chunk and Communication sentences own their own node; anything else
+    hangs off the encounter.
+    """
+    sentence_source_id = str(sentence.get("sentence_id") or encounter_id).strip()
+    label = str(sentence.get("persist_source_label") or source_label).strip()
+    if label in ("Chunk", "Communication"):
+        return sentence_source_id
+    return encounter_id
+
+
+def locate_span_in_sentences(
+    sentences_payload: list[dict[str, Any]],
+    span_text: str,
+    claimed_index: int,
+) -> tuple[int, dict[str, Any]] | None:
+    """Find the one other sentence that holds ``span_text``.
+
+    The model tells us which sentence a fact came from, and it is sometimes
+    wrong: blood pressure printed in the vitals table was reported against
+    the blood panel. The fact's own words are better evidence of origin than
+    the label, so when exactly one other sentence contains them we can say
+    where it really came from.
+
+    Returns ``(index, sentence)``, or ``None`` when no sentence holds the
+    words or more than one does. Ambiguity is never resolved by guessing.
+    """
+    span = (span_text or "").strip().lower()
+    if not span:
+        return None
+
+    hits = [
+        (index, sentence)
+        for index, sentence in enumerate(sentences_payload)
+        if index != claimed_index and span in str(sentence.get("text") or "").lower()
+    ]
+    if len(hits) != 1:
+        return None
+    return hits[0]
 
 
 def _collect_pending_document_writes(
@@ -509,16 +565,10 @@ def _collect_pending_document_writes(
     pending: list[_PendingDocWrite] = []
     for sentence_index, sentence in enumerate(sentences_payload):
         sentence_text = sentence.get("text") or ""
-        sentence_source_id = str(sentence.get("sentence_id") or encounter_id).strip()
         sentence_source_label = str(
             sentence.get("persist_source_label") or source_label
         ).strip()
-        if sentence_source_label == "Chunk":
-            link_source_id = sentence_source_id
-        elif sentence_source_label == "Communication":
-            link_source_id = sentence_source_id
-        else:
-            link_source_id = encounter_id
+        link_source_id = _link_source_id_for(sentence, encounter_id, source_label)
         for term in sentence.get("terms", []):
             coding = term.get("coding") or {}
             concept_id = coding.get("snomed_concept_id")
@@ -558,11 +608,51 @@ def _collect_pending_document_writes(
 
             label = _label_for_tag(semantic_tag)
             rel_type = _REL_BY_LABEL.get(label, "HAS_CONCEPT")
-            query = _build_upsert_query(
-                label, rel_type, source_label=sentence_source_label
-            )
             span_text = term.get("text") or ""
-            narrowed_sentence = _select_evidence_sentence(sentence_text, span_text)
+            narrowed_sentence, located = select_evidence_sentence_traced(
+                sentence_text, span_text
+            )
+            write_source_id = link_source_id
+            write_sentence_index = sentence_index
+            # Relocation can move a fact to a sentence with a different
+            # source label, so the upsert query is built from the label we
+            # end up writing against, not the one we started with.
+            write_source_label = sentence_source_label
+            if not located:
+                # The model named the wrong sentence. If the words sit in
+                # exactly one other sentence, that is where they came from.
+                relocated = locate_span_in_sentences(
+                    sentences_payload, span_text, sentence_index
+                )
+                if relocated is not None:
+                    found_index, found_sentence = relocated
+                    narrowed_sentence, located = select_evidence_sentence_traced(
+                        str(found_sentence.get("text") or ""), span_text
+                    )
+                    write_sentence_index = found_index
+                    write_source_id = _link_source_id_for(
+                        found_sentence, encounter_id, source_label
+                    )
+                    write_source_label = str(
+                        found_sentence.get("persist_source_label") or source_label
+                    ).strip()
+                    logger.info(
+                        "evidence_relocated: the words %r were reported against "
+                        "source %s but appear in source %s, so this fact is "
+                        "recorded against the source that holds them",
+                        span_text,
+                        link_source_id,
+                        write_source_id,
+                    )
+            if not located:
+                logger.warning(
+                    "evidence_not_located: the words %r are not in the text we "
+                    "hold for source %s (encounter %s), so this fact has no "
+                    "evidence offsets and a person should check it",
+                    span_text,
+                    link_source_id,
+                    encounter_id,
+                )
             deident, ev_start, ev_end = deidentify_with_span(
                 narrowed_sentence, span_text
             )
@@ -580,20 +670,24 @@ def _collect_pending_document_writes(
                 evidence_start = ev_start
                 evidence_end = ev_end
 
+            query = _build_upsert_query(
+                label, rel_type, source_label=write_source_label
+            )
+
             term_assertion = term.get("assertion") or "present"
             term_source = coding.get("source") or source
             modifiers = term.get("modifiers") or {}
             surface_form_span = span_text if term_source == "terminology_api" else None
 
             sort_key = _doc_write_sort_key(
-                str(concept_id), link_source_id, sentence_index
+                str(concept_id), write_source_id, write_sentence_index
             )
             pending.append(
                 _PendingDocWrite(
                     sort_key=sort_key,
                     query=query,
                     params={
-                        "source_id": link_source_id,
+                        "source_id": write_source_id,
                         "concept_id": str(concept_id),
                         "semantic_tag": semantic_tag,
                         "name": coding.get("snomed_term") or span_text,
@@ -623,7 +717,7 @@ def _collect_pending_document_writes(
                         "evidence_sentence": evidence_sentence,
                         "evidence_start": evidence_start,
                         "evidence_end": evidence_end,
-                        "sentence_index": sentence_index,
+                        "sentence_index": write_sentence_index,
                         "holdout": False,
                     },
                     surface_form_span=surface_form_span,

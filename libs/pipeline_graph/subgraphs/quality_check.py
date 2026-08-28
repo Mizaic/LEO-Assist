@@ -22,7 +22,7 @@ from libs.completeness.evaluator import (
     semantic_tags_from_entities,
 )
 from libs.completeness.logic_groups import collect_concept_ids
-from libs.neo4j_client.client import KnowledgeGraphClient
+from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
 from services.analysis_worker.app.analyzers.quality_checker import (
     run_quality_checks as run_global_quality_checks,
 )
@@ -59,7 +59,9 @@ def _coerce_schema(value: Any) -> list[dict[str, Any]]:
 
 
 def _load_completeness_schema(domain: str, subdomain: str) -> list[dict[str, Any]]:
-    client = KnowledgeGraphClient()
+    # AuditDomain and ValueSet nodes are written by ensure_service_completeness_domain
+    # using PatientGraphClient. We must read from the same graph.
+    client = PatientGraphClient()
     try:
         rows = client.run(
             "MATCH (d:AuditDomain {id: $domain})-[:HAS_SUBDOMAIN]->(v:ValueSet) "

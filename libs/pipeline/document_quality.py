@@ -39,6 +39,39 @@ class DocumentQuality:
         return asdict(self)
 
 
+_DOC_HEADER = re.compile(r"(?im)^-{3}\s*document:\s*(?P<name>[^\n]*?)\s*-{3}\s*$")
+
+
+def primary_document_text(text: str) -> str:
+    """Return the bundle without its PDF attachment sections.
+
+    A referral bundle is the GP's form followed by e-RS attachments such as
+    "Clinical Information.pdf". The attachment is not part of the printed
+    form and its boilerplate ("Clinical Information Summary", "No
+    Information Provided") differs between referrals of the same form, so
+    judging the form must not read it.
+
+    Deliberately NOT applied to ``form_fingerprint``: that hash keys taught
+    :FormSchema lookups in production, and attachment lines already fail
+    its section/checkbox filter, so changing it would risk unbinding a
+    taught form for no gain.
+    """
+    source = text or ""
+    headers = list(_DOC_HEADER.finditer(source))
+    if not headers:
+        return source
+    kept: list[str] = []
+    if headers[0].start() > 0:
+        kept.append(source[: headers[0].start()])
+    for index, header in enumerate(headers):
+        end = headers[index + 1].start() if index + 1 < len(headers) else len(source)
+        name = (header.group("name") or "").strip().lower()
+        if name.endswith(".pdf"):
+            continue
+        kept.append(source[header.start() : end])  # noqa: E203
+    return "".join(kept).strip()
+
+
 def form_fingerprint(text: str) -> str:
     """Hash section titles and checkbox labels with patient values stripped."""
     lines: list[str] = []
@@ -115,8 +148,9 @@ def score_document_quality(
         )
     fp = form_fingerprint(text)
     match_id = _match_fingerprint(fp, known_fingerprints or {})
-    coverage = _rule_coverage(text)
-    wrapper = 1.0 if _WRAPPER.search(text or "") else 0.0
+    primary = primary_document_text(text)
+    coverage = _rule_coverage(primary)
+    wrapper = 1.0 if _WRAPPER.search(primary) else 0.0
     fp_hit = 1.0 if match_id != "unknown" else 0.0
     reasons: list[str] = []
     if few_shot_max_similarity is None:

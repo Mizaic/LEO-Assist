@@ -34,5 +34,9 @@ def test_document_chunk_state_matches_hccp_prep_shape() -> None:
             }
         ]
     )
-    assert loaded["sentences"][0]["sentence_id"] == "chunk-1"
+    # The extractor is addressed by the short label; the graph write is
+    # addressed by the real chunk id behind it.
+    assert loaded["sentences"][0]["sentence_id"] == "s0"
+    assert loaded["sentences"][0]["chunk_id"] == "chunk-1"
+    assert loaded["chunk_id_by_sentence_id"] == {"s0": "chunk-1"}
     assert loaded["sentences"][0]["text"] == table

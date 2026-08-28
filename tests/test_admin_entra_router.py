@@ -21,11 +21,6 @@ _API_ROOT = Path(__file__).parent.parent / "services" / "api"
 if str(_API_ROOT) not in sys.path:
     sys.path.insert(0, str(_API_ROOT))
 
-sys.modules.setdefault(
-    "app.db.neo4j_client",
-    MagicMock(PatientGraphClient=MagicMock),
-)
-
 from app.deps import get_session_data, require_admin  # noqa: E402
 from app.routers.admin_entra import router as admin_entra_router  # noqa: E402
 from libs.auth.org_scope import CallerScope  # noqa: E402

@@ -7,7 +7,7 @@ Atlas trace:
 
 Prompt resolution order:
 1. ``prompt_config`` dict in state (populated from Neo4j by the parent graph)
-2. ``libs.prompts.registry.get_prompt("extraction", 1)`` (Neo4j → hardcoded)
+2. ``libs.prompts.registry.get_prompt("extraction", 1)`` (Neo4j then hardcoded)
 """
 
 from __future__ import annotations
@@ -79,6 +79,9 @@ class ExtractionState(TypedDict, total=False):
     extraction_route: str
     text_segmentation_mode: str
     chunk_ids: list[str]
+    # Short sentence label -> real Neo4j :Chunk id. The extractor answers
+    # with the label; the graph write must match the chunk id.
+    chunk_id_by_sentence_id: dict[str, str]
     document_reference_id: str
     errors: list[str]
     warnings: list[str]
@@ -410,6 +413,7 @@ def _chunk_load_payload(
     return {
         "encounter_text": loaded.get("encounter_text") or "",
         "sentences": loaded.get("sentences") or [],
+        "chunk_id_by_sentence_id": dict(loaded.get("chunk_id_by_sentence_id") or {}),
         "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
         "errors": errors,
         **fields,
@@ -436,6 +440,7 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
         return {
             "encounter_text": encounter_text,
             "sentences": raw_sentences,
+            "chunk_id_by_sentence_id": dict(state.get("chunk_id_by_sentence_id") or {}),
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
             **schema_fields,
         }
@@ -445,6 +450,7 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
         return {
             "encounter_text": "",
             "sentences": [],
+            "chunk_id_by_sentence_id": {},
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
             "errors": [
                 "document_chunks mode requires chunk_ids or pre-loaded sentences"
@@ -487,6 +493,7 @@ def load_communication_thread(state: ExtractionState) -> dict[str, Any]:
         return {
             "encounter_text": encounter_text,
             "sentences": raw_sentences,
+            "chunk_id_by_sentence_id": dict(state.get("chunk_id_by_sentence_id") or {}),
             "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
         }
 
@@ -495,6 +502,7 @@ def load_communication_thread(state: ExtractionState) -> dict[str, Any]:
         return {
             "encounter_text": "",
             "sentences": [],
+            "chunk_id_by_sentence_id": {},
             "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
             "errors": [
                 "communication_thread mode requires communication_request_id "
@@ -512,10 +520,12 @@ def load_communication_thread(state: ExtractionState) -> dict[str, Any]:
         cr_id,
         chunk_ids=chunk_ids_from_state(state) or None,
     )
+    reverse = dict(loaded.get("chunk_id_by_sentence_id") or {})
     if loaded.get("sentences"):
         return {
             "encounter_text": loaded.get("encounter_text") or "",
             "sentences": loaded.get("sentences") or [],
+            "chunk_id_by_sentence_id": reverse,
             "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
             "errors": list(state.get("errors") or [])
             + list(loaded.get("errors") or []),
@@ -523,6 +533,7 @@ def load_communication_thread(state: ExtractionState) -> dict[str, Any]:
     return {
         "encounter_text": "",
         "sentences": [],
+        "chunk_id_by_sentence_id": {},
         "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
         "errors": list(state.get("errors") or []) + list(loaded.get("errors") or []),
     }

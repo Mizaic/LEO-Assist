@@ -39,13 +39,16 @@ def test_ag_scaffold_loader_mixed_persist_source_labels() -> None:
         for s in loaded["sentences"]
         if s.get("persist_source_label") == "Communication"
     ]
-    chunk_ids = [
+    chunk_labels = [
         s["sentence_id"]
         for s in loaded["sentences"]
         if s.get("persist_source_label") == "Chunk"
     ]
     assert "c1" in comm_ids
-    assert "chunk-a" in chunk_ids
+    # Attachment chunks carry the short label the extractor echoes. The
+    # real Neo4j chunk id the write must match sits in the reverse map.
+    assert chunk_labels == ["s0"]
+    assert loaded["chunk_id_by_sentence_id"] == {"s0": "chunk-a"}
 
 
 def test_materialise_ag_case_builds_pipeline_message() -> None:

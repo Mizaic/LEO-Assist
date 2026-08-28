@@ -135,10 +135,17 @@ def test_compliance_uses_guideline_evaluator_when_scope_configured(monkeypatch):
 
     captured = {}
 
-    def fake_guideline(state, codes):
+    # Extra keyword arguments are accepted and ignored on purpose: this test
+    # is about which evaluator gets called, not its full signature, and a
+    # positional-only stub silently turned a real call into a swallowed
+    # TypeError logged as "Guideline evaluation failed".
+    def fake_guideline(state, codes, **_scope):
         captured["codes"] = codes
         captured["scope"] = state["guideline_scope_id"]
-        return {"matched_rules": [{"id": "rule-1"}], "is_compliant": True}
+        # rule_id, not id: matched rules are deduplicated on rule_id and a
+        # rule without one is dropped, so an "id" fixture made a compliant
+        # result look non-compliant. The real evaluator emits rule_id.
+        return {"matched_rules": [{"rule_id": "rule-1"}], "is_compliant": True}
 
     monkeypatch.setattr(compliance, "_evaluate_guideline", fake_guideline)
 

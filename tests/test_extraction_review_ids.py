@@ -77,10 +77,19 @@ def test_review_detail_includes_nhs_and_ubrn() -> None:
         )
     )
     client = MagicMock()
-    client.run.side_effect = [
-        [task],
-        [{"nhs_number": "718 563 0207", "ubrn": "000049806289"}],
-    ]
+
+    # Dispatch on the query rather than on call order. The detail view grew
+    # extra lookups (validation case, receiving org and service) and a fixed
+    # list of return values breaks on call count alone, which says nothing
+    # about whether the identifiers came out right.
+    def _run(cypher: str, **_params: object) -> list[dict[str, object]]:
+        if "nhs_number" in cypher:
+            return [{"nhs_number": "718 563 0207", "ubrn": "000049806289"}]
+        if "extraction_review" in cypher.lower() or "task_id" in cypher:
+            return [task]
+        return []
+
+    client.run.side_effect = _run
     store = MagicMock()
     store.load_accumulated_state.return_value = {"encounter_text": GYNAE_LETTER}
     detail = load_extraction_review_detail(client, task["task_id"], store=store)

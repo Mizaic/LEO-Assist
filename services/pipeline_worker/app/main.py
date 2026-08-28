@@ -171,6 +171,35 @@ def _get_batch_candidate_trace(
         return dict(payload)
 
 
+# -- Subgraph registry readiness ----------------------------------------------
+
+# None = not yet proved, True = registered, False = cannot build the pipeline.
+# "Not yet proved" must not read as broken: warm-up is a background thread and
+# the worker is fit to serve until it actually fails.
+_registry_ready: bool | None = None
+_registry_detail: str = ""
+_registry_health_lock = threading.Lock()
+
+
+def set_registry_health(*, ready: bool | None, detail: str) -> None:
+    """Record whether this worker can build the referral pipeline."""
+    global _registry_ready, _registry_detail
+    with _registry_health_lock:
+        _registry_ready = ready
+        _registry_detail = detail or ""
+
+
+def registry_health() -> dict[str, Any]:
+    with _registry_health_lock:
+        return {"ready": _registry_ready, "detail": _registry_detail}
+
+
+def registry_is_unfit() -> bool:
+    """True only when registration was tried and failed."""
+    with _registry_health_lock:
+        return _registry_ready is False
+
+
 # ── Lifespan: start/stop message bus consumer in background ──────────────────
 
 
@@ -214,16 +243,25 @@ def _warm_up() -> None:
             reg = get_registry()
             count = len(reg.list_subgraphs())
             if not reg.has("snomed_enrichment"):
-                logger.error(
-                    "Required subgraph 'snomed_enrichment' is not registered. "
-                    "Available: %s",
-                    [item["id"] for item in reg.list_subgraphs()],
+                detail = (
+                    "required subgraph 'snomed_enrichment' is not registered; "
+                    f"available: {[item['id'] for item in reg.list_subgraphs()]}"
                 )
+                logger.critical("Pipeline Worker unfit: %s", detail)
+                set_registry_health(ready=False, detail=detail)
+                return
             logger.info(
                 "Pipeline Worker: subgraph registry ready (%d subgraphs)", count
             )
-        except Exception:
-            logger.warning("Registry warm-up failed (non-fatal)", exc_info=True)
+            set_registry_health(ready=True, detail=f"{count} subgraphs")
+        except Exception as exc:
+            # Not "non-fatal": without the registry every referral this worker
+            # accepts will fail. Registration is all-or-nothing, so no run can
+            # execute a pipeline with a subgraph quietly missing -- but the
+            # worker must stop reporting itself healthy, or it keeps taking
+            # work it cannot do and only a log line says why.
+            logger.critical("Pipeline Worker unfit: registry failed", exc_info=True)
+            set_registry_health(ready=False, detail=str(exc))
 
     threads = [
         threading.Thread(target=_warm_embedder, daemon=True, name="warm-embedder"),
@@ -1503,6 +1541,20 @@ async def guidance_generate_status(job_id: str) -> dict[str, Any]:
 
 @app.get("/health")
 async def health() -> dict:
+    if registry_is_unfit():
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "unfit",
+                "service": "pipeline-worker",
+                "reason": (
+                    "This worker cannot build the referral pipeline, so it "
+                    "cannot process referrals. It needs restarting once the "
+                    "cause is fixed."
+                ),
+                "detail": registry_health()["detail"],
+            },
+        )
     return {"status": "ok", "service": "pipeline-worker"}
 
 

@@ -85,6 +85,21 @@ def test_enrich_loads_communication_thread_when_mode_set() -> None:
     client.run.side_effect = [
         [{"birth_date": "1980-01-01", "gender": "female"}],
         [{"org_id": "org-1"}],
+        # Receiving service lookup: an Ask-LEO thread hangs off the same
+        # CommunicationRequest, so the step resolves the service it was
+        # sent to before loading the thread.
+        [
+            {
+                "id": "svc-1",
+                "name": "Gynaecology 2WW",
+                "ers_service_id": "ers-1",
+                "specialty": "gynaecology",
+                "guideline_ids_prop": None,
+                "guidance_ids": [],
+                "organization_id": "org-1",
+                "organization_name": "Sherwood Forest Hospitals",
+            }
+        ],
     ]
     store = MagicMock()
     store.load_accumulated_state.return_value = {}

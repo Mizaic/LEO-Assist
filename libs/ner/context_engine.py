@@ -19,6 +19,8 @@ from typing import TYPE_CHECKING, Any
 import spacy
 from spacy.tokens import Span
 
+from libs.ner.context_span_resolution import resolve_context_spans
+
 if TYPE_CHECKING:
     from libs.ner.extractor_contract import ExtractionItem
 
@@ -375,11 +377,14 @@ def apply_context_detection_to_dicts(
         doc = nlp.make_doc(encounter_text)
         if nlp.has_pipe("sentencizer"):
             doc = nlp.get_pipe("sentencizer")(doc)
+        # Locate each fact by its own words first. Offsets arriving here can
+        # be a SpanResolver fallback pointing at character 0 -- the document
+        # banner -- and a banner carries no negation cue, so ConText would
+        # come back "present" for a denied finding. A fact whose text is
+        # nowhere in the letter is marked and skipped rather than judged
+        # against someone else's words.
         pending = []
-        for idx in needs:
-            ent = entities[idx]
-            start = int(ent.get("start") or 0)
-            end = int(ent.get("end") or start)
+        for idx, start, end in resolve_context_spans(encounter_text, entities, needs):
             span = doc.char_span(start, end, label="ENTITY", alignment_mode="expand")
             if span is not None:
                 pending.append((idx, span))

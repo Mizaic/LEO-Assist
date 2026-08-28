@@ -10,7 +10,7 @@ from libs.pipeline_graph.subgraphs.extraction import load_document_chunks
 def test_load_document_chunks_drops_stale_loader_errors(monkeypatch) -> None:
     monkeypatch.setattr(
         "libs.pipeline.document_chunk_loader.load_document_chunks_from_neo4j",
-        lambda _client, _chunk_ids: {
+        lambda _client, _chunk_ids, **_scope: {
             "sentences": [
                 {"sentence_id": "c1", "text": "Dysphagia", "start": 0, "end": 9}
             ],

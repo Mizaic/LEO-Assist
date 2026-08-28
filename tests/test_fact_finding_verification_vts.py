@@ -85,9 +85,9 @@ def test_vt948b7cd4_source_text_is_split_before_extraction() -> None:
     """VT-948B7CD4 -- source text is prepared before coding starts."""
     source = _read(EXTRACTION)
 
-    assert "g.add_edge(START, \"resolve_text_units\")" in source
-    assert "g.add_edge(\"resolve_text_units\", \"extract_entities\")" in source
-    assert "g.add_edge(\"extract_entities\", \"merge_results\")" in source
+    assert 'g.add_edge(START, "resolve_text_units")' in source
+    assert 'g.add_edge("resolve_text_units", "extract_entities")' in source
+    assert 'g.add_edge("extract_entities", "merge_results")' in source
 
 
 def test_vt54ed1672_clinical_fact_string_emission() -> None:
@@ -109,7 +109,7 @@ def test_vt5ff4fe03_no_fact_input_returns_empty_output() -> None:
     extraction = _read(EXTRACTION)
 
     assert result["overall"]["f1"] == 1.0
-    assert "return {\"entities\": [], \"errors\": [str(e)]}" in extraction
+    assert 'return {"entities": [], "errors": [str(e)]}' in extraction
 
 
 def test_vt87b6067e_unsupported_strings_are_separated_from_expected_output() -> None:
@@ -227,18 +227,37 @@ def test_vtb1c9ff0b_source_evidence_is_written_before_coding_decisions() -> None
 
     assert "write_documents_from_sentences_payload" in persist
     assert "UPSERT_CODING_DECISION" in persist
+    # Anchored on the two call sites inside write_patient_graph. The earlier
+    # version matched the literal ``session.run(UPSERT_CODING_DECISION`` at
+    # the call site; extracting that loop into ``_write_coding_decisions``
+    # broke the match while the ordering itself never changed.
     assert persist.index("docs_written = write_documents_from_sentences_payload") < (
-        persist.index("session.run(\n                        UPSERT_CODING_DECISION")
-    )
+        persist.index("n = _write_coding_decisions(")
+    ), "a coding decision must never exist before the evidence it cites"
 
 
 def test_vt1a36e7d0_terms_text_before_coding_contract() -> None:
     """VT-1A36E7D0 -- the verification scorer uses terms[].text before coding."""
     doc = load_expected_strings()
-    loader_source = _read(ROOT / "tests/helpers/clinical_extraction_scenario_loader.py")
 
     assert doc["validation_scope"] == "extraction_only_terms_text_before_coding"
-    assert "terms[].text" in loader_source
+
+    # The declared output contract, which is what "terms[].text" names. It
+    # used to be asserted against tests/helpers/..., now a shim that
+    # re-exports the real loader, so the string was no longer there to find.
+    from libs.workflow.validation_workflows import VALIDATION_WORKFLOW_SPECS
+
+    contracts = [
+        field
+        for spec in VALIDATION_WORKFLOW_SPECS.values()
+        for field in (spec.output_contract or ())
+    ]
+    assert "terms[].text" in contracts
+
+    # And the scorer really does compare that field before any coding runs.
+    scorer = _read(ROOT / "libs/validation/clinical_extraction_scenario_loader.py")
+    assert 'entity.get("text", "")' in scorer
+    assert "concept_id" not in scorer, "scoring must not depend on coding output"
 
 
 def test_fact_finding_vt_ids_are_declared_in_this_module() -> None:

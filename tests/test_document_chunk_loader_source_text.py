@@ -19,8 +19,7 @@ from unittest.mock import patch
 from libs.pipeline.document_chunk_loader import (
     CHUNK_TEXT_SEPARATOR,
     build_document_chunk_state,
-    pdf_attachment_deletions,
-    strip_pdf_attachments,
+    bundle_trim_deletions,
 )
 from libs.pipeline_contracts.text import SourceText
 
@@ -83,24 +82,29 @@ def _build(rows: list[dict[str, Any]]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def test_pdf_attachment_deletions_reproduce_strip_pdf_attachments() -> None:
-    """The deletion ranges must rebuild exactly what the legacy strip returns."""
+def test_bundle_trim_deletions_reproduce_the_encounter_text() -> None:
+    """The deletion ranges must rebuild exactly what extraction reads.
+
+    Extraction reads the whole bundle now, so the only difference between
+    the raw join and ``encounter_text`` is the outer whitespace.
+    """
     samples = [
         "",
         "No attachment here at all.",
         _DOC_CHUNK + CHUNK_TEXT_SEPARATOR + _PDF_CHUNK,
         "  leading and trailing whitespace  ",
+        "   ",
         "GP Form content\n\n--- Document: report.PDF ---\nAdmin noise",
         CHUNK_TEXT_SEPARATOR.join(_sherwood_chunk_texts()),
     ]
     for raw in samples:
         kept: list[str] = []
         cursor = 0
-        for deletion in pdf_attachment_deletions(raw):
-            kept.append(raw[cursor : deletion.raw_start])
+        for deletion in bundle_trim_deletions(raw):
+            kept.append(raw[cursor : deletion.raw_start])  # noqa: E203
             cursor = deletion.raw_end
         kept.append(raw[cursor:])
-        assert "".join(kept) == strip_pdf_attachments(raw)
+        assert "".join(kept) == raw.strip()
 
 
 def test_legacy_state_fields_are_byte_identical_when_source_text_ignored() -> None:
@@ -108,12 +112,16 @@ def test_legacy_state_fields_are_byte_identical_when_source_text_ignored() -> No
     state = _build(_rows(texts, supply_offsets=False))
 
     legacy = {k: v for k, v in state.items() if k != "source_text"}
-    expected_encounter = strip_pdf_attachments(CHUNK_TEXT_SEPARATOR.join(texts))
+    expected_encounter = CHUNK_TEXT_SEPARATOR.join(texts).strip()
 
     assert legacy["encounter_text"] == expected_encounter
     assert len(legacy["sentences"]) == len(texts)
     for index, sentence in enumerate(legacy["sentences"]):
-        assert sentence["sentence_id"] == f"chunk-{index}"
+        # sentence_id is the short label the extractor echoes; the Neo4j
+        # chunk id it stands for rides alongside it and in the reverse map.
+        assert sentence["sentence_id"] == f"s{index}"
+        assert sentence["chunk_id"] == f"chunk-{index}"
+        assert legacy["chunk_id_by_sentence_id"][f"s{index}"] == f"chunk-{index}"
         assert sentence["text_raw"] == texts[index]
     assert legacy["text_segmentation_mode"] == "document_chunks"
 
@@ -148,19 +156,21 @@ def test_source_text_ignores_document_absolute_row_offsets() -> None:
     assert source.segments[0].span.start == 0
 
 
-def test_legacy_offsets_are_invalid_after_a_mid_document_cut() -> None:
-    """Defect witness for the legacy path -- slice 5 deletes this test.
+def test_legacy_offsets_survive_an_attachment_in_the_middle() -> None:
+    """Offsets stay usable now nothing is cut out of the middle.
 
-    This pins the bug SourceText replaces: once the PDF section is removed
-    from the middle, encounter_text[start:end] silently returns "".
+    This test used to assert the opposite, pinning the defect: removing the
+    PDF section from the middle left every later sentence's offsets pointing
+    past the end, so ``encounter_text[start:end]`` silently returned "".
+    A chunk after the attachment could not be located at all.
     """
     rows = _rows([_DOC_CHUNK, _PDF_CHUNK, _TAIL_CHUNK], supply_offsets=False)
     state = _build(rows)
     encounter_text = state["encounter_text"]
     tail = state["sentences"][2]
 
-    assert encounter_text[tail["start"] : tail["end"]] == ""
     assert tail["text_raw"] == _TAIL_CHUNK
+    assert encounter_text[tail["start"] : tail["end"]] == _TAIL_CHUNK  # noqa: E203
 
 
 # ---------------------------------------------------------------------------
@@ -200,14 +210,19 @@ def test_sherwood_section_c_narrative_survives_into_source_text() -> None:
     assert source.slice(segments[0].span) == section_c
 
 
-def test_sherwood_pdf_wrapper_is_recorded_as_a_deletion() -> None:
+def test_sherwood_attachment_survives_into_source_text() -> None:
+    """The attachment is part of the coordinate space, not a deletion.
+
+    This test used to require the wrapper be recorded as a deletion and
+    absent from ``content``. That was the coordinate-space split: the model
+    was shown the attachment while the resolver could not see it.
+    """
     texts = _sherwood_chunk_texts()
     source: SourceText = _build(_rows(texts, supply_offsets=False))["source_text"]
     raw = CHUNK_TEXT_SEPARATOR.join(texts)
 
     assert source.normalisation.raw_length == len(raw)
-    assert source.normalisation.deletions
-    assert "Clinical Information Summary" not in source.content
+    assert "Clinical Information" in source.content
     for content_offset in range(0, len(source.content), 37):
         raw_offset = source.normalisation.to_raw_offset(content_offset)
         assert raw[raw_offset] == source.content[content_offset]

@@ -514,70 +514,30 @@ def _resolve_start(text: str, span_text: str, around: int = 0) -> int | None:
 
 # Entity-type normalisation and value-unit linking have been moved to the
 # shared post-processing module: libs/pipeline/post_processing.py
-try:
-    from libs.pipeline.post_processing import (  # noqa: E402
-        run_post_processing,
-        _BARE_NUMERIC_RE,
-        _EPISODE_MARKER_TEXTS,
-        _MDT_OUTCOME_RE,
-        _SEVERITY_MODIFIER_TEXTS,
-        _SMOKING_CONSUMPTION_RE,
-        _UNCERTAINTY_MARKER_RE,
-        _has_nearby_observable,
-        _is_bare_analyte,
-        _is_lab_value_text,
-        _is_lifestyle_topic_list,
-        _is_numeric_measurement_text,
-        _is_result_descriptor,
-        _is_smoking_status_text,
-    )
-except Exception:  # pragma: no cover - fallback for lightweight test env
-    import re
-    import warnings
-
-    warnings.warn(
-        "libs.pipeline.post_processing import failed -- all 9 post-processing "
-        "layers are DISABLED. This is acceptable in isolated test environments "
-        "but MUST NOT happen in production.",
-        RuntimeWarning,
-        stacklevel=1,
-    )
-    logging.getLogger(__name__).error(
-        "SAFETY: post-processing import failed -- lab-value guard, scope guard, "
-        "context detection, and disorder gate are all disabled",
-        exc_info=True,
-    )
-
-    def run_post_processing(*args, **kwargs):  # type: ignore[no-redef]
-        return args[0] if args else []
-
-    _BARE_NUMERIC_RE = re.compile(r"^\s*[+-]?\d+(?:\.\d+)?\s*$")
-    _EPISODE_MARKER_TEXTS = set()
-    _MDT_OUTCOME_RE = re.compile(r"$^")
-    _SEVERITY_MODIFIER_TEXTS = set()
-    _SMOKING_CONSUMPTION_RE = re.compile(r"$^")
-    _UNCERTAINTY_MARKER_RE = re.compile(r"$^")
-
-    def _has_nearby_observable(*args, **kwargs):  # type: ignore[no-redef]
-        return False
-
-    def _is_bare_analyte(*args, **kwargs):  # type: ignore[no-redef]
-        return False
-
-    def _is_lab_value_text(*args, **kwargs):  # type: ignore[no-redef]
-        return False
-
-    def _is_lifestyle_topic_list(*args, **kwargs):  # type: ignore[no-redef]
-        return False
-
-    def _is_numeric_measurement_text(*args, **kwargs):  # type: ignore[no-redef]
-        return False
-
-    def _is_result_descriptor(*args, **kwargs):  # type: ignore[no-redef]
-        return False
-
-    def _is_smoking_status_text(*args, **kwargs):  # type: ignore[no-redef]
-        return False
+# Imported directly, never behind a try/except. These are the clinical
+# safety layers -- the lab-value guard, the scope guard, ConText assertion
+# detection and the disorder gate. This import used to carry a fallback that
+# installed a pass-through returning the entities untouched, which let a run
+# lose every layer and still look processed. On this path that writes gold
+# training labels, so a label verified without the negation guard would
+# teach the model that a denied finding was present.
+# See .cursor/rules/fail-closed-boundary.mdc rule 1.
+from libs.pipeline.post_processing import (  # noqa: E402
+    run_post_processing,
+    _BARE_NUMERIC_RE,
+    _EPISODE_MARKER_TEXTS,
+    _MDT_OUTCOME_RE,
+    _SEVERITY_MODIFIER_TEXTS,
+    _SMOKING_CONSUMPTION_RE,
+    _UNCERTAINTY_MARKER_RE,
+    _has_nearby_observable,
+    _is_bare_analyte,
+    _is_lab_value_text,
+    _is_lifestyle_topic_list,
+    _is_numeric_measurement_text,
+    _is_result_descriptor,
+    _is_smoking_status_text,
+)
 
 
 _CLINICAL_LABELS = frozenset(
@@ -1291,15 +1251,12 @@ def _process_label(
         if _stop_requested():
             result.error = True
             return result
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as inner:
-            if aws_llm_enabled():
-                fut_aws = inner.submit(_call_model_for_label, "aws", text, entities)
-                fut_azure = inner.submit(_call_model_for_label, "azure", text, entities)
-                aws_rows = fut_aws.result()
-                azure_rows = fut_azure.result()
-            else:
-                azure_rows = _call_model_for_label("azure", text, entities)
-                aws_rows = azure_rows
+        # Azure only. The removed branch tested an AWS enablement helper this
+        # module never imported, so every label verification raised NameError
+        # before it reached a model. Its else-branch is kept verbatim as the
+        # single path: one Azure call, compared against itself downstream.
+        azure_rows = _call_model_for_label("azure", text, entities)
+        aws_rows = azure_rows
 
         aws_by_idx: dict[int, dict] = {
             int(item.get("entity_index", -1)): item

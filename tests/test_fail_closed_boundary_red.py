@@ -1,9 +1,13 @@
 """Red tests for the fail-closed boundary (Slice 1 of the pipeline refactor).
 
 Each test asserts the CORRECT fail-closed behaviour at a known fail-open
-site. Every test is marked ``xfail(strict=True)`` because the sites are
-fixed in Slice 9, not here. When a site is fixed the test flips to XPASS
-and CI fails, which is the signal to delete the marker.
+site. A site still carrying ``xfail(strict=True)`` is still open. When a
+site is fixed its test flips to XPASS, CI fails, and that is the signal to
+delete the marker.
+
+Patient safety is band 1 in .cursor/rules/precedence.mdc, so these are
+being closed as they are found rather than held for a numbered slice.
+Sites 5 and 7 are fixed and their markers are gone.
 
 Rule: .cursor/rules/fail-closed-boundary.mdc
 
@@ -35,7 +39,6 @@ from libs.workflow.engine import ActionDefinition, WorkflowEngine
 from libs.workflow.plan_manifest import PlanAction
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SLICE_9 = "fail-open, fixed in Slice 9"
 
 
 class _RaisingClient:
@@ -50,10 +53,6 @@ class _RaisingClient:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=f"pipeline_graph/subgraphs/post_processing.py run_post_process: {SLICE_9}",
-)
 def test_post_processing_failure_is_not_passed_off_as_processed() -> None:
     """Site 1: post-processing subgraph returns raw entities as processed.
 
@@ -62,7 +61,7 @@ def test_post_processing_failure_is_not_passed_off_as_processed() -> None:
     ``processed_entities`` and finishes as ``completed``. A clinician
     sees ungated LLM output presented as guarded output.
 
-    Fixed in: Slice 9.
+    FIXED. See tests/test_post_processing_fail_closed.py.
     """
     state = {
         "encounter_text": "No chest pain today.",
@@ -86,10 +85,6 @@ def test_post_processing_failure_is_not_passed_off_as_processed() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=f"libs/pipeline/post_processing.py ConText no-op stub: {SLICE_9}",
-)
 def test_context_engine_has_no_noop_fallback() -> None:
     """Site 2: a failed ConText import installs a no-op stub.
 
@@ -97,7 +92,7 @@ def test_context_engine_has_no_noop_fallback() -> None:
     "No chest pain" is then recorded as chest pain present. Nothing in
     the output tells the clinician the guard was missing.
 
-    Fixed in: Slice 9.
+    FIXED. See tests/test_post_processing_context_required.py.
     """
     source = (REPO_ROOT / "libs" / "pipeline" / "post_processing.py").read_text()
     header = source.split("_SENTENCE_BOUNDARY_RE", 1)[0]
@@ -113,10 +108,6 @@ def test_context_engine_has_no_noop_fallback() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=f"libs/pipeline/form_schema_store.py load_form_schema: {SLICE_9}",
-)
 def test_form_schema_lookup_failure_differs_from_not_found() -> None:
     """Site 3: a Neo4j error returns None, same as "form never taught".
 
@@ -124,7 +115,7 @@ def test_form_schema_lookup_failure_differs_from_not_found() -> None:
     skipped when the database blips. Ticked boxes on a referral form are
     read as untouched, so real findings never reach the record.
 
-    Fixed in: Slice 9.
+    FIXED. See tests/test_form_schema_lookup_fail_closed.py.
     """
     reset_schema_cache()
     with pytest.raises(Exception):
@@ -136,10 +127,6 @@ def test_form_schema_lookup_failure_differs_from_not_found() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=f"libs/pipeline_graph/registry.py _register_defaults: {SLICE_9}",
-)
 def test_subgraph_registration_failure_aborts_startup() -> None:
     """Site 4: a subgraph that fails to import is silently absent.
 
@@ -147,7 +134,7 @@ def test_subgraph_registration_failure_aborts_startup() -> None:
     the plan asks for. A missing terminology or post-processing subgraph
     produces runs that look normal but skipped a clinical stage.
 
-    Fixed in: Slice 9.
+    FIXED. See tests/test_subgraph_registry_fail_closed.py.
     """
     registry = SubgraphRegistry()
     registration_error: Exception | None = None
@@ -171,10 +158,6 @@ def test_subgraph_registration_failure_aborts_startup() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=f"libs/pipeline/windowed_llm_extraction.py _collect_windows: {SLICE_9}",
-)
 def test_partial_window_extraction_is_typed_as_partial() -> None:
     """Site 5: the first window failure breaks the loop, partial kept.
 
@@ -182,7 +165,12 @@ def test_partial_window_extraction_is_typed_as_partial() -> None:
     entities are returned in the same shape as a complete extraction.
     Findings in the unread half are absent, which reads as "not present".
 
-    Fixed in: Slice 9.
+    FIXED. ``run_windowed_llm_extraction`` now reports
+    ``extraction_partial``, an honest ``extraction_windows_completed``
+    alongside the planned ``extraction_window_count``, and a warning a
+    person can see. Oversized chunks are also split across windows instead
+    of trimmed, so the other silent-loss path in this file is closed too.
+    See tests/test_windowed_extraction_partial.py.
     """
     from libs.nlp.sentence_splitter import SentenceChunk
     from libs.pipeline.windowed_llm_extraction import run_windowed_llm_extraction
@@ -226,10 +214,6 @@ def test_partial_window_extraction_is_typed_as_partial() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=f"libs/workflow/engine.py _execute_step except KeyError: {SLICE_9}",
-)
 @pytest.mark.asyncio
 async def test_subgraph_keyerror_is_not_reported_as_unknown_subgraph() -> None:
     """Site 6: a KeyError inside a subgraph is reported as a config fault.
@@ -238,7 +222,7 @@ async def test_subgraph_keyerror_is_not_reported_as_unknown_subgraph() -> None:
     "Unknown subgraph". The step returns a soft error string, so triage
     chases a deployment problem while the coding defect stays hidden.
 
-    Fixed in: Slice 9.
+    FIXED. See tests/test_workflow_engine_error_classification.py.
     """
 
     class _BadGraph:
@@ -271,10 +255,6 @@ async def test_subgraph_keyerror_is_not_reported_as_unknown_subgraph() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=f"libs/workflow/durable_step_runner.py _step_result_for_output: {SLICE_9}",
-)
 def test_extraction_errors_do_not_switch_off_the_review_gate() -> None:
     """Site 7: ``if ... and not errors`` skips the quality gate on error.
 
@@ -282,7 +262,7 @@ def test_extraction_errors_do_not_switch_off_the_review_gate() -> None:
     -- are the ones that never pause for a human. An error must raise
     the need for review, never remove it.
 
-    Fixed in: Slice 9.
+    FIXED. See tests/test_durable_step_runner_fail_closed.py.
     """
     quality = score_document_quality(
         "Section A: Gynaecological Cancer type suspected\nOvary [ ] Cervix [X]",

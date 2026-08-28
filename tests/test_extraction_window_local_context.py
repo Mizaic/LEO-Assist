@@ -61,7 +61,15 @@ def test_token_planner_respects_budget_and_overlap() -> None:
         assert windows[0].chunk_ids[-1] in windows[1].chunk_ids
 
 
-def test_oversized_chunk_alone_and_not_dropped() -> None:
+def test_oversized_chunk_is_split_across_windows_not_truncated() -> None:
+    """An oversized chunk is spread over windows, keeping every character.
+
+    This used to assert ``w.truncated`` on a lone oversized chunk, which
+    let the caller cut it to half the window budget. Splitting replaced
+    truncation so no clinical text is dropped.
+    """
+    from libs.pipeline.extraction_window import window_chunk_text
+
     huge = "x" * 20000
     chunks = [
         ChunkRef(chunk_id="big", text=huge),
@@ -74,9 +82,14 @@ def test_oversized_chunk_alone_and_not_dropped() -> None:
         max_chunks_per_window=10,
         overhead_tokens=10,
     )
-    assert any(w.chunk_ids == ("big",) and w.truncated for w in windows)
+    assert not any(w.truncated for w in windows)
     covered = {cid for w in windows for cid in w.chunk_ids}
     assert covered == {"big", "small"}
+
+    big_windows = [w for w in windows if w.chunk_ids == ("big",)]
+    assert len(big_windows) > 1, "the oversized chunk must span several windows"
+    rebuilt = "".join(window_chunk_text(w, "big", huge) for w in big_windows)
+    assert rebuilt == huge, "every character must reach a window"
 
 
 def test_window_local_prompt_omits_off_window_chunk_body() -> None:

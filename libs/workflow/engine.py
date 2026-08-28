@@ -515,12 +515,97 @@ class WorkflowEngine:
             event.plan_definition_id, event.event_type
         )
 
+    @staticmethod
+    def _error_step(action: ActionDefinition, t0: float, message: str) -> StepResult:
+        return StepResult(
+            action_id=action.action_id,
+            subgraph_id=action.subgraph_id,
+            status="error",
+            duration_ms=int((time.monotonic() - t0) * 1000),
+            error=message,
+        )
+
+    @staticmethod
+    def _completed_step(
+        action: ActionDefinition, t0: float, result: dict[str, Any]
+    ) -> StepResult:
+        entities = (
+            result.get("entities")
+            or result.get("processed_entities")
+            or result.get("resolved_entities")
+            or []
+        )
+        # Harvest token data written into subgraph state by LLM steps
+        llm_tokens = result.get("llm_tokens") or {}
+        few_shot_ids = llm_tokens.get("few_shot_example_ids") or []
+        if not isinstance(few_shot_ids, list):
+            few_shot_ids = []
+        return StepResult(
+            action_id=action.action_id,
+            subgraph_id=action.subgraph_id,
+            status="completed",
+            duration_ms=int((time.monotonic() - t0) * 1000),
+            entity_count=len(entities),
+            is_verified=result.get("is_verified"),
+            output=result,
+            llm_input_tokens=int(llm_tokens.get("input_tokens", 0)),
+            llm_output_tokens=int(llm_tokens.get("output_tokens", 0)),
+            llm_cached_tokens=int(llm_tokens.get("cached_tokens", 0)),
+            llm_cost_usd=float(llm_tokens.get("cost_usd", 0.0)),
+            llm_prompt_name=str(llm_tokens.get("prompt_name") or ""),
+            llm_prompt_version=int(llm_tokens.get("prompt_version") or 0),
+            llm_prompt_hash=str(llm_tokens.get("prompt_hash") or ""),
+            llm_provider=str(llm_tokens.get("provider") or ""),
+            llm_model_tier=str(llm_tokens.get("model_tier") or ""),
+            llm_few_shot_example_ids=[str(i) for i in few_shot_ids if i],
+        )
+
+    async def _publish_queue_step(
+        self,
+        action: ActionDefinition,
+        state: dict[str, Any],
+        t0: float,
+    ) -> StepResult:
+        """Send the configured message for a queue_publish action."""
+        try:
+            from libs.message_bus.base import Message
+
+            queue_name = str(state.get("queue_name") or "pipeline-jobs")
+            message_body = state.get("message_body") or {}
+            delay = int(state.get("schedule_after_seconds") or 0)
+            await self._bus.send(
+                queue_name,
+                Message(
+                    body=(
+                        message_body
+                        if isinstance(message_body, dict)
+                        else {"payload": message_body}
+                    )
+                ),
+                schedule_after_seconds=delay if delay > 0 else None,
+            )
+        except Exception as exc:
+            return self._error_step(action, t0, str(exc))
+        return StepResult(
+            action_id=action.action_id,
+            subgraph_id=action.subgraph_id,
+            status="completed",
+            duration_ms=int((time.monotonic() - t0) * 1000),
+            output={"queued": True},
+        )
+
     async def _execute_step(
         self,
         action: ActionDefinition,
         state: dict[str, Any],
     ) -> StepResult:
-        """Run a single subgraph step and capture timing."""
+        """Run a single subgraph step and capture timing.
+
+        The registry lookup is wrapped on its own so that a KeyError
+        raised by clinical logic inside the subgraph is never reported as
+        a missing registration. See rule 4 and the reviewer test in
+        .cursor/rules/fail-closed-boundary.mdc.
+        """
         logger.info(
             "Executing step %s (subgraph=%s) for patient %s",
             action.action_id,
@@ -529,97 +614,36 @@ class WorkflowEngine:
         )
         t0 = time.monotonic()
         if action.subgraph_id == "queue_publish" and self._bus:
-            try:
-                from libs.message_bus.base import Message
-
-                queue_name = str(state.get("queue_name") or "pipeline-jobs")
-                message_body = state.get("message_body") or {}
-                delay = int(state.get("schedule_after_seconds") or 0)
-                await self._bus.send(
-                    queue_name,
-                    Message(
-                        body=(
-                            message_body
-                            if isinstance(message_body, dict)
-                            else {"payload": message_body}
-                        )
-                    ),
-                    schedule_after_seconds=delay if delay > 0 else None,
-                )
-                duration = int((time.monotonic() - t0) * 1000)
-                return StepResult(
-                    action_id=action.action_id,
-                    subgraph_id=action.subgraph_id,
-                    status="completed",
-                    duration_ms=duration,
-                    output={"queued": True},
-                )
-            except Exception as exc:
-                duration = int((time.monotonic() - t0) * 1000)
-                return StepResult(
-                    action_id=action.action_id,
-                    subgraph_id=action.subgraph_id,
-                    status="error",
-                    duration_ms=duration,
-                    error=str(exc),
-                )
+            return await self._publish_queue_step(action, state, t0)
         try:
             subgraph = self._registry.build(action.subgraph_id)
+        except KeyError:
+            logger.error("Subgraph %s not registered", action.subgraph_id)
+            return self._error_step(
+                action, t0, f"Unknown subgraph: {action.subgraph_id}"
+            )
+        try:
             # The LangGraph subgraph is fully synchronous and can park the
             # event loop for 5-120s. Run it on the threadpool so the message
             # bus consumer + HTTP routes stay responsive while a step runs.
             result = await asyncio.to_thread(subgraph.invoke, state)
-            duration = int((time.monotonic() - t0) * 1000)
-            entities = (
-                result.get("entities")
-                or result.get("processed_entities")
-                or result.get("resolved_entities")
-                or []
+            return self._completed_step(action, t0, result)
+        except KeyError as exc:
+            logger.error(
+                "Step %s raised KeyError inside subgraph %s: %s",
+                action.action_id,
+                action.subgraph_id,
+                exc,
+                exc_info=True,
             )
-            # Harvest token data written into subgraph state by LLM steps
-            llm_tokens = result.get("llm_tokens") or {}
-            few_shot_ids = llm_tokens.get("few_shot_example_ids") or []
-            if not isinstance(few_shot_ids, list):
-                few_shot_ids = []
-            return StepResult(
-                action_id=action.action_id,
-                subgraph_id=action.subgraph_id,
-                status="completed",
-                duration_ms=duration,
-                entity_count=len(entities),
-                is_verified=result.get("is_verified"),
-                output=result,
-                llm_input_tokens=int(llm_tokens.get("input_tokens", 0)),
-                llm_output_tokens=int(llm_tokens.get("output_tokens", 0)),
-                llm_cached_tokens=int(llm_tokens.get("cached_tokens", 0)),
-                llm_cost_usd=float(llm_tokens.get("cost_usd", 0.0)),
-                llm_prompt_name=str(llm_tokens.get("prompt_name") or ""),
-                llm_prompt_version=int(llm_tokens.get("prompt_version") or 0),
-                llm_prompt_hash=str(llm_tokens.get("prompt_hash") or ""),
-                llm_provider=str(llm_tokens.get("provider") or ""),
-                llm_model_tier=str(llm_tokens.get("model_tier") or ""),
-                llm_few_shot_example_ids=[str(i) for i in few_shot_ids if i],
-            )
-        except KeyError:
-            duration = int((time.monotonic() - t0) * 1000)
-            logger.error("Subgraph %s not registered", action.subgraph_id)
-            return StepResult(
-                action_id=action.action_id,
-                subgraph_id=action.subgraph_id,
-                status="error",
-                duration_ms=duration,
-                error=f"Unknown subgraph: {action.subgraph_id}",
+            return self._error_step(
+                action,
+                t0,
+                f"KeyError inside subgraph {action.subgraph_id}: {exc}",
             )
         except Exception as exc:
-            duration = int((time.monotonic() - t0) * 1000)
             logger.error("Step %s failed: %s", action.action_id, exc, exc_info=True)
-            return StepResult(
-                action_id=action.action_id,
-                subgraph_id=action.subgraph_id,
-                status="error",
-                duration_ms=duration,
-                error=str(exc),
-            )
+            return self._error_step(action, t0, str(exc))
 
     def _build_step_state(
         self,

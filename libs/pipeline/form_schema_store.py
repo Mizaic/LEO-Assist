@@ -36,6 +36,26 @@ logger = logging.getLogger(__name__)
 _SCHEMA_CACHE: dict[str, FormSchema | None] = {}
 
 
+class FormSchemaLookupError(RuntimeError):
+    """We could not ask the database whether this form was taught.
+
+    This is a third answer, and it is not "the form was never taught".
+    A caller must degrade the run rather than fall back to generic
+    checkbox rules: a taught form read with generic rules loses ticked
+    boxes, so real findings never reach the record. See rule 2 of
+    .cursor/rules/fail-closed-boundary.mdc.
+    """
+
+
+def _lookup_failed(what: str, exc: Exception) -> FormSchemaLookupError:
+    """Build the plain-English error a person may end up reading."""
+    return FormSchemaLookupError(
+        f"We could not check whether {what} has a taught form. The form "
+        f"database did not answer. Nothing was changed. Please try again, "
+        f"and tell support if it keeps happening. Cause: {exc}"
+    )
+
+
 @dataclass
 class FormSchemaWrite:
     """Inputs for persisting a taught form and its service dataset."""
@@ -119,24 +139,55 @@ def _schema_to_sections_json(schema: FormSchema) -> str:
     return json.dumps(sections, ensure_ascii=True)
 
 
+def _first_row(client: Any, query: str, what: str, **params: Any) -> dict[str, Any]:
+    """Run a schema query and return the first row, or {} for a real miss.
+
+    Raises :class:`FormSchemaLookupError` when the database could not be
+    asked, so "we do not know" is never mistaken for "not there".
+    """
+    try:
+        rows = client.run(query, **params)
+    except Exception as exc:
+        logger.warning("FormSchema lookup failed for %s", what, exc_info=True)
+        raise _lookup_failed(what, exc) from exc
+    return dict(rows[0]) if rows else {}
+
+
 def load_form_schema(client: Any, fingerprint: str) -> FormSchema | None:
-    """Fetch :FormSchema from Neo4j for *fingerprint*, or ``None``."""
+    """Fetch :FormSchema from Neo4j for *fingerprint*, or ``None``.
+
+    ``None`` means the form was definitely never taught. A database error
+    raises :class:`FormSchemaLookupError` instead.
+    """
     if fingerprint in _SCHEMA_CACHE:
         return _SCHEMA_CACHE[fingerprint]
-    try:
-        rows = client.run(GET_FORM_SCHEMA_BY_FINGERPRINT, fingerprint=fingerprint)
-        if not rows:
-            _SCHEMA_CACHE[fingerprint] = None
-            return None
-        schema = _record_to_schema(dict(rows[0]))
-        _SCHEMA_CACHE[fingerprint] = schema
-        logger.info(
-            "Loaded FormSchema for fingerprint %s (%s)", fingerprint, schema.form_name
-        )
-        return schema
-    except Exception:
-        logger.warning("Could not load FormSchema for %s", fingerprint, exc_info=True)
+    row = _first_row(
+        client,
+        GET_FORM_SCHEMA_BY_FINGERPRINT,
+        f"form {fingerprint}",
+        fingerprint=fingerprint,
+    )
+    if not row:
+        _SCHEMA_CACHE[fingerprint] = None
         return None
+    try:
+        schema = _record_to_schema(row)
+    except Exception:
+        # A stored schema we cannot parse is deliberately not trusted, so
+        # the generic checkbox control takes over. That is a separate
+        # decision from a failed lookup -- see
+        # tests/test_form_schema_section_type_validation.py.
+        logger.warning(
+            "Stored FormSchema for %s is unusable; ignoring it",
+            fingerprint,
+            exc_info=True,
+        )
+        return None
+    _SCHEMA_CACHE[fingerprint] = schema
+    logger.info(
+        "Loaded FormSchema for fingerprint %s (%s)", fingerprint, schema.form_name
+    )
+    return schema
 
 
 def _load_schema_by_org_service(
@@ -144,23 +195,29 @@ def _load_schema_by_org_service(
     organization_id: str,
     service_id: str,
 ) -> FormSchema | None:
-    """Return the newest active schema for this organisation and service."""
+    """Return the newest active schema for this organisation and service.
+
+    ``None`` means no active schema is bound. A database error raises
+    :class:`FormSchemaLookupError`.
+    """
     org = organization_id.strip()
     service = service_id.strip()
     if not org or not service:
         return None
+    row = _first_row(
+        client,
+        GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
+        f"service {org}/{service}",
+        organization_id=org,
+        service_id=service,
+    )
+    if not row:
+        return None
     try:
-        rows = client.run(
-            GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
-            organization_id=org,
-            service_id=service,
-        )
-        if not rows:
-            return None
-        return _record_to_schema(dict(rows[0]))
+        return _record_to_schema(row)
     except Exception:
         logger.warning(
-            "Could not load FormSchema for org=%s service=%s",
+            "Stored FormSchema for org=%s service=%s is unusable; ignoring it",
             org,
             service,
             exc_info=True,
@@ -200,9 +257,21 @@ def form_schema_state_fields(
     loaded_key: str = "none",
     label: str = "",
 ) -> dict[str, str]:
-    """Top-level extraction-state keys for Validation Lab INPUT KEYS chips."""
+    """Top-level extraction-state keys for Validation Lab INPUT KEYS chips.
+
+    ``match="not_applicable"`` means no lookup was attempted, because these
+    chunks are not a referral form bundle. It is deliberately distinct from
+    ``"none"``, which means we looked and found nothing. Collapsing the two
+    would hide a skipped lookup behind a miss.
+    """
     resolved_match = str(match or "none").strip() or "none"
     resolved_key = str(loaded_key or "").strip()
+    if resolved_match == "not_applicable":
+        return {
+            "form_schema_fingerprint": "none",
+            "form_schema_match": "not_applicable",
+            "form_schema_label": "",
+        }
     if resolved_match != "none" and (not resolved_key or resolved_key == "none"):
         logger.warning(
             "form_schema_state inconsistent match=%s fingerprint=%r; using none",
@@ -469,6 +538,7 @@ def _build_schema(write: FormSchemaWrite) -> FormSchema:
 
 
 __all__ = [
+    "FormSchemaLookupError",
     "FormSchemaWrite",
     "build_sections_from_request",
     "delete_form_schema",

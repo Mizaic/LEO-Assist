@@ -167,6 +167,12 @@ def test_sbar_subgraph_payload_uses_referral_assessment_and_letter() -> None:
     captured: dict[str, Any] = {}
 
     class _FakeOrch:
+        def __init__(self, **_kwargs: Any) -> None:
+            # The orchestrator is constructed with a policy_runtime now.
+            # A no-argument stub turned that into a TypeError, so this test
+            # was passing on the error path rather than on the payload.
+            pass
+
         async def run(self, payload: SBARRequestPayload):
             captured["payload"] = payload
             return MagicMock(

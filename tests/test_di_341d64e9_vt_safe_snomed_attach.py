@@ -37,7 +37,7 @@ def test_for_each_extracted_clinical_fact_when_safe_match_attaches_snomed_concep
         },
     ]
 
-    def _fake_batch(self, terms, expected_tags, runtime):
+    def _fake_batch(self, terms, expected_tags, runtime, org_id=None):
         results = {}
         for term in terms:
             tag = (expected_tags or {}).get(term, "procedure")

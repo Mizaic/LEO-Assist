@@ -47,21 +47,11 @@ _redis_mod = ModuleType("redis")
 _redis_mod.Redis = MagicMock  # type: ignore[attr-defined]
 sys.modules.setdefault("redis", _redis_mod)
 
-# Stub the observation_evaluator so we don't pull in its heavy imports.
-_obs_eval_mod = ModuleType(
-    "services.terminology_api.app.services.observation_evaluator"
-)
-_obs_eval_mod.observation_matches = MagicMock(return_value=False)  # type: ignore[attr-defined]
-sys.modules.setdefault(
-    "services.terminology_api.app.services.observation_evaluator", _obs_eval_mod
-)
-
-# We need to import MagicMock before the stubs above (already imported at top).
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_store() -> MagicMock:
     store = MagicMock()

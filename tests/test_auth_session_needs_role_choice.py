@@ -18,21 +18,6 @@ _API_ROOT = Path(__file__).parent.parent / "services" / "api"
 if str(_API_ROOT) not in sys.path:
     sys.path.insert(0, str(_API_ROOT))
 
-sys.modules.setdefault(
-    "app.services.session_store",
-    MagicMock(
-        COOKIE_NAME="leo_session",
-        SESSION_TTL=86400,
-        create_session_id=MagicMock(return_value="sess-1"),
-        delete_session=MagicMock(),
-        load_session=MagicMock(return_value=None),
-        save_session=MagicMock(),
-        touch_session=MagicMock(
-            return_value={"email": "user@example.com", "idle_timeout_minutes": 30}
-        ),
-    ),
-)
-
 
 @pytest.fixture()
 def client_session_template(monkeypatch: pytest.MonkeyPatch) -> TestClient:
@@ -42,6 +27,19 @@ def client_session_template(monkeypatch: pytest.MonkeyPatch) -> TestClient:
         auth_router,
         "fetch_density",
         MagicMock(return_value=None),
+    )
+    # GET /auth/session calls touch_session before it reads the role state.
+    # The real one talks to Redis and answers 503 when none is running, so
+    # patch it here rather than relying on a sys.modules stub: that stub
+    # only won when no earlier test module had already imported the real
+    # app.services.session_store, which made these tests pass alone and
+    # fail in a full run.
+    monkeypatch.setattr(
+        auth_router,
+        "touch_session",
+        MagicMock(
+            return_value={"email": "user@example.com", "idle_timeout_minutes": 30}
+        ),
     )
     app = FastAPI()
     app.include_router(auth_router.router)

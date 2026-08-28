@@ -33,10 +33,6 @@ _API_ROOT = Path(__file__).parent.parent / "services" / "api"
 if str(_API_ROOT) not in sys.path:
     sys.path.insert(0, str(_API_ROOT))
 sys.modules.setdefault(
-    "app.db.neo4j_client",
-    MagicMock(PatientGraphClient=MagicMock),
-)
-sys.modules.setdefault(
     "app.services.session_store",
     MagicMock(
         COOKIE_NAME="leo_session",

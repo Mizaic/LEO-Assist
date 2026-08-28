@@ -82,15 +82,26 @@ def _attachment_chunk_rows(raw_chunks: Any) -> list[dict[str, Any]]:
 
 
 def _chunk_attachment_sentences(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    loaded = build_document_chunk_state(rows)
+    """Return attachment sentences keyed on their real Neo4j chunk id.
+
+    ``build_document_chunk_state`` is called once per message, so its
+    ``s0``-style labels restart every time.  Labelling is therefore left
+    to ``_append_chunk_sentences``, which owns a counter for the whole
+    assembled thread.
+    """
+    # An attachment on a clinician's email is not the taught referral form,
+    # so no schema lookup is attempted. See
+    # tests/test_communication_attachment_no_schema_lookup.py.
+    loaded = build_document_chunk_state(rows, resolve_schema=False)
     sentences: list[dict[str, Any]] = []
     for sentence in loaded.get("sentences") or []:
         text = _prefix_segment("ATTACHMENT", str(sentence.get("text") or ""))
-        if not text:
+        chunk_id = str(sentence.get("chunk_id") or "").strip()
+        if not text or not chunk_id:
             continue
         sentences.append(
             {
-                "sentence_id": sentence["sentence_id"],
+                "chunk_id": chunk_id,
                 "text": text,
                 "start": sentence.get("start", 0),
                 "end": sentence.get("end", len(text)),
@@ -98,6 +109,29 @@ def _chunk_attachment_sentences(rows: list[dict[str, Any]]) -> list[dict[str, An
             }
         )
     return sentences
+
+
+def _append_chunk_sentences(
+    rows: list[dict[str, Any]],
+    sentences: list[dict[str, Any]],
+    chunk_id_by_sentence_id: dict[str, str],
+) -> None:
+    """Append attachment sentences under labels unique to this thread.
+
+    Dedupe is on the real chunk id, never on the label.  The same
+    attachment quoted on two messages collapses to one; two different
+    attachments both survive, which a label-based check got wrong
+    because both arrived as ``s0``.
+    """
+    seen = set(chunk_id_by_sentence_id.values())
+    for sentence in _chunk_attachment_sentences(rows):
+        chunk_id = str(sentence.pop("chunk_id"))
+        if chunk_id in seen:
+            continue
+        seen.add(chunk_id)
+        label = f"s{len(chunk_id_by_sentence_id)}"
+        chunk_id_by_sentence_id[label] = chunk_id
+        sentences.append({"sentence_id": label, "chunk_id": chunk_id, **sentence})
 
 
 def _note_sentence(
@@ -129,7 +163,7 @@ def build_communication_thread_state(
         key=lambda row: _parse_sent_datetime(row.get("sent_datetime")),
     )
     sentences: list[dict[str, Any]] = []
-    seen_chunk_ids: set[str] = set()
+    chunk_id_by_sentence_id: dict[str, str] = {}
 
     for row in ordered:
         comm_id = str(row.get("communication_id") or "").strip()
@@ -138,14 +172,11 @@ def build_communication_thread_state(
         note_sentence = _note_sentence(comm_id, category, note)
         if note_sentence:
             sentences.append(note_sentence)
-        for chunk_sentence in _chunk_attachment_sentences(
-            _attachment_chunk_rows(row.get("attachment_chunks"))
-        ):
-            chunk_id = str(chunk_sentence.get("sentence_id") or "")
-            if chunk_id in seen_chunk_ids:
-                continue
-            seen_chunk_ids.add(chunk_id)
-            sentences.append(chunk_sentence)
+        _append_chunk_sentences(
+            _attachment_chunk_rows(row.get("attachment_chunks")),
+            sentences,
+            chunk_id_by_sentence_id,
+        )
 
     cr_rows = [
         {
@@ -158,20 +189,10 @@ def build_communication_thread_state(
         for row in cr_attachment_rows
         if str(row.get("chunk_id") or "").strip() and str(row.get("text") or "").strip()
     ]
-    for chunk_sentence in _chunk_attachment_sentences(cr_rows):
-        chunk_id = str(chunk_sentence.get("sentence_id") or "")
-        if chunk_id in seen_chunk_ids:
-            continue
-        seen_chunk_ids.add(chunk_id)
-        sentences.append(chunk_sentence)
+    _append_chunk_sentences(cr_rows, sentences, chunk_id_by_sentence_id)
 
     if extra_chunk_rows:
-        for chunk_sentence in _chunk_attachment_sentences(extra_chunk_rows):
-            chunk_id = str(chunk_sentence.get("sentence_id") or "")
-            if chunk_id in seen_chunk_ids:
-                continue
-            seen_chunk_ids.add(chunk_id)
-            sentences.append(chunk_sentence)
+        _append_chunk_sentences(extra_chunk_rows, sentences, chunk_id_by_sentence_id)
 
     response_text = str(agr_response_text or "").strip()
     if response_text:
@@ -185,6 +206,7 @@ def build_communication_thread_state(
     if not sentences:
         return {
             "sentences": [],
+            "chunk_id_by_sentence_id": {},
             "encounter_text": "",
             "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
             "errors": [
@@ -197,6 +219,7 @@ def build_communication_thread_state(
     )
     return {
         "sentences": sentences,
+        "chunk_id_by_sentence_id": chunk_id_by_sentence_id,
         "encounter_text": encounter_text,
         "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
     }
@@ -212,6 +235,7 @@ def load_communication_thread_from_neo4j(
     if not cr_id:
         return {
             "sentences": [],
+            "chunk_id_by_sentence_id": {},
             "encounter_text": "",
             "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
             "errors": ["communication_request_id is required"],

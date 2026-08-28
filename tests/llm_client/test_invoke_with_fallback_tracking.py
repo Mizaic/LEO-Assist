@@ -13,6 +13,19 @@ import pytest
 from libs.llm_client import providers, token_tracker
 
 
+@pytest.fixture(autouse=True)
+def _bedrock_model_env(monkeypatch):
+    """Name a Bedrock model so the tests do not read a developer's .env.
+
+    ``invoke_with_fallback`` resolves ``_bedrock_model_id()`` for the
+    telemetry payload and raises when neither AWS_BEDROCK_MODEL nor
+    AWS_BIG_MODEL is set. These tests used to inherit the value from a
+    repo ``.env`` that a different test module leaked into os.environ,
+    so they passed locally and would fail on a clean checkout.
+    """
+    monkeypatch.setenv("AWS_BEDROCK_MODEL", "anthropic.claude-test-model")
+
+
 @pytest.fixture
 def captured_callback(monkeypatch):
     captured: list[dict[str, Any]] = []

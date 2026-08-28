@@ -146,6 +146,29 @@ def _resolve_tenant_id(
     return ""
 
 
+def _merged_list(existing: Any, incoming: Any) -> list[Any]:
+    """Append incoming items not already present, preserving order."""
+    merged = list(existing or [])
+    for item in incoming or []:
+        if item not in merged:
+            merged.append(item)
+    return merged
+
+
+def _merge_loaded_state(state: dict[str, Any], loaded: dict[str, Any]) -> None:
+    """Merge a loader's output into pipeline state, keeping warnings.
+
+    A plain ``state.update`` replaces the warnings list, so a degradation
+    another loader already recorded would vanish before anyone saw it.
+    fail-closed-boundary.mdc rule 1 asks that a person can tell from the
+    output that something happened, so warnings accumulate here.
+    """
+    warnings = _merged_list(state.get("warnings"), loaded.get("warnings"))
+    state.update(loaded)
+    if warnings:
+        state["warnings"] = warnings
+
+
 def load_document_chunks_into_state(
     client: PatientGraphClient,
     state: dict[str, Any],
@@ -180,7 +203,7 @@ def load_document_chunks_into_state(
         ),
         ers_service_id=str(state.get("healthcare_service_ers_id") or ""),
     )
-    state.update(loaded)
+    _merge_loaded_state(state, loaded)
     if not loaded.get("errors"):
         return
     logger.warning(
@@ -189,7 +212,7 @@ def load_document_chunks_into_state(
         len(chunk_ids),
         loaded.get("errors"),
     )
-    state["errors"] = list(state.get("errors") or []) + list(loaded.get("errors") or [])
+    state["errors"] = _merged_list(state.get("errors"), loaded.get("errors"))
 
 
 def _validate_trigger_chunk_scope(
@@ -245,7 +268,7 @@ def load_communication_thread_into_state(
         cr_id,
         chunk_ids=chunk_ids_from_state(state) or None,
     )
-    state.update(loaded)
+    _merge_loaded_state(state, loaded)
     if not loaded.get("errors"):
         return
     logger.warning(
@@ -254,7 +277,7 @@ def load_communication_thread_into_state(
         cr_id,
         loaded.get("errors"),
     )
-    state["errors"] = list(state.get("errors") or []) + list(loaded.get("errors") or [])
+    state["errors"] = _merged_list(state.get("errors"), loaded.get("errors"))
 
 
 def enrich_patient_org_id(

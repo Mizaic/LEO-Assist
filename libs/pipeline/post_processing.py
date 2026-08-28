@@ -66,6 +66,13 @@ from typing import Any
 from libs.llm_client.disorder_verifier import DisorderVerdict, verify_disorder
 from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 from libs.ner.context_detector import normalize_situation_lookup
+
+# Imported directly, never behind a fallback. ConText is the negation
+# guard: without it "No chest pain" is recorded as chest pain present. A
+# no-op stub standing in for a safety layer is prohibited by
+# .cursor/rules/fail-closed-boundary.mdc rule 1, so a failed import must
+# stop the run rather than quietly switch negation detection off.
+from libs.ner.context_engine import apply_context_detection_to_dicts
 from libs.ner.lab_triple_recovery import recover_lab_triples
 from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.referral_routing_guard import should_suppress_referral_routing_entity
@@ -88,20 +95,6 @@ from libs.ner.measurement_observable_recovery import recover_measurement_observa
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
 logger = logging.getLogger(__name__)
-
-try:
-    from libs.ner.context_engine import apply_context_detection_to_dicts
-except Exception:
-    logger.warning(
-        "ConText engine unavailable; assertion context detection is disabled in this runtime",
-        exc_info=True,
-    )
-
-    def apply_context_detection_to_dicts(
-        _encounter_text: str, _entities: list[dict[str, Any]]
-    ) -> None:
-        return
-
 
 _SENTENCE_BOUNDARY_RE = re.compile(r"(?:\.(?:\s|$)|\n)")
 _TREND_SPLIT_RE = re.compile(
@@ -1869,6 +1862,32 @@ def run_post_processing_with_trace(
         "layer_8b",
         "Suspected Cancer Lookup Enrichment",
         _run_suspected_cancer_lookup,
+    )
+
+    # Layer 8c: Unresulted-test guard.
+    # Runs after value-unit linking and after ConText, because it needs the
+    # value and the assertion to decide. A battery label sitting on a blank
+    # row of a taught blood panel is not evidence the test was done.
+    def _run_unresulted_test_guard(
+        current: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        from libs.pipeline.unresulted_test_guard import (
+            suppress_unresulted_test_mentions,
+        )
+
+        kept, dropped = suppress_unresulted_test_mentions(current, encounter_text)
+        for ent in dropped:
+            logger.info(
+                "Unresulted-test guard dropped %r: %s",
+                ent.get("text"),
+                ent.get("suppressed_reason"),
+            )
+        return kept
+
+    _run_layer(
+        "layer_8c",
+        "Unresulted-Test Guard",
+        _run_unresulted_test_guard,
     )
 
     # Layer 9: Disorder Gate (optional)

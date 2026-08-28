@@ -98,10 +98,14 @@ def test_vt36e2c3b1_results_persist_before_completion_callback() -> None:
         "await self._write_audit_event(event, step_results, final_status, pipeline_state)",
         'done_type = "run_error" if final_status == "error" else "run_completed"',
     )
+    # Anchored on the call sites in write_patient_graph. The coding-decision
+    # loop moved into ``_write_coding_decisions``, so the old literal
+    # ``session.run(UPSERT_CODING_DECISION`` is no longer at the call site
+    # even though the evidence still gets written first.
     _assert_in_order(
         persist,
         "docs_written = write_documents_from_sentences_payload",
-        "session.run(\n                        UPSERT_CODING_DECISION",
+        "n = _write_coding_decisions(",
     )
 
 

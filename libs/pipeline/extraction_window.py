@@ -19,6 +19,11 @@ from typing import Any
 DEFAULT_PROMPT_OVERHEAD_TOKENS = 800
 TRUNCATION_MARKER = "\n...[truncated]..."
 
+# Floor on a slice of an oversized chunk. Without it, a small window budget
+# against a large prompt overhead yields a negative allowance and would cut
+# the chunk into thousands of one-character windows.
+MIN_CHUNK_SLICE_CHARS = 400
+
 
 @dataclass(frozen=True)
 class ChunkRef:
@@ -32,6 +37,46 @@ class ExtractionWindow:
     chunk_ids: tuple[str, ...]
     input_hash: str
     truncated: bool = False
+    # ``[start, end)`` within the single chunk this window covers, set only
+    # when an oversized chunk had to be split across several windows.
+    text_slice: tuple[int, int] | None = None
+
+
+def window_chunk_text(window: ExtractionWindow, chunk_id: str, text: str) -> str:
+    """Return the part of ``text`` this window covers.
+
+    Safe to call for every chunk of every window: a window that was not
+    split returns the chunk whole.
+    """
+    text_slice = getattr(window, "text_slice", None)
+    if text_slice is None or window.chunk_ids != (chunk_id,):
+        return text
+    start, end = text_slice
+    return text[start:end]
+
+
+def split_text_on_line_boundaries(text: str, max_chars: int) -> list[tuple[int, int]]:
+    """Split ``text`` into ``[start, end)`` ranges covering all of it.
+
+    Breaks are taken at the last newline inside the budget, because a
+    window edge landing mid-line can sever a lab result from its value. A
+    single line longer than the budget is cut at character level, since
+    losing the line entirely is worse than splitting it.
+    """
+    if max_chars < 1:
+        raise ValueError("max_chars must be >= 1")
+    ranges: list[tuple[int, int]] = []
+    pos = 0
+    total = len(text)
+    while pos < total:
+        end = min(total, pos + max_chars)
+        if end < total:
+            cut = text.rfind("\n", pos + 1, end)
+            if cut > pos:
+                end = cut + 1
+        ranges.append((pos, end))
+        pos = end
+    return ranges
 
 
 @dataclass
@@ -81,14 +126,59 @@ def _make_window(
     texts: dict[str, str],
     *,
     truncated: bool = False,
+    text_slice: tuple[int, int] | None = None,
 ) -> ExtractionWindow:
     payload = "|".join(f"{cid}:{texts.get(cid, '')}" for cid in chunk_ids)
+    if text_slice is not None:
+        payload = f"{payload}|slice:{text_slice[0]}-{text_slice[1]}"
     return ExtractionWindow(
         index=index,
         chunk_ids=chunk_ids,
         input_hash=hashlib.sha256(payload.encode("utf-8")).hexdigest(),
         truncated=truncated,
+        text_slice=text_slice,
     )
+
+
+def _chunk_slice_budget_chars(
+    chunk_id: str, *, max_window_input_tokens: int, overhead_tokens: int
+) -> int:
+    """Characters of one chunk that fit inside a single window.
+
+    ``_window_payload_tokens`` counts the chunk text twice, once as context
+    and once in the labelled sentence block, so the character allowance is
+    half the tokens left after prompt overhead.
+    """
+    label_tokens = estimate_tokens(f"[{chunk_id}] ")
+    available = max_window_input_tokens - max(0, int(overhead_tokens)) - label_tokens
+    return max(MIN_CHUNK_SLICE_CHARS, (available * 4) // 2)
+
+
+def _oversized_chunk_windows(
+    first_index: int,
+    chunk_id: str,
+    texts: dict[str, str],
+    *,
+    max_window_input_tokens: int,
+    overhead_tokens: int,
+) -> list[ExtractionWindow]:
+    """Spread one oversized chunk across windows instead of cutting it.
+
+    HCCP does not guarantee a chunk fits a window. Emitting the chunk alone
+    and letting the caller trim it to the budget silently drops the bottom
+    of the chunk, which on production referrals is where the blood panel
+    and examination narrative sit. Splitting costs extra model calls.
+    """
+    text = texts.get(chunk_id, "")
+    budget = _chunk_slice_budget_chars(
+        chunk_id,
+        max_window_input_tokens=max_window_input_tokens,
+        overhead_tokens=overhead_tokens,
+    )
+    return [
+        _make_window(first_index + offset, (chunk_id,), texts, text_slice=bounds)
+        for offset, bounds in enumerate(split_text_on_line_boundaries(text, budget))
+    ]
 
 
 def plan_extraction_windows(
@@ -149,8 +239,28 @@ def plan_extraction_windows_by_tokens(
     idx = 1
     start = 0
     while start < len(ids):
+        head = ids[start]
+        if (
+            _window_payload_tokens(
+                [head],
+                texts,
+                overhead_tokens=overhead_tokens,
+                estimate_fn=estimate,
+            )
+            > max_window_input_tokens
+        ):
+            sliced = _oversized_chunk_windows(
+                idx,
+                head,
+                texts,
+                max_window_input_tokens=max_window_input_tokens,
+                overhead_tokens=overhead_tokens,
+            )
+            windows.extend(sliced)
+            idx += len(sliced)
+            start += 1
+            continue
         packed: list[str] = []
-        truncated = False
         for offset in range(max_chunks_per_window):
             if start + offset >= len(ids):
                 break
@@ -162,17 +272,12 @@ def plan_extraction_windows_by_tokens(
                 overhead_tokens=overhead_tokens,
                 estimate_fn=estimate,
             )
-            if tokens <= max_window_input_tokens:
-                packed = trial
-                continue
-            if not packed:
-                # Single oversized chunk: emit alone and flag truncation.
-                packed = [candidate]
-                truncated = True
-            break
+            if tokens > max_window_input_tokens:
+                break
+            packed = trial
         if not packed:
             break
-        windows.append(_make_window(idx, tuple(packed), texts, truncated=truncated))
+        windows.append(_make_window(idx, tuple(packed), texts))
         idx += 1
         if start + len(packed) >= len(ids):
             break

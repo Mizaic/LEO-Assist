@@ -457,8 +457,8 @@ class LLMExtractorAdapter:
 
         for t in terms:
             text_val = t.get("text", "")
-            span_start, span_end = resolver.resolve(
-                text_val, sentence_id=str(t.get("sentence_id") or "") or None
+            span_start, span_end, span_meta = _resolve_item_span(
+                resolver, text_val, str(t.get("sentence_id") or "") or None
             )
             items.append(
                 ExtractionItem(
@@ -466,6 +466,7 @@ class LLMExtractorAdapter:
                     text=text_val,
                     span_start=span_start,
                     span_end=span_end,
+                    source_meta=span_meta,
                     semantic_tag=t.get("semantic_tag", "finding"),
                     assertion=_normalise_assertion(t.get("assertion")),
                     confidence=_normalise_confidence(t.get("confidence")),
@@ -497,6 +498,21 @@ class LLMExtractorAdapter:
             context_mode=context_mode,
         )
         return items
+
+
+def _resolve_item_span(
+    resolver: SpanResolver, term_text: str, sentence_id: str | None
+) -> tuple[int, int, dict[str, Any]]:
+    """Resolve a term's offsets and mark the fact when they were guessed.
+
+    The offsets are the resolver's existing answer either way. The marker is
+    what a reviewer needs: a fact whose span was guessed had its assertion
+    decided from text it did not come from, so "absent" on that fact means
+    nothing. Surfaced as a run warning by the post-processing subgraph.
+    """
+    outcome = resolver.resolve_traced(term_text, sentence_id=sentence_id)
+    meta: dict[str, Any] = {} if outcome.resolved else {"span_unresolved": True}
+    return outcome.start, outcome.end, meta
 
 
 def build_extractor(

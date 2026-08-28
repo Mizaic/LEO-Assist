@@ -40,9 +40,11 @@ Read both. Do not restate one in the other.
    exactly when the run went wrong. An error raises the need for a
    person to look, so it must make a pause more likely, not less.
 
-5. **Composition failures are fatal.** A subgraph that fails to
-   register aborts worker startup. It is never quietly missing from the
-   assembled pipeline at run time.
+5. **Composition failures are fatal.** Subgraph registration is
+   all-or-nothing: a subgraph that fails to register leaves no registry
+   at all, so it is never quietly missing from the assembled pipeline at
+   run time. The worker must also stop reporting itself healthy, or it
+   keeps accepting referrals it cannot process.
 
 ## The reviewer test
 
@@ -55,10 +57,15 @@ non-conformance. Do not merge it.
 
 ## Known open sites
 
-Six fail-open sites plus the skipped-pause defect are covered by strict
-`xfail` tests in `tests/test_fail_closed_boundary_red.py`. They are
-fixed in Slice 9 of the pipeline refactor. Do not add another. Do not
-delete an `xfail` marker without fixing the site it names.
+None. The six fail-open sites and the skipped-pause defect are fixed, and
+`tests/test_fail_closed_boundary_red.py` now runs all seven as real tests
+with no `xfail` markers. Each site also has a focused suite of its own,
+named in that file's docstrings.
+
+Do not add a new fail-open site. If you find one, fix it in the same
+change or raise a non-conformance. Do not park it behind an `xfail`
+marker and a slice number: patient safety is band 1 in `precedence.mdc`,
+so it outranks any scheduling note.
 
 ## Atlas trace
 
