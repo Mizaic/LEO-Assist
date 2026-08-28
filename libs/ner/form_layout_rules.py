@@ -37,6 +37,19 @@ _LAB_ABBREV = re.compile(
     re.IGNORECASE,
 )
 _HAS_DIGIT = re.compile(r"\d")
+_CHROME_LINE = re.compile(
+    r"(?i)^\s*("
+    r"clinical\s+context\s*:"
+    r"|current\s+repeat\s+templates\b"
+    r"|clinical\s+information\s+summary\b"
+    r"|nhs\s+confidential\b"
+    r")"
+)
+_ECOG_INSTRUCTION = re.compile(
+    r"(?i)No\s+ECOG\s+in\s+patient\s+record|"
+    r"consider\s+using\s+tool\s+on\s+2WW[^\d[]*"
+)
+_SCALE_BOX = re.compile(r"(?P<grade>\d+)\s+(?P<box>\[\s*\]|\[(?:X|x)\])")
 
 
 def _mark(text: str) -> str:
@@ -84,32 +97,67 @@ def _is_empty_lab_line(line: str) -> bool:
     return len(names) >= 2
 
 
+def _is_chrome_line(line: str) -> bool:
+    return bool(_CHROME_LINE.search(line))
+
+
+def _split_scale_options(line: str) -> str | None:
+    cleaned = _ECOG_INSTRUCTION.sub(" ", line)
+    pairs = list(_SCALE_BOX.finditer(cleaned))
+    if len(pairs) < 2:
+        return None
+    pieces: list[str] = []
+    for match in pairs:
+        cell = f"{match.group('grade')} {match.group('box')}"
+        if _is_checked(match.group("box")):
+            pieces.append(cell)
+        else:
+            pieces.append(_mark(cell))
+    return " | ".join(pieces)
+
+
+def _rewrite_line(line: str) -> str:
+    stripped = line.strip()
+    if not stripped or stripped.startswith(NON_EXTRACTABLE_MARKER):
+        return line
+    if _is_chrome_line(stripped) or _INSTRUCTION.search(stripped):
+        return _mark(stripped)
+    if _ADMIN_LINE.search(stripped) or _is_empty_lab_line(stripped):
+        return _mark(stripped)
+    yes_no = _normalise_yes_no_row(stripped)
+    if yes_no is not None:
+        return yes_no
+    scale = _split_scale_options(stripped)
+    if scale is not None:
+        return scale
+    inline = _split_inline_options(stripped)
+    return inline if inline is not None else line
+
+
 def apply_form_layout_rules(text: str) -> str:
     """Second-pass form chrome rules used after checkbox normalisation."""
     if not text:
         return text
-    out: list[str] = []
+    return "\n".join(_rewrite_line(line) for line in text.splitlines())
+
+
+def llm_facing_text(text: str) -> str:
+    """Drop marked chrome lines from the text shown to the extractor."""
+    if not text:
+        return text
+    kept: list[str] = []
     for line in text.splitlines():
         stripped = line.strip()
-        if not stripped:
-            out.append(line)
+        if not stripped or stripped.startswith(NON_EXTRACTABLE_MARKER):
             continue
-        if stripped.startswith(NON_EXTRACTABLE_MARKER):
-            out.append(line)
+        if "|" in line and NON_EXTRACTABLE_MARKER in line:
+            cells = [
+                cell.strip()
+                for cell in line.split("|")
+                if cell.strip() and NON_EXTRACTABLE_MARKER not in cell
+            ]
+            if cells:
+                kept.append(" | ".join(cells))
             continue
-        if _INSTRUCTION.search(stripped) or _ADMIN_LINE.search(stripped):
-            out.append(_mark(stripped))
-            continue
-        if _is_empty_lab_line(stripped):
-            out.append(_mark(stripped))
-            continue
-        yes_no = _normalise_yes_no_row(stripped)
-        if yes_no is not None:
-            out.append(yes_no)
-            continue
-        inline = _split_inline_options(stripped)
-        if inline is not None:
-            out.append(inline)
-            continue
-        out.append(line)
-    return "\n".join(out)
+        kept.append(line)
+    return "\n".join(kept)

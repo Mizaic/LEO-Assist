@@ -574,6 +574,22 @@
       "max_scope": null,
       "description": "Contrast stop. A deny or no cue before 'however' must not apply after it.",
       "example": "denies chest pain, however has cough -> cough stays present"
+    },
+    {
+      "literal": "No [",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "PSEUDO",
+      "max_scope": null,
+      "description": "Form checkbox 'No [ ]' or 'No [X]' is layout, not clinical negation of a nearby finding.",
+      "example": "Cognitive Impairment - Yes [ ] No [X] Two open vulval sores noted -> sores stay present"
+    },
+    {
+      "literal": "No ECOG",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "PSEUDO",
+      "max_scope": null,
+      "description": "Template instruction 'No ECOG in patient record' is form chrome, not negation of later findings.",
+      "example": "No ECOG in patient record - consider using tool -> nearby findings stay present"
     }
   ]
 }

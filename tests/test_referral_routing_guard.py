@@ -88,6 +88,14 @@ def test_run_post_processing_drops_routing_entity() -> None:
     assert "Urgent 2WW brain/CNS referral" not in texts
 
 
+def test_clinical_context_2ww_is_routing_chrome() -> None:
+    assert is_informational_referral_routing("Clinical Context: 2WW/2WW Gynaecology")
+    assert is_informational_referral_routing("Clinical Context: 2WW")
+    assert should_suppress_referral_routing_entity(
+        {"text": "Clinical Context: 2WW/2WW Gynaecology", "label": "finding"}
+    )
+
+
 def test_should_suppress_entity_dict() -> None:
     assert should_suppress_referral_routing_entity(
         {"text": "2WW referral placed", "label": "procedure"}

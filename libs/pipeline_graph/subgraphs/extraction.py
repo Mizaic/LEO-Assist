@@ -874,15 +874,19 @@ def _chunks_from_state(
     """Return (llm_chunks, span_chunks). Span chunks prefer text_raw."""
     llm_chunks: list[SentenceChunk] = []
     span_chunks: list[SentenceChunk] = []
+    from libs.ner.form_layout_rules import llm_facing_text
+
     for s in raw_sentences:
         sid = s.get("sentence_id", "")
         start = int(s.get("start", 0))
         end = int(s.get("end", 0))
         text = str(s.get("text") or "")
         text_raw = str(s.get("text_raw") or text)
-        llm_chunks.append(
-            SentenceChunk(sentence_id=sid, text=text, start=start, end=end)
-        )
+        facing = llm_facing_text(text)
+        if facing.strip():
+            llm_chunks.append(
+                SentenceChunk(sentence_id=sid, text=facing, start=start, end=end)
+            )
         span_chunks.append(
             SentenceChunk(sentence_id=sid, text=text_raw, start=start, end=end)
         )

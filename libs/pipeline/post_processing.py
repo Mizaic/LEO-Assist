@@ -1039,7 +1039,8 @@ def fix_double_negated_situations(entities: list[dict[str, Any]]) -> None:
 # ── Layer 7d (b): Polarity-Encoded Finding Guard ──
 
 _POLARITY_SUFFIX_RE = re.compile(
-    r"\b(absent|not detected|not found|not present|negative)\s*\([^)]+\)\s*$",
+    r"\b(absent|not detected|not found|not present|negative|"
+    r"not seen|not visuali[sz]ed)\s*\([^)]+\)\s*$",
     re.IGNORECASE,
 )
 
@@ -1342,12 +1343,14 @@ def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
 
 def apply_false_absent_assertion_guards(entities: list[dict[str, Any]]) -> None:
     """Run lifestyle-status, PMH, situation-present, and contrast guards."""
+    from libs.ner.affirmed_finding_guard import fix_locally_affirmed_assertions
     from libs.ner.contrast_negation_guard import fix_contrast_positive_false_absent
 
     fix_lifestyle_status_assertions(entities)
     fix_pmh_list_false_absent(entities)
     fix_situation_present_assertions(entities)
     fix_contrast_positive_false_absent(entities)
+    fix_locally_affirmed_assertions(entities)
 
 
 # ── Layer 8: Situation Lookup Normalisation ──

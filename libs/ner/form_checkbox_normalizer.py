@@ -246,8 +246,10 @@ def normalize_form_checkbox_text(text: str) -> str:
 
         if schema.chunk_section_map and "\n\n" in text:
             chunks = text.split("\n\n")
-            return normalise_with_schema(schema, chunks, schema.chunk_section_map)
-        return apply_schema_to_text(text, schema)
+            return apply_form_layout_rules(
+                normalise_with_schema(schema, chunks, schema.chunk_section_map)
+            )
+        return apply_form_layout_rules(apply_schema_to_text(text, schema))
 
     if not _needs_normalisation(text):
         return apply_form_layout_rules(text)

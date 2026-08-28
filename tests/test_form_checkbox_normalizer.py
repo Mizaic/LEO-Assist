@@ -127,6 +127,41 @@ def test_build_document_chunk_state_sets_text_raw_and_normalised_text() -> None:
     assert state["encounter_text"] == rows[0]["text"]
 
 
+def test_schema_path_still_marks_clinical_context_chrome() -> None:
+    """Taught-form runs must still drop routing chrome after schema rewrite."""
+    from unittest.mock import patch
+
+    from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
+
+    schema = FormSchema(
+        schema_id="s1",
+        fingerprint="fp",
+        form_name="test",
+        sections=[
+            FormSection(
+                section_id="c",
+                section_type="free_text",
+                label="Clinical details",
+                start_pattern=r"(?i)clinical details",
+            )
+        ],
+        created_by="test",
+    )
+    text = (
+        "Clinical details\n"
+        "Clinical Context: 2WW/2WW Gynaecology\n"
+        "Yellow vaginal discharge noted"
+    )
+    with patch(
+        "libs.ner.form_checkbox_normalizer._get_schema_for_text",
+        return_value=schema,
+    ):
+        lines = extractable_clinical_lines(text)
+    joined = " ".join(lines).lower()
+    assert "clinical context" not in joined
+    assert "vaginal discharge" in joined
+
+
 def test_extraction_path_invokes_normalizer() -> None:
     windowed = Path("libs/pipeline/windowed_llm_extraction.py").read_text(
         encoding="utf-8"

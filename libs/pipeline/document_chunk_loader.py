@@ -39,8 +39,7 @@ _PDF_BOUNDARY_RE = re.compile(
 # The raw text is kept in encounter_text for span resolution; only the
 # model-facing normalised text is blanked with [NON_EXTRACTABLE].
 _NON_EXTRACTABLE_CHUNK_RE = re.compile(
-    r"^\s*---\s*Document:[^\n]+\.pdf\s*---"
-    r"|^\s*Points\s+to\s+remember",
+    r"^\s*---\s*Document:[^\n]+\.pdf\s*---" r"|^\s*Points\s+to\s+remember",
     re.IGNORECASE,
 )
 
@@ -244,8 +243,15 @@ def _normalise_chunk_texts(
     )
     if not raw_texts:
         return [], fields
+    from libs.ner.form_layout_rules import apply_form_layout_rules
+
     if schema is not None and schema.sections:
-        normalised = normalise_chunks_with_schema(schema, raw_texts, schema.chunk_section_map)
+        normalised = [
+            apply_form_layout_rules(text)
+            for text in normalise_chunks_with_schema(
+                schema, raw_texts, schema.chunk_section_map
+            )
+        ]
     else:
         normalised = [normalize_form_checkbox_text(text) for text in raw_texts]
     return [_mark_non_extractable_chunk(t) for t in normalised], fields
