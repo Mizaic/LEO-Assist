@@ -14,12 +14,19 @@ This pack is the source of truth when rules conflict. Choose the
 4. Architecture constraints (Neo4j, async jobs, workflow graph execution)
 5. Coding standards and style
 
+Inside band 1, `fail-closed-boundary.mdc` sits alongside
+`clinical-safety.mdc`. It decides where a failure must stop the run, so
+it wins over any architecture, style, or convenience rule below.
+
 If a rule is broad and mixed-concern, split it rather than extend it.
 
 ## Binding methods
 
 - Frontend UI testing uses Playwright journeys. Do not default to Vitest
   for UI journeys.
+- A failure that could change a clinical output degrades the run and
+  routes it to a human (`fail-closed-boundary.mdc`). "Log and continue"
+  is not allowed on a safety layer.
 - Implementation is test-driven (`tdd.mdc`): red, then green, then code.
 - Platform validation (`platform-validation.mdc`): the agent verifies,
   then validates with Playwright and screenshots. Humans check the pack.

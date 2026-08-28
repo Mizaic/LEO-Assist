@@ -1,0 +1,67 @@
+---
+alwaysApply: true
+description: Where the fail-closed boundary sits -- degradation must be represented, never inferred from absence
+---
+
+# Fail-Closed Boundary
+
+Clinical degradation must be shown, never guessed from what is missing.
+
+If a function could change a clinical output when it fails, it must not
+return a value that looks exactly like a successful negative result. It
+must either raise, or return an explicit outcome that carries the
+degradation with it.
+
+"Log and continue" is not a safety control. A log line is not visible to
+the clinician reading the record.
+
+This rule says where the boundary sits. `clinical-safety.mdc` says what
+a safety-critical field, an AI output, and an escalation path must do.
+Read both. Do not restate one in the other.
+
+## The five rules
+
+1. **An unavailable guard degrades the run.** If a safety layer cannot
+   load -- import failure, model load failure, Neo4j error -- the run
+   goes to `degraded` and is routed to human review. It never finishes
+   as `completed`. A no-op stub that stands in for a safety layer is
+   prohibited.
+
+2. **Lookups have three answers, not two.** A resolution lookup returns
+   `Found`, `NotFound`, or `LookupFailed`. `None` may only mean
+   "definitely not there". It must never also mean "we could not ask".
+
+3. **Partial results are typed as partial.** A stage that finished 3 of
+   5 windows returns something the type system will not let you assign
+   to a field that means "complete".
+
+4. **Failure never opens the review gate.** Any code shaped like
+   `if not errors: apply_gate(...)` is a defect. An error raises the
+   need for a human to look, so it must make review more likely, not
+   less.
+
+5. **Composition failures are fatal.** A subgraph that fails to
+   register aborts worker startup. It is never quietly missing from the
+   assembled pipeline at run time.
+
+## The reviewer test
+
+For every `except` block, ask one question:
+
+> Could a clinician tell from the output that this happened?
+
+If the answer is no, the block is fail-open. Fix it or raise a
+non-conformance. Do not merge it.
+
+## Known open sites
+
+Six fail-open sites plus the review-gate defect are covered by strict
+`xfail` tests in `tests/test_fail_closed_boundary_red.py`. They are
+fixed in Slice 9 of the pipeline refactor. Do not add another. Do not
+delete an `xfail` marker without fixing the site it names.
+
+## Atlas trace
+
+UN-89E2AE36 -> DI-B7A69F26 (fail-closed boundary), DI-02AB393F
+(degraded runs routed to human review) -> DO-42331CE1 -> VT-AA8ED00F.
+Risk R-294446BF. Look these up with the Atlas design controls MCP.
