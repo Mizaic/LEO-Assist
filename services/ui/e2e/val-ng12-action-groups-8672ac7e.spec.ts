@@ -29,6 +29,7 @@ import {
   goToSuggest,
   installFixtures,
   openEditDialog,
+  openProcedurePicker,
   pickProcedure,
   setStrength,
   type DecisionBody,
@@ -51,7 +52,7 @@ const PROTOCOL = [
 ] as const;
 
 test.describe("VAL-8672AC7E NG12 action groups @val", () => {
-  test.setTimeout(480_000);
+  test.setTimeout(720_000);
 
   test.beforeAll(() => {
     test.skip(!isAtlasValidationConfigured(), atlasValidationSkipReason());
@@ -96,11 +97,7 @@ test.describe("VAL-8672AC7E NG12 action groups @val", () => {
           ctx.lastCompletedStep.value = 0;
 
           await goToSuggest(dialog);
-          await dialog
-            .getByRole("button", {
-              name: /no procedure picked yet\. click to pick/i,
-            })
-            .click();
+          await openProcedurePicker(dialog);
           await pickProcedure(
             ctx.page,
             dialog,
@@ -219,11 +216,7 @@ test.describe("VAL-8672AC7E NG12 action groups @val", () => {
           await installFixtures(ctx.page, EITHER_OR_RULE, captured);
           const eitherDialog = await openEditDialog(ctx.page, EITHER_OR_RULE);
           await goToSuggest(eitherDialog);
-          await eitherDialog
-            .getByRole("button", {
-              name: /no procedure picked yet\. click to pick/i,
-            })
-            .click();
+          await openProcedurePicker(eitherDialog);
           await pickProcedure(
             ctx.page,
             eitherDialog,

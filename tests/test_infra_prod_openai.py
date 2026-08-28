@@ -28,11 +28,11 @@ def _param(source: str, name: str) -> str:
 def test_prod_params_match_live_container_apps() -> None:
     source = PROD_PARAMS.read_text()
     assert _param(source, "azureOpenAiBigModel") == "gpt-5.2-chat"
-    assert _param(source, "azureOpenAiSmallModel") == "gpt-5-mini"
+    assert _param(source, "azureOpenAiSmallModel") == "gpt-5.4-mini"
     assert _param(source, "azureOpenAiApiVersion") == "2024-12-01-preview"
     assert _param(source, "pipelineModelProvider") == "aws"
     assert _param(source, "azureOpenAiWorkerBigModel") == "gpt-5.4"
-    assert _param(source, "azureOpenAiWorkerSmallModel") == "gpt-5.4-nano"
+    assert _param(source, "azureOpenAiWorkerSmallModel") == "gpt-5.4-mini"
     assert _param(source, "azureUseReasoningSmall") == "true"
     assert _param(source, "azureUseReasoningBig") == "false"
     assert _param(source, "azureReasoningEffortSmall") == "low"
@@ -62,7 +62,7 @@ def test_main_bicep_forwards_prod_openai_params() -> None:
 
 def test_openai_module_declares_live_account_deployments() -> None:
     source = OPENAI_MODULE.read_text()
-    for name in ("gpt-5.4", "gpt-5-mini", "gpt-5.4-nano"):
+    for name in ("gpt-5.4", "gpt-5-mini", "gpt-5.4-mini", "gpt-5.4-nano"):
         assert f"name: '{name}'" in source
     assert "2026-03-05" in source
     assert "2025-08-07" in source

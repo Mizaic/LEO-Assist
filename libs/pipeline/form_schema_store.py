@@ -224,6 +224,22 @@ def form_schema_state_fields(
     }
 
 
+def has_taught_form_schema(state: dict[str, Any]) -> bool:
+    """True when a taught FormSchema is bound on pipeline state.
+
+    Reads the resolved keys that :func:`form_schema_state_fields` writes,
+    so this is the same signal the non-windowed extractor derives from
+    ``form_schema_match``. Both keys must agree: a stale fingerprint on
+    its own is not a taught form, and treating it as one would switch off
+    generic checkbox normalisation for an untaught referral form.
+    """
+    match = str(state.get("form_schema_match") or "none").strip()
+    fingerprint = str(state.get("form_schema_fingerprint") or "none").strip()
+    if match in ("", "none"):
+        return False
+    return fingerprint not in ("", "none")
+
+
 def form_schema_fields_from_state(
     state: dict[str, Any],
     encounter_text: str,
@@ -233,11 +249,7 @@ def form_schema_fields_from_state(
     """Reuse a resolved form key, or look it up from the letter text."""
     existing = str(state.get("form_schema_fingerprint") or "").strip()
     existing_match = str(state.get("form_schema_match") or "none").strip() or "none"
-    if (
-        existing
-        and existing != "none"
-        and existing_match != "none"
-    ):
+    if existing and existing != "none" and existing_match != "none":
         return {
             "form_schema_fingerprint": existing,
             "form_schema_match": existing_match,
@@ -432,7 +444,7 @@ def delete_form_schema(client: Any, fingerprint: str) -> bool:
     fp = fingerprint.strip()
     if not fp or fp == "unknown":
         return False
-    rows = client.run(DELETE_FORM_SCHEMA, {"fingerprint": fp})
+    rows = client.run(DELETE_FORM_SCHEMA, fingerprint=fp)
     deleted = bool(rows and rows[0].get("schema_id"))
     _SCHEMA_CACHE.pop(fp, None)
     if deleted:
@@ -463,6 +475,7 @@ __all__ = [
     "form_schema_fields_from_state",
     "form_schema_state_fields",
     "get_cached_schema",
+    "has_taught_form_schema",
     "is_known_schema",
     "load_form_schema",
     "normalize_sections_for_request",

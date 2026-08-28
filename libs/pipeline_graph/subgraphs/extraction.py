@@ -753,7 +753,11 @@ def _run_llm_extraction(
         known_form_schema=known_form,
         taught_form_fingerprint=schema_fields.get("form_schema_fingerprint") or "",
     )
-    llm_chunks = _normalise_chunks_for_llm(chunks) if normalise_forms else chunks
+    llm_chunks = (
+        _normalise_chunks_for_llm(chunks)
+        if normalise_forms and not known_form
+        else chunks
+    )
     items, llm_tokens = extractor.extract_batch_with_usage(
         encounter_text,
         llm_chunks,

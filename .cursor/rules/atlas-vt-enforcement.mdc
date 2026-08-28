@@ -26,30 +26,28 @@ Product ID: `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`.
 
 ## Scope -- Class C is out of scope of Mizaic's manufacturing policy
 
-LEO Core AI is a clinical decision support device with mandatory
-human review of every AI-generated proposal before it reaches the
-patient record (see the SAD `architecture_overview` and the
-review-gate DIs `DI-604767B1`, `DI-7913344A`, `DI-BD696225`). Per
-IEC 62304 §4.3, mandatory operator intervention is a non-software
-risk control external to the SOFTWARE SYSTEM, which keeps every
-software item in this product at Class B or below.
+LEO Core AI is a clinical decision support device. Every clinical
+fact it produces is a proposal for a person to judge, and that
+judgement happens outside LEO. Per IEC 62304 clause 4.3, mandatory
+operator intervention is a non-software risk control external to
+the SOFTWARE SYSTEM, which keeps every software item in this
+product at Class B or below. See the SAD `architecture_overview`.
 
 **Mizaic's manufacturing policy does not permit Class C software in
 this product.** As of 2026-04-20 there are zero Class C artefacts in
 Atlas for `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`, and
 this rule keeps it that way.
 
-If a proposed change cannot be made Class B even with the human
-review gate in place -- for example a feature that would publish,
-export, or autonomously act on AI output without reviewer
-acceptance -- **stop**:
+If a proposed change cannot be made Class B -- for example a feature
+that would publish, export, or autonomously act on AI output --
+**stop**:
 
 1. Do **not** classify the change as Class C and proceed.
 2. Escalate to the Clinical Safety Officer and the QA/RA lead before
    any code is written.
-3. Either redesign so the human review gate covers the new failure
-   mode (Class B), or raise an intended-purpose / safety-case change
-   request that formally extends the device scope.
+3. Either redesign so the change stays Class B, or raise an
+   intended-purpose / safety-case change request that formally
+   extends the device scope.
 
 The `safety_class` field on every Atlas artefact in this product is
 therefore restricted to `A` or `B`. The legacy `C` value is kept in
@@ -68,7 +66,7 @@ used without prior escalation**.
 | Cosmetic    | No logic, no safety impact                       | CSS tweaks, copy changes, variable renames                | Look up nearest DI in Atlas to confirm no overlap; no new artefacts |
 | Class A     | Non-safety-critical (IEC 62304 Class A)          | Internal tooling, dev-only utilities, test helpers        | Look up DIs and risks in Atlas; create only if a genuinely new capability |
 | Class B     | Safety-relevant (IEC 62304 Class B)              | Any clinical pipeline, API route, UI feature for clinical staff | **Full Atlas chain required**: UN, DI, DO, Risk, VT |
-| Class C     | Out of scope -- not manufactured under Mizaic's policy for this product | Autonomous coding, safety gates, or model thresholds with no human review gate | **Stop and escalate** to Clinical Safety Officer + QA/RA lead before writing code. Redesign as Class B with reviewer gate, or raise an intended-purpose change request. |
+| Class C     | Out of scope -- not manufactured under Mizaic's policy for this product | Anything that publishes, exports, or autonomously acts on AI output | **Stop and escalate** to Clinical Safety Officer + QA/RA lead before writing code. Redesign to stay Class B, or raise an intended-purpose change request. |
 
 If unsure, treat as Class B.
 

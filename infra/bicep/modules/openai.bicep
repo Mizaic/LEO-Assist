@@ -183,6 +183,24 @@ resource gpt5Mini 'Microsoft.CognitiveServices/accounts/deployments@2026-03-01' 
   }
 }
 
+resource gpt54Mini 'Microsoft.CognitiveServices/accounts/deployments@2026-03-01' = {
+  parent: aoaiAccount
+  name: 'gpt-5.4-mini'
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 1000
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-5.4-mini'
+      version: '2026-03-17'
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+  }
+}
+
 resource gpt54Nano 'Microsoft.CognitiveServices/accounts/deployments@2026-03-01' = {
   parent: aoaiAccount
   name: 'gpt-5.4-nano'

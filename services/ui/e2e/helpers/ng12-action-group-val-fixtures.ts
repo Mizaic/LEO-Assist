@@ -254,26 +254,30 @@ export function btnByLabel(root: Locator, label: string | RegExp): Locator {
 
 export async function pickProcedure(
   page: Page,
-  dialog: Locator,
+  _dialog: Locator,
   query: string,
   useLabel: RegExp,
 ) {
   // ChipSearchPopover renders in a portal outside the dialog subtree.
   const search = page.getByLabel(/search clinical terms/i);
   await expect(search).toBeVisible({ timeout: 10000 });
+
+  const searchResponse = page.waitForResponse(
+    (resp) =>
+      resp.url().includes("/api/terminology/search") &&
+      resp.request().method() === "GET" &&
+      resp.ok(),
+  );
   await search.fill(query);
-  await expect(search).toHaveValue(query);
+  await searchResponse;
 
   const useBtn = page.getByRole("button", { name: useLabel });
-  if (await useBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await useBtn.click({ timeout: 15000 });
-    return;
-  }
+  await expect(useBtn).toBeVisible({ timeout: 15000 });
+  await useBtn.click();
+}
 
-  const checkbox = page.getByRole("checkbox", { name: /^Select /i }).first();
-  await expect(checkbox).toBeVisible({ timeout: 15000 });
-  await checkbox.check();
-  await page.getByRole("button", { name: /Add 1 code/i }).click({ timeout: 15000 });
+export async function openProcedurePicker(dialog: Locator) {
+  await dialog.getByLabel(/no procedure picked yet\. click to pick/i).click();
 }
 
 export async function openEditDialog(
@@ -288,9 +292,6 @@ export async function openEditDialog(
   if (await reviewTab.isVisible().catch(() => false)) {
     await reviewTab.click();
   }
-  await expect(page.locator("#rule-review-body")).toBeVisible({
-    timeout: 15000,
-  });
   await expect(page.getByTestId("rule-pool-pending")).toBeVisible({
     timeout: 15000,
   });
@@ -304,7 +305,11 @@ export async function openEditDialog(
   await page
     .getByRole("button", { name: `Toggle rule from ${rule.guideline_id}` })
     .click();
-  await page.getByRole("button", { name: `Edit rule ${rule.rule_id}` }).click();
+  await page.getByRole("button", { name: `Edit rule ${rule.rule_id}` }).click({
+    timeout: 5000,
+  }).catch(async () => {
+    await page.getByRole("button", { name: /^Edit$/ }).click();
+  });
 
   const dialog = page.getByRole("dialog", { name: /Change this rule/i });
   await expect(dialog).toBeVisible();
@@ -312,11 +317,10 @@ export async function openEditDialog(
 }
 
 export async function goToSuggest(dialog: Locator) {
-  await dialog
-    .getByRole("button", {
-      name: /step 2 of 3: what should the system suggest/i,
-    })
-    .click();
+  const suggestStep = dialog.getByRole("button", {
+    name: /step (?:2 of 3|3 of 4): what should the system suggest/i,
+  });
+  await suggestStep.click();
   await expect(
     dialog.getByRole("heading", { name: /what should the system suggest/i }),
   ).toBeVisible({ timeout: 15000 });

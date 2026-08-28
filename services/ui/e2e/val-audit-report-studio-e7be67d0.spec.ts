@@ -46,9 +46,8 @@ const PROTOCOL = [
 ] as const;
 
 test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
-  // 7 steps x 2 Atlas REST calls (recordStep + uploadEvidence) each up to 60s,
-  // plus Playwright actions, html2canvas render and PDF download.
-  test.setTimeout(720_000);
+  // Seven steps; Atlas screenshot upload per step can take several minutes.
+  test.setTimeout(1_200_000);
 
   test.beforeAll(() => {
     test.skip(!isAtlasValidationConfigured(), atlasValidationSkipReason());
@@ -157,14 +156,14 @@ test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
           ctx.lastCompletedStep.value = 2;
 
           // Step 4 -- add a second page and a tile on it.
+          await p.locator("[data-testid='canvas-grid']").click({ position: { x: 8, y: 8 } });
           await p.getByRole("button", { name: "Add page" }).click();
-          await expect(p.getByRole("tab", { name: /Page 2/ })).toBeVisible({
+          await expect(p.getByRole("tab", { name: /^Page 2\b/ })).toBeVisible({
             timeout: 10_000,
           });
-          // Page 2 starts empty.
-          await expect(p.locator("[data-testid='tile-body']")).toHaveCount(0);
+          await expect(p.locator("[data-testid='canvas-tile']")).toHaveCount(0);
           await clickFirstAvailableMetricAdd(p);
-          await expect(p.locator("[data-testid='tile-body']")).toHaveCount(1);
+          await expect(p.locator("[data-testid='canvas-tile']")).toHaveCount(1);
           await recordProtocolStep({
             request: ctx.request,
             runId: ctx.runId,
@@ -179,9 +178,11 @@ test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
 
           // Step 5 -- add a specialised NCDA section widget.
           await p
-            .getByRole("button", { name: "Add Cancer Type Breakdown widget" })
+            .locator('[draggable="true"]')
+            .filter({ hasText: "Cancer Type Breakdown" })
+            .getByRole("button")
             .click();
-          await expect(p.locator("[data-testid='tile-body']")).toHaveCount(2);
+          await expect(p.locator("[data-testid='canvas-tile']")).toHaveCount(2);
           await expect(
             p.locator("[data-testid='canvas-tile']").filter({ hasText: "Cancer Type Breakdown" }).first(),
           ).toBeVisible();

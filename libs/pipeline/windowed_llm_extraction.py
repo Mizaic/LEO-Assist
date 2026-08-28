@@ -47,8 +47,19 @@ def extraction_window_policy(state: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def normalise_chunks_for_llm(chunks: list[SentenceChunk]) -> list[SentenceChunk]:
-    """Copy chunks with form-checkbox normalisation for LLM input only."""
+def normalise_chunks_for_llm(
+    chunks: list[SentenceChunk],
+    *,
+    skip: bool = False,
+) -> list[SentenceChunk]:
+    """Copy chunks with form-checkbox normalisation for LLM input only.
+
+    Pass ``skip=True`` for a taught form. Its text was already normalised
+    by its own :FormSchema, and the generic rules would cut the free-text
+    clinical narrative out of it.
+    """
+    if skip:
+        return list(chunks)
     from libs.ner.form_checkbox_normalizer import normalize_form_checkbox_text
 
     return [
@@ -218,8 +229,12 @@ def run_windowed_llm_extraction(
         merge_window_entities,
         plan_extraction_windows_by_tokens,
     )
+    from libs.pipeline.form_schema_store import has_taught_form_schema
 
-    llm_chunks = normalise_chunks_for_llm(chunks)
+    llm_chunks = normalise_chunks_for_llm(
+        chunks,
+        skip=has_taught_form_schema(state),
+    )
     span_source = span_chunks if span_chunks is not None else chunks
     chunk_refs = [
         ChunkRef(chunk_id=str(c.sentence_id or ""), text=str(c.text or ""))
