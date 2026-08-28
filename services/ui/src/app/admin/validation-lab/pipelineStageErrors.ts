@@ -107,6 +107,13 @@ export function plainEnglishPipelineMessage(text: string): string {
     );
   }
 
+  if (raw.startsWith("coding_verifier:") && raw.includes("reject_all")) {
+    return (
+      "The coding checker refused every SNOMED match for one or more terms. " +
+      "Those terms were left uncoded."
+    );
+  }
+
   if (raw.startsWith("coding_verifier:") && raw.includes("not_codeable")) {
     const match = NOT_CODEABLE_RE.exec(raw);
     if (match) {

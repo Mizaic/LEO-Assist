@@ -213,7 +213,7 @@ def test_too_many_parts_returns_friendly_error_and_does_not_invoke_llm() -> None
     assert invoked["n"] == 0
     assert result["markdown"] == ""
     assert result["error_code"] == "too_many_parts"
-    assert "8 parts" in (result["error"] or "")
+    assert "10 parts" in (result["error"] or "")
     assert "ValidationException" not in (result["error"] or "")
 
 

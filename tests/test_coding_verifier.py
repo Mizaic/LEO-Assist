@@ -10,9 +10,7 @@ Tests cover the six acceptance criteria defined in VT-C265FD93.
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from libs.pipeline_graph.subgraphs.coding_verifier import (
     _apply_gate_failed,
@@ -36,8 +34,9 @@ def _make_entity(
     score: float = 0.92,
     had_exact_match: bool = False,
     terminology_unresolved: bool = False,
+    coding_candidates: list | None = None,
 ) -> dict:
-    return {
+    entity = {
         "text": text,
         "concept_id": concept_id,
         "term": term,
@@ -47,16 +46,18 @@ def _make_entity(
         "terminology_unresolved": terminology_unresolved,
         "read_code": "XE0WT",
     }
+    if coding_candidates is not None:
+        entity["coding_candidates"] = coding_candidates
+    return entity
 
 
-def _resolved_term_mock(concept_id: str, term: str, score: float = 0.80):
-    rt = MagicMock()
-    rt.concept_id = concept_id
-    rt.term = term
-    rt.semantic_tag = "finding"
-    rt.score = score
-    rt.read_code = None
-    return rt
+def _candidate(concept_id: str, term: str, tag: str = "finding", score: float = 0.80):
+    return {
+        "concept_id": concept_id,
+        "term": term,
+        "semantic_tag": tag,
+        "score": score,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -108,48 +109,12 @@ def test_apply_gate_failed_keeps_code_and_sets_tier_override():
 # ---------------------------------------------------------------------------
 
 
-def test_apply_retry_succeeds_with_good_match():
-    ent = _make_entity(
-        text="marked internal vascularity",
-        concept_id="999999",
-        term="Finding of scleral vascularity",
-    )
-    mock_candidate = _resolved_term_mock("11111111", "Internal vascularity", 0.82)
-    with patch(
-        "libs.pipeline_graph.subgraphs.coding_verifier.TerminologyClient"
-    ) as mock_client_cls:
-        mock_client_cls.return_value.resolve.return_value = {
-            "vascularity": [mock_candidate]
-        }
-        result = _apply_retry(ent, "vascularity", min_score=0.55)
-
-    assert result["coding_verifier_verdict"] == "retry_accepted"
-    assert result["concept_id"] == "11111111"
-    assert result["term"] == "Internal vascularity"
-    assert result["terminology_unresolved"] is False
-
-
-def test_apply_retry_below_threshold_marks_unresolved():
+def test_apply_retry_is_retired_and_leaves_uncoded():
     ent = _make_entity()
-    mock_candidate = _resolved_term_mock("11111111", "Something", 0.40)
-    with patch(
-        "libs.pipeline_graph.subgraphs.coding_verifier.TerminologyClient"
-    ) as mock_client_cls:
-        mock_client_cls.return_value.resolve.return_value = {
-            "vascularity": [mock_candidate]
-        }
-        result = _apply_retry(ent, "vascularity", min_score=0.55)
-
+    result = _apply_retry(ent, "vascularity", min_score=0.55)
     assert result["terminology_unresolved"] is True
     assert result["concept_id"] is None
-    assert result["coding_verifier_verdict"] == "retry_no_match"
-
-
-def test_apply_retry_no_term_marks_unresolved():
-    ent = _make_entity()
-    result = _apply_retry(ent, None, min_score=0.55)
-    assert result["terminology_unresolved"] is True
-    assert result["coding_verifier_verdict"] == "retry_no_term"
+    assert result["coding_verifier_verdict"] == "retry_retired"
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +137,12 @@ def test_verify_entities_wrong_domain_rejected():
     }
 
     mock_verdicts = [
-        {"index": 0, "verdict": "not_codeable", "better_term": None, "reason": "descriptor"}
+        {
+            "index": 0,
+            "verdict": "not_codeable",
+            "better_term": None,
+            "reason": "descriptor",
+        }
     ]
 
     with patch(
@@ -209,7 +179,12 @@ def test_verify_entities_correct_code_preserved():
     }
 
     mock_verdicts = [
-        {"index": 0, "verdict": "accept", "better_term": None, "reason": "clinically correct"}
+        {
+            "index": 0,
+            "verdict": "accept",
+            "better_term": None,
+            "reason": "clinically correct",
+        }
     ]
 
     with patch(
@@ -260,7 +235,12 @@ def test_verify_entities_gate_failed_sets_tier_override():
     }
 
     mock_verdicts = [
-        {"index": 0, "verdict": "gate_failed", "better_term": None, "reason": "parse error"}
+        {
+            "index": 0,
+            "verdict": "gate_failed",
+            "better_term": None,
+            "reason": "parse error",
+        }
     ]
 
     with patch(
@@ -283,8 +263,7 @@ def test_verify_entities_gate_failed_sets_tier_override():
 def test_verify_entities_single_batch_call_for_multiple():
     """Subgraph calls verify_coding_batch once; sub-batching is internal."""
     entities = [
-        _make_entity(text="pleural effusion", concept_id=f"c{i}")
-        for i in range(5)
+        _make_entity(text="pleural effusion", concept_id=f"c{i}") for i in range(5)
     ]
     state = {
         "entities": entities,
@@ -366,3 +345,128 @@ def test_coding_verifier_splits_large_batches():
     assert call_sizes == [_SUB_BATCH_SIZE, 5]
     assert len(verdicts) == len(entities)
     assert [v["index"] for v in verdicts] == list(range(len(entities)))
+
+
+def test_verify_entities_accepts_selected_shortlist_index():
+    candidates = [
+        _candidate("247348008", "Tenderness", score=0.90),
+        _candidate("30473006", "Pelvic pain", score=0.84),
+        _candidate("247404004", "Pain in pelvis", score=0.80),
+    ]
+    ent = _make_entity(
+        text="pelvic pain",
+        concept_id="247348008",
+        term="Tenderness",
+        coding_candidates=candidates,
+    )
+    state = {
+        "entities": [ent],
+        "encounter_text": "Patient reports pelvic pain.",
+        "errors": [],
+    }
+    mock_verdicts = [
+        {
+            "index": 0,
+            "verdict": "accept",
+            "selected_index": 1,
+            "reason": "second candidate matches pelvic pain",
+        }
+    ]
+
+    with patch(
+        "libs.pipeline_graph.subgraphs.coding_verifier.verify_coding_batch",
+        return_value=mock_verdicts,
+    ):
+        result = _verify_entities(state)
+
+    chosen = result["entities"][0]
+    assert chosen["concept_id"] == "30473006"
+    assert chosen["term"] == "Pelvic pain"
+    assert chosen["coding_verifier_verdict"] == "accept"
+    assert chosen["terminology_unresolved"] is False
+
+
+def test_verify_entities_reject_all_leaves_uncoded():
+    candidates = [
+        _candidate("227420009", "Gelatin", tag="substance", score=0.88),
+        _candidate("412457006", "Jelly", tag="substance", score=0.80),
+    ]
+    ent = _make_entity(
+        text="Vaseline",
+        concept_id="227420009",
+        term="Gelatin",
+        semantic_tag="substance",
+        coding_candidates=candidates,
+    )
+    state = {
+        "entities": [ent],
+        "encounter_text": "Uses Vaseline (petroleum jelly).",
+        "errors": [],
+    }
+    mock_verdicts = [
+        {
+            "index": 0,
+            "verdict": "reject_all",
+            "selected_index": None,
+            "reason": "none match petroleum jelly",
+        }
+    ]
+
+    with patch(
+        "libs.pipeline_graph.subgraphs.coding_verifier.verify_coding_batch",
+        return_value=mock_verdicts,
+    ):
+        result = _verify_entities(state)
+
+    chosen = result["entities"][0]
+    assert chosen["terminology_unresolved"] is True
+    assert chosen["concept_id"] is None
+    assert chosen["coding_verifier_verdict"] == "reject_all"
+
+
+def test_verify_entities_empty_shortlist_skips_llm():
+    ent = _make_entity(
+        text="Vaseline",
+        concept_id="227420009",
+        term="Gelatin",
+        coding_candidates=[],
+    )
+    state = {
+        "entities": [ent],
+        "encounter_text": "Uses Vaseline.",
+        "errors": [],
+    }
+
+    with patch(
+        "libs.pipeline_graph.subgraphs.coding_verifier.verify_coding_batch"
+    ) as mock_batch:
+        result = _verify_entities(state)
+
+    mock_batch.assert_not_called()
+    assert result["entities"][0]["terminology_unresolved"] is True
+    assert result["entities"][0]["concept_id"] is None
+
+
+def test_user_message_includes_coding_candidates():
+    from libs.llm_client.coding_verifier import _build_user_message
+
+    payload = json.loads(
+        _build_user_message(
+            [
+                {
+                    "text": "pelvic pain",
+                    "term": "Pelvic pain",
+                    "concept_id": "30473006",
+                    "semantic_tag": "finding",
+                    "coding_candidates": [
+                        _candidate("30473006", "Pelvic pain"),
+                        _candidate("247348008", "Tenderness"),
+                    ],
+                }
+            ],
+            "Patient reports pelvic pain.",
+        )
+    )
+    item = payload["proposed_codes"][0]
+    assert len(item["candidates"]) == 2
+    assert item["candidates"][1]["term"] == "Tenderness"

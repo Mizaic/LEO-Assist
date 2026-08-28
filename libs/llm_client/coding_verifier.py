@@ -9,13 +9,16 @@ After SNOMED terminology resolution, each proposed code is verified by an LLM
 to detect lexical accidents (BM25 matched a wrong concept), non-codeable
 descriptors, and domain mismatches.
 
+The worker passes the ranked shortlist, not only the first hit. The model
+picks an index or refuses every candidate.
+
 Entities are verified in sub-batches so JSON responses stay within parse caps.
 
 Verdicts
 --------
-  accept       -- code is clinically appropriate for the entity in context
+  accept       -- selected_index is the clinically correct shortlist entry
   not_codeable -- entity is a descriptor with no standalone SNOMED code
-  retry        -- code is wrong; better_term is supplied for re-resolution
+  reject_all   -- none of the shortlist entries are clinically correct
   gate_failed  -- LLM call or parse failed; entity is flagged for human review
 
 Fail-closed behaviour
@@ -60,39 +63,46 @@ _TOKENS_PER_ENTITY = 120
 _BASE_TOKENS = 600
 _MAX_TOKENS = 8_000
 
-_SYSTEM_PROMPT = INJECTION_GUARD + """
+_SYSTEM_PROMPT = (
+    INJECTION_GUARD
+    + """
 You are a UK clinical coding specialist.
 
 OBJECTIVE
-Decide whether each proposed SNOMED CT code is clinically correct for its
-extracted entity in the supplied document context.
+Choose the clinically correct SNOMED CT code from the shortlist for each
+extracted entity, or refuse every candidate.
 
 PRIORITY ORDER
 1. Reject clinically wrong or cross-domain matches.
 2. Do not accept descriptors that are not standalone codeable concepts.
-3. Prefer retry over accept when the match is uncertain.
+3. Prefer reject_all over accept when the match is uncertain.
 4. Preserve input order and follow the JSON contract exactly.
 
 VERDICTS
-  accept      -- the proposed SNOMED code is clinically appropriate
-  not_codeable -- the entity is a clinical descriptor or modifier that has no standalone SNOMED code (e.g. marked internal vascularity is a descriptor, not independently codeable)
-  retry       -- the code is wrong; set better_term to a short, clean SNOMED-friendly lookup term (1-3 words) so the resolver can try again
+  accept       -- selected_index is the shortlist entry that matches the span
+  not_codeable -- the entity is a descriptor or modifier with no standalone code
+  reject_all   -- none of the shortlist entries are clinically correct
 
 HARD REQUIREMENTS
-1. If the proposed SNOMED term is from a completely different clinical domain (e.g. an ophthalmology code for an abdominal ultrasound entity), verdict=retry with a better lookup term.
-2. If the entity describes a quality, degree, or context of another finding rather than a standalone clinical concept, verdict=not_codeable.
-3. If the code is an acceptable SNOMED representation of the entity (even if not exact), verdict=accept.
-4. When uncertain between accept and retry, prefer retry with a cleaner lookup term.
-5. better_term is required when verdict=retry; set it to null otherwise.
+1. Look at every candidate. Do not accept the first entry only because
+   it is first.
+2. If the entity describes a quality, degree, or context of another
+   finding, verdict=not_codeable.
+3. If one shortlist entry is an acceptable SNOMED representation,
+   verdict=accept and set selected_index.
+4. When uncertain between accept and reject_all, prefer reject_all.
+5. selected_index is required when verdict=accept. Set it to null otherwise.
 6. Keep each reason to at most 12 words.
 
 OUTPUT CONTRACT
 Return only a JSON object with verdicts in the same order:
-  {"verdicts": [{"index": <int>, "verdict": "<verdict>", "better_term": "<string or null>", "reason": "<short phrase>"}]}
+  {"verdicts": [{"index": <int>, "verdict": "<verdict>",
+    "selected_index": <int or null>, "reason": "<short phrase>"}]}
 Do not add prose or Markdown fences.
 """.strip()
+)
 
-_VALID_VERDICTS = frozenset({"accept", "not_codeable", "retry", "gate_failed"})
+_VALID_VERDICTS = frozenset({"accept", "not_codeable", "reject_all", "gate_failed"})
 _OUTPUT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -104,12 +114,12 @@ _OUTPUT_SCHEMA = {
                     "index": {"type": "integer", "minimum": 0},
                     "verdict": {
                         "type": "string",
-                        "enum": ["accept", "not_codeable", "retry"],
+                        "enum": ["accept", "not_codeable", "reject_all"],
                     },
-                    "better_term": {"type": ["string", "null"]},
+                    "selected_index": {"type": ["integer", "null"]},
                     "reason": {"type": "string"},
                 },
-                "required": ["index", "verdict", "better_term", "reason"],
+                "required": ["index", "verdict", "selected_index", "reason"],
                 "additionalProperties": False,
             },
         }
@@ -166,11 +176,17 @@ def _validate_verdicts(items: list) -> list[dict[str, Any]] | None:
         verdict = str(item.get("verdict") or "").strip().lower()
         if verdict not in _VALID_VERDICTS - {"gate_failed"}:
             return None
+        raw_selected = item.get("selected_index")
+        selected_index: int | None
+        if raw_selected is None or raw_selected == "":
+            selected_index = 0 if verdict == "accept" else None
+        else:
+            selected_index = int(raw_selected)
         result.append(
             {
                 "index": int(item.get("index", 0)),
                 "verdict": verdict,
-                "better_term": str(item.get("better_term") or "").strip() or None,
+                "selected_index": selected_index,
                 "reason": str(item.get("reason") or "").strip(),
             }
         )
@@ -183,6 +199,21 @@ def _build_user_message(
 ) -> str:
     items = []
     for i, entity in enumerate(entities):
+        raw_candidates = list(entity.get("coding_candidates") or [])
+        candidates = []
+        for cand in raw_candidates[:5]:
+            if not isinstance(cand, dict):
+                continue
+            candidates.append(
+                {
+                    "concept_id": str(cand.get("concept_id") or ""),
+                    "term": sanitise_for_prompt(
+                        str(cand.get("term") or ""), max_chars=80
+                    ),
+                    "semantic_tag": str(cand.get("semantic_tag") or ""),
+                    "score": cand.get("score"),
+                }
+            )
         items.append(
             {
                 "index": i,
@@ -194,6 +225,7 @@ def _build_user_message(
                 ),
                 "concept_id": str(entity.get("concept_id") or ""),
                 "semantic_tag": str(entity.get("semantic_tag") or ""),
+                "candidates": candidates,
             }
         )
     return json.dumps(
@@ -209,7 +241,7 @@ def _gate_failed_verdicts(count: int) -> list[dict[str, Any]]:
         {
             "index": i,
             "verdict": "gate_failed",
-            "better_term": None,
+            "selected_index": None,
             "reason": "parse error",
         }
         for i in range(count)
@@ -254,7 +286,7 @@ def verify_coding_batch(
     """Verify proposed SNOMED codes using one or more LLM sub-batches.
 
     Returns a list of verdict dicts in the same order as ``entities``.
-    Each dict has keys: index, verdict, better_term (or None), reason.
+    Each dict has keys: index, verdict, selected_index (or None), reason.
 
     On gate failure for a sub-batch, those entities receive verdict=gate_failed.
     Surface-form exact matches MUST be filtered out by the caller before
@@ -274,11 +306,11 @@ def verify_coding_batch(
 
     logger.info(
         "CodingVerifier batch: %d entities -- accept=%d not_codeable=%d "
-        "retry=%d gate_failed=%d",
+        "reject_all=%d gate_failed=%d",
         len(combined),
         sum(1 for v in combined if v["verdict"] == "accept"),
         sum(1 for v in combined if v["verdict"] == "not_codeable"),
-        sum(1 for v in combined if v["verdict"] == "retry"),
+        sum(1 for v in combined if v["verdict"] == "reject_all"),
         sum(1 for v in combined if v["verdict"] == "gate_failed"),
     )
     return combined

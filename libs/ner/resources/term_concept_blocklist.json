@@ -37,6 +37,42 @@
       "priority": 10,
       "created_by": "system",
       "comment": "FIT is a test (Faecal Immunochemical Test), not a seizure."
+    },
+    {
+      "rule_id": "tcb-005",
+      "surface_form": "allergy, unspecified",
+      "blocked_concept_ids": ["16294009"],
+      "active": true,
+      "priority": 10,
+      "created_by": "system",
+      "comment": "Allergy mention must not auto-code to splenomegaly."
+    },
+    {
+      "rule_id": "tcb-006",
+      "surface_form": "vaseline",
+      "blocked_concept_ids": ["227420009"],
+      "active": true,
+      "priority": 10,
+      "created_by": "system",
+      "comment": "Petroleum jelly must not auto-code to gelatin / Jello."
+    },
+    {
+      "rule_id": "tcb-007",
+      "surface_form": "high bmi",
+      "blocked_concept_ids": ["6497000"],
+      "active": true,
+      "priority": 10,
+      "created_by": "system",
+      "comment": "High BMI must not auto-code to decreased body mass index."
+    },
+    {
+      "rule_id": "tcb-008",
+      "surface_form": "no free fluid",
+      "blocked_concept_ids": ["116176007"],
+      "active": true,
+      "priority": 10,
+      "created_by": "system",
+      "comment": "No free fluid must not auto-code to cerebrospinal fluid."
     }
   ]
 }

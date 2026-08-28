@@ -26,6 +26,10 @@ from libs.pipeline.post_processing import (
     fix_double_negated_situations,
     fix_polarity_encoded_findings,
 )
+from libs.pipeline.coding_candidate_gate import (
+    apply_draft_from_shortlist,
+    filter_coding_candidates,
+)
 from libs.terminology.client import TerminologyClient
 
 logger = logging.getLogger(__name__)
@@ -252,6 +256,18 @@ def _resolve_lookup_term(entity: dict[str, Any]) -> str:
     return text
 
 
+def _stamp_rejected_guess(merged: dict[str, Any], candidate: Any) -> dict[str, Any]:
+    merged["score"] = round(float(getattr(candidate, "score", 0.0) or 0.0), 4)
+    merged["terminology_unresolved"] = True
+    merged["rejected_term"] = getattr(candidate, "term", None)
+    merged["rejected_concept_id"] = getattr(candidate, "concept_id", None)
+    merged["rejected_tag"] = getattr(candidate, "semantic_tag", None)
+    merged["coding_candidates"] = []
+    for field in ("concept_id", "term", "read_code"):
+        merged[field] = None
+    return merged
+
+
 def _merge_resolution(
     e: dict[str, Any],
     candidates: list,
@@ -261,55 +277,29 @@ def _merge_resolution(
     if not candidates:
         merged["score"] = 0.0
         merged["terminology_unresolved"] = True
+        merged["coding_candidates"] = []
         return merged
-    best = candidates[0]
-    if _is_blocked_mapping(str(e.get("text") or ""), best.concept_id):
-        merged["score"] = round(float(best.score or 0.0), 4)
-        merged["terminology_unresolved"] = True
-        merged["rejected_term"] = best.term
-        merged["rejected_concept_id"] = best.concept_id
-        merged["rejected_tag"] = best.semantic_tag
-        for field in ("concept_id", "term", "read_code"):
-            merged[field] = None
-        logger.info(
-            "Terminology: blocked unsafe mapping %r -> %s (%r)",
-            e.get("text"),
-            best.concept_id,
-            best.term,
-        )
-        return merged
-    if best.score < min_score:
-        # Score too low — keep the entity but do not apply a code.
-        # Downstream steps (surface form validation, persist) must not trust
-        # an unreliable SNOMED match, so we clear the code fields entirely.
-        merged["score"] = round(best.score, 4)
-        merged["terminology_unresolved"] = True
-        merged["rejected_term"] = best.term
-        merged["rejected_concept_id"] = best.concept_id
-        merged["rejected_tag"] = best.semantic_tag
-        # Preserve any existing code fields as None so callers can tell they
-        # were checked but rejected, rather than never attempted.
-        for field in ("concept_id", "term", "read_code"):
-            merged[field] = None
-        logger.info(
-            "Terminology: rejected %r → %r (score %.4f < threshold %.2f)",
-            e.get("text"),
-            best.term,
-            best.score,
-            min_score,
-        )
-        return merged
-    merged.update(
-        concept_id=best.concept_id,
-        term=best.term,
-        semantic_tag=best.semantic_tag,
-        score=round(best.score, 4),
-        read_code=best.read_code,
-        terminology_unresolved=False,
+    shortlist = filter_coding_candidates(
+        e,
+        candidates,
+        is_blocked=_is_blocked_mapping,
+        min_score=min_score,
     )
-    if "surface_form_status" in best.raw:
-        merged["surface_form_status"] = best.raw.get("surface_form_status", "")
-    return merged
+    if not shortlist:
+        first = candidates[0]
+        logger.info(
+            "Terminology: no safe candidate for %r (top was %r score %.4f)",
+            e.get("text"),
+            getattr(first, "term", None),
+            float(getattr(first, "score", 0.0) or 0.0),
+        )
+        return _stamp_rejected_guess(merged, first)
+    drafted = apply_draft_from_shortlist(merged, shortlist)
+    best = candidates[0]
+    raw = getattr(best, "raw", None) or {}
+    if "surface_form_status" in raw and drafted.get("concept_id") == best.concept_id:
+        drafted["surface_form_status"] = raw.get("surface_form_status", "")
+    return drafted
 
 
 def _dedup_by_concept_id(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:

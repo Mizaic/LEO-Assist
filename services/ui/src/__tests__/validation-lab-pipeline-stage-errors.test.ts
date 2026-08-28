@@ -30,6 +30,14 @@ describe("plainEnglishPipelineMessage", () => {
     expect(text).not.toContain("(0% match)");
   });
 
+  it("explains coding verifier reject_all in plain English", () => {
+    const text = plainEnglishPipelineMessage(
+      "coding_verifier: 2 entities classified reject_all",
+    );
+    expect(text.toLowerCase()).toContain("uncoded");
+    expect(text.toLowerCase()).toContain("refused");
+  });
+
   it("explains coding verifier not_codeable in plain English", () => {
     const text = plainEnglishPipelineMessage(
       "coding_verifier: 1 entity classified not_codeable",

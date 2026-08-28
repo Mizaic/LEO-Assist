@@ -101,7 +101,7 @@ def test_verifier_prompts_keep_injection_guard_and_conservative_priority() -> No
         assert "PRIORITY ORDER" in prompt
         assert "OUTPUT CONTRACT" in prompt
     assert "Prefer uncertain" in escalation._VERIFY_SYSTEM
-    assert "Prefer retry over accept" in coding_verifier._SYSTEM_PROMPT
+    assert "Prefer reject_all over accept" in coding_verifier._SYSTEM_PROMPT
     assert "Prefer uncertain" in disorder_verifier._SYSTEM_PROMPT
 
 

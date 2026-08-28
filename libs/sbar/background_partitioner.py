@@ -20,7 +20,7 @@ possible for stitched-together discharge bundles), the record is
 split across consecutive partitions and labelled
 ``part i of n of this record`` so the LLM can treat the halves as
 two views of the same source. If the run would need more than
-``max_parts`` partitions (default 8), the partitioner refuses with
+``max_parts`` partitions (default 10), the partitioner refuses with
 a structured error so the caller can return a friendly
 "too many records, pick fewer" message instead of running an
 unbounded number of LLM calls.

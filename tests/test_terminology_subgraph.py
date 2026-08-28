@@ -66,7 +66,9 @@ def test_multi_classification_triple_each_gets_own_tag_hint() -> None:
     batch_calls: list[tuple[list[str], dict | None]] = []
 
     def _fake_batch(self, terms, expected_tags, runtime, org_id=None):
-        batch_calls.append((list(terms), dict(expected_tags) if expected_tags else None))
+        batch_calls.append(
+            (list(terms), dict(expected_tags) if expected_tags else None)
+        )
         results = {}
         for term in terms:
             tag = (expected_tags or {}).get(term, "procedure")
@@ -90,18 +92,20 @@ def test_multi_classification_triple_each_gets_own_tag_hint() -> None:
     assert len(resolved) == 2
 
     # With full-text lookup there is exactly one batch call containing both terms.
-    assert len(batch_calls) == 1, (
-        f"Expected a single batch call with both terms; got {len(batch_calls)} calls"
-    )
+    assert (
+        len(batch_calls) == 1
+    ), f"Expected a single batch call with both terms; got {len(batch_calls)} calls"
     batch_terms, batch_tags = batch_calls[0]
     assert "Haemoglobin" in batch_terms
     assert "Haemoglobin 125 g/L" in batch_terms
 
     # Each term must carry its own entity-type tag hint in the batch.
-    assert (batch_tags or {}).get("Haemoglobin") == "procedure", (
-        f"Expected 'procedure' tag for 'Haemoglobin'; got: {batch_tags}"
-    )
-    assert (batch_tags or {}).get("Haemoglobin 125 g/L") == "observable_entity", (
+    assert (batch_tags or {}).get(
+        "Haemoglobin"
+    ) == "procedure", f"Expected 'procedure' tag for 'Haemoglobin'; got: {batch_tags}"
+    assert (batch_tags or {}).get(
+        "Haemoglobin 125 g/L"
+    ) == "observable_entity", (
         f"Expected 'observable_entity' tag for 'Haemoglobin 125 g/L'; got: {batch_tags}"
     )
 
@@ -110,9 +114,9 @@ def test_multi_classification_triple_each_gets_own_tag_hint() -> None:
     concept_ids = {
         r.get("concept_id") for r in resolved if not r.get("terminology_unresolved")
     }
-    assert len(concept_ids) == 2, (
-        f"Expected 2 distinct concept IDs (one per label), got {concept_ids}"
-    )
+    assert (
+        len(concept_ids) == 2
+    ), f"Expected 2 distinct concept IDs (one per label), got {concept_ids}"
 
 
 def test_merge_resolution_blocks_nerve_compression_to_malignant_neoplasm() -> None:
@@ -153,6 +157,55 @@ def test_merge_resolution_attaches_snomed_when_safe_match() -> None:
     assert merged["concept_id"] == "44054006"
     assert merged["term"] == "Diabetes mellitus type 2"
     assert merged["read_code"] == "C10.."
+
+
+def test_merge_resolution_keeps_top_five_coding_candidates() -> None:
+    entity = {"text": "pelvic pain", "label": "finding"}
+    candidates = [
+        ResolvedTerm(
+            text="pelvic pain",
+            concept_id=f"id-{i}",
+            term=f"Candidate {i}",
+            semantic_tag="finding",
+            score=0.90 - (i * 0.02),
+        )
+        for i in range(7)
+    ]
+
+    merged = _merge_resolution(entity, candidates, min_score=0.55)
+
+    shortlist = merged.get("coding_candidates") or []
+    assert len(shortlist) == 5
+    assert [c["concept_id"] for c in shortlist] == [f"id-{i}" for i in range(5)]
+    assert merged["concept_id"] == "id-0"
+    assert shortlist[0]["term"] == "Candidate 0"
+    assert shortlist[0]["semantic_tag"] == "finding"
+
+
+def test_merge_resolution_skips_blocked_first_hit() -> None:
+    entity = {"text": "spinal surgery", "label": "procedure"}
+    candidates = [
+        ResolvedTerm(
+            text="spinal surgery",
+            concept_id="1287097003",
+            term="Unilateral biportal endoscopic operation on spine",
+            semantic_tag="procedure",
+            score=0.92,
+        ),
+        ResolvedTerm(
+            text="spinal surgery",
+            concept_id="387713003",
+            term="Surgical procedure",
+            semantic_tag="procedure",
+            score=0.80,
+        ),
+    ]
+
+    merged = _merge_resolution(entity, candidates, min_score=0.55)
+
+    assert merged["terminology_unresolved"] is False
+    assert merged["concept_id"] == "387713003"
+    assert [c["concept_id"] for c in merged["coding_candidates"]] == ["387713003"]
 
 
 def test_merge_resolution_rejects_below_threshold() -> None:

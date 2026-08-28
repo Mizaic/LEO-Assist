@@ -7,6 +7,7 @@ Atlas trace:
 Run:
     pytest tests/libs/pipeline/test_term_concept_blocklist.py -v
 """
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -19,7 +20,10 @@ from unittest.mock import patch
 
 class TestTermConceptBlocklistRule:
     def test_extends_pipeline_rule_base(self):
-        from libs.pipeline.config_types import PipelineRuleBase, TermConceptBlocklistRule
+        from libs.pipeline.config_types import (
+            PipelineRuleBase,
+            TermConceptBlocklistRule,
+        )
 
         r = TermConceptBlocklistRule(
             rule_id="tcb-1",
@@ -48,6 +52,10 @@ class TestIsBlockedMappingParity:
         ("not sleeping well", "367391008"),
         ("nerve compression", "372063002"),
         ("fit", "91175000"),
+        ("allergy, unspecified", "16294009"),
+        ("vaseline", "227420009"),
+        ("high bmi", "6497000"),
+        ("no free fluid", "116176007"),
     ]
     NOT_BLOCKED = [
         ("spinal surgery", "999999999"),
@@ -68,9 +76,9 @@ class TestIsBlockedMappingParity:
             return_value=[],
         ):
             for text, cid in self.BLOCKED:
-                assert self._reload_and_check(text, cid), (
-                    f"Expected ({text!r}, {cid!r}) to be blocked"
-                )
+                assert self._reload_and_check(
+                    text, cid
+                ), f"Expected ({text!r}, {cid!r}) to be blocked"
 
     def test_non_blocked_pairs_return_false(self):
         with patch(
@@ -78,9 +86,9 @@ class TestIsBlockedMappingParity:
             return_value=[],
         ):
             for text, cid in self.NOT_BLOCKED:
-                assert not self._reload_and_check(text, cid), (
-                    f"Expected ({text!r}, {cid!r}) NOT to be blocked"
-                )
+                assert not self._reload_and_check(
+                    text, cid
+                ), f"Expected ({text!r}, {cid!r}) NOT to be blocked"
 
     def test_none_concept_id_returns_false(self):
         with patch(
