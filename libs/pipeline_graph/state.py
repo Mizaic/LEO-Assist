@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
 
+from libs.pipeline_contracts.text import SourceText
+
 
 class EncounterContext(TypedDict, total=False):
     """Core patient/encounter context that flows through the pipeline."""
@@ -41,6 +43,9 @@ class ExtractionState(TypedDict, total=False):
     """State for extraction subgraphs."""
 
     encounter_text: str
+    # The single coordinate space. Guards move onto it in slice 5; until
+    # then encounter_text stays authoritative and this field rides along.
+    source_text: SourceText | None
     extraction_method: str
     requested_model_version: str
     strict_model_version: bool
@@ -156,6 +161,7 @@ class PipelineState(TypedDict, total=False):
 
     # Pipeline data
     encounter: EncounterContext
+    source_text: SourceText | None
     sentences: list[dict[str, Any]]
     entities: list[dict[str, Any]]
     resolved_entities: list[dict[str, Any]]

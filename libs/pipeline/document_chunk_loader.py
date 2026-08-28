@@ -13,6 +13,12 @@ import re
 from typing import Any
 
 from libs.ner.form_checkbox_normalizer import normalize_form_checkbox_text
+from libs.pipeline_contracts.text import (
+    Deletion,
+    RawChunk,
+    SourceText,
+    build_source_text,
+)
 
 # The HCCP bundle assembler (combine_referral_markdown in HCCP-Agents) writes a
 # header line before each document:  --- Document: {title} ---
@@ -54,6 +60,53 @@ def strip_pdf_attachments(text: str) -> str:
     provenance can still be linked back to the correct chunk node.
     """
     return _PDF_BOUNDARY_RE.sub("", text).strip()
+
+
+def pdf_attachment_deletions(text: str) -> tuple[Deletion, ...]:
+    """Return the ranges ``strip_pdf_attachments`` removes from ``text``.
+
+    Same removals, expressed as coordinates instead of a new string, so
+    ``SourceText`` can remap offsets around them.  Rebuilding ``text``
+    minus these ranges reproduces ``strip_pdf_attachments`` byte for
+    byte -- that equivalence is pinned by test.
+    """
+    match = _PDF_BOUNDARY_RE.search(text)
+    kept_end = match.start() if match else len(text)
+    kept = text[:kept_end]
+
+    deletions: list[Deletion] = []
+    leading = len(kept) - len(kept.lstrip())
+    if leading:
+        deletions.append(
+            Deletion(kind="leading_whitespace", raw_start=0, raw_end=leading)
+        )
+    trailing = len(kept) - len(kept.rstrip())
+    if trailing:
+        deletions.append(
+            Deletion(
+                kind="trailing_whitespace",
+                raw_start=kept_end - trailing,
+                raw_end=kept_end,
+            )
+        )
+    if match:
+        deletions.append(
+            Deletion(
+                kind="pdf_attachment",
+                raw_start=match.start(),
+                raw_end=match.end(),
+            )
+        )
+    return tuple(deletions)
+
+
+def build_chunk_source_text(chunk_id_texts: list[tuple[str, str]]) -> SourceText:
+    """Build the single coordinate space for a referral bundle's chunks."""
+    return build_source_text(
+        [RawChunk(chunk_id=cid, text=text) for cid, text in chunk_id_texts],
+        separator=CHUNK_TEXT_SEPARATOR,
+        normalise=pdf_attachment_deletions,
+    )
 
 
 def bundle_fingerprint(chunk_texts: list[str]) -> str:
@@ -156,17 +209,8 @@ def _normalise_chunk_texts(
     return [normalize_form_checkbox_text(text) for text in raw_texts], fields
 
 
-def build_document_chunk_state(
-    rows: list[dict[str, Any]],
-    organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
-) -> dict[str, Any]:
-    """Map Neo4j chunk rows to pipeline state (sentences + encounter_text)."""
-    sentences: list[dict[str, Any]] = []
-    text_parts: list[str] = []
-    offset = 0
-
+def _prepare_chunk_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Drop rows with no id or no printable text, keeping document order."""
     prepared: list[dict[str, Any]] = []
     for row in rows:
         chunk_id = str(row.get("chunk_id") or "").strip()
@@ -174,45 +218,72 @@ def build_document_chunk_state(
         if not chunk_id or not text_raw.strip():
             continue
         prepared.append({"chunk_id": chunk_id, "text_raw": text_raw, "row": row})
+    return prepared
 
+
+def _legacy_chunk_bounds(
+    row: dict[str, Any], text_raw: str, offset: int
+) -> tuple[int, int, int]:
+    """Return the legacy ``(start, end, next_offset)`` for one chunk.
+
+    Kept exactly as-is: these offsets carry two different meanings
+    depending on whether the row supplied them, and downstream guards
+    still read them.  Slice 5 retires this in favour of SourceText.
+    """
+    char_start = row.get("char_start")
+    char_end = row.get("char_end")
+    if char_start is None or char_end is None or int(char_end) <= int(char_start):
+        start = offset
+        end = offset + len(text_raw)
+        return start, end, end + len(CHUNK_TEXT_SEPARATOR)
+    return int(char_start), int(char_end), offset
+
+
+def _build_legacy_sentences(
+    prepared: list[dict[str, Any]], normalised_texts: list[str]
+) -> list[dict[str, Any]]:
+    """Build the legacy sentence dicts, offsets and all."""
+    sentences: list[dict[str, Any]] = []
+    offset = 0
+    for index, item in enumerate(prepared):
+        text_raw = item["text_raw"]
+        start, end, offset = _legacy_chunk_bounds(item["row"], text_raw, offset)
+        sentences.append(
+            {
+                "sentence_id": item["chunk_id"],
+                "text": normalised_texts[index],
+                "text_raw": text_raw,
+                "start": start,
+                "end": end,
+            }
+        )
+    return sentences
+
+
+def build_document_chunk_state(
+    rows: list[dict[str, Any]],
+    organization_id: str = "",
+    service_id: str = "",
+    ers_service_id: str = "",
+) -> dict[str, Any]:
+    """Map Neo4j chunk rows to pipeline state (sentences + encounter_text)."""
+    prepared = _prepare_chunk_rows(rows)
     normalised_texts, schema_fields = _normalise_chunk_texts(
         [p["text_raw"] for p in prepared],
         organization_id=organization_id,
         service_id=service_id,
         ers_service_id=ers_service_id,
     )
-
-    for idx, item in enumerate(prepared):
-        chunk_id = item["chunk_id"]
-        text_raw = item["text_raw"]
-        row = item["row"]
-        text = normalised_texts[idx]
-
-        char_start = row.get("char_start")
-        char_end = row.get("char_end")
-        if char_start is None or char_end is None or int(char_end) <= int(char_start):
-            char_start = offset
-            char_end = offset + len(text_raw)
-            offset = char_end + len(CHUNK_TEXT_SEPARATOR)
-        else:
-            char_start = int(char_start)
-            char_end = int(char_end)
-
-        sentences.append(
-            {
-                "sentence_id": chunk_id,
-                "text": text,
-                "text_raw": text_raw,
-                "start": char_start,
-                "end": char_end,
-            }
-        )
-        text_parts.append(text_raw)
+    sentences = _build_legacy_sentences(prepared, normalised_texts)
+    text_parts = [p["text_raw"] for p in prepared]
 
     encounter_text = strip_pdf_attachments(CHUNK_TEXT_SEPARATOR.join(text_parts))
     return {
         "sentences": sentences,
         "encounter_text": encounter_text,
+        "source_text": build_chunk_source_text(
+            [(p["chunk_id"], p["text_raw"]) for p in prepared]
+        ),
         "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
         **schema_fields,
     }
@@ -231,6 +302,7 @@ def load_document_chunks_from_neo4j(
         return {
             "sentences": [],
             "encounter_text": "",
+            "source_text": build_chunk_source_text([]),
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
             "errors": ["document_chunks mode requires non-empty chunk_ids"],
             **form_schema_state_fields("none"),
