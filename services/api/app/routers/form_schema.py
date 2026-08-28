@@ -404,11 +404,9 @@ def generate_template(
         chunk_section_map = build_chunk_section_map(chunks, section_dicts)
         client.run(
             SAVE_NORMALISED_TEMPLATE,
-            {
-                "fingerprint": fingerprint,
-                "normalised_template": template,
-                "chunk_section_map": _json.dumps(chunk_section_map, ensure_ascii=True),
-            },
+            fingerprint=fingerprint,
+            normalised_template=template,
+            chunk_section_map=_json.dumps(chunk_section_map, ensure_ascii=True),
         )
     except HTTPException:
         raise
