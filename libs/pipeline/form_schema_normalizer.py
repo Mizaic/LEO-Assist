@@ -19,6 +19,7 @@ from typing import Any, Literal
 
 from libs.ner.form_checkbox_normalizer import NON_EXTRACTABLE_MARKER
 from libs.pipeline.form_pattern_match import safe_search, section_matches
+from libs.pipeline.lab_result_evidence import row_has_value_cell, row_reports_a_result
 
 SectionType = Literal[
     "checkbox_single",
@@ -121,6 +122,25 @@ def _mark(line: str) -> str:
     return f"{NON_EXTRACTABLE_MARKER} {stripped}"
 
 
+def _seal(line: str) -> str:
+    """Mark *line* non-extractable unless a whole cell of it is a result.
+
+    Section type describes the printed form. It cannot say whether the
+    referrer also typed a measurement on the line, and they do: results
+    arrive beside a tick and in minimum-dataset blocks, not only in the
+    taught blood table. The typed value is the only place that result
+    exists in the letter, so sealing the line would lose it for good.
+
+    Filling a cell with a measurement is what a referrer does and what a
+    printed form does not. Thresholds the form quotes in prose, such as
+    "endometrial thickness <4mm", share a cell with the sentence around
+    them, so they stay sealed and cannot become findings.
+    """
+    if row_has_value_cell(line):
+        return line
+    return _mark(line)
+
+
 def _has_any_box(line: str) -> bool:
     return bool(_CHECKED_RE.search(line) or _UNCHECKED_RE.search(line))
 
@@ -152,9 +172,9 @@ def _process_checkbox_line(line: str, section: FormSection) -> list[str]:
         if checked:
             entity_lines.append(item.entity_text)
     if found_any:
-        return entity_lines + [_mark(line)]
+        return entity_lines + [_seal(line)]
     if _has_any_box(line):
-        return [_mark(line)]
+        return [_seal(line)]
     return [line]
 
 
@@ -186,10 +206,10 @@ def _process_yesno_line(line: str, section: FormSection) -> list[str]:
         if safe_search(item.pattern, line) is None:
             continue
         if _yes_no_answer(line) == "yes":
-            return [item.entity_text, _mark(line)]
-        return [_mark(line)]
+            return [item.entity_text, _seal(line)]
+        return [_seal(line)]
     if _has_any_box(line):
-        return [_mark(line)]
+        return [_seal(line)]
     return [line]
 
 
@@ -199,8 +219,8 @@ def _process_scale_line(line: str, section: FormSection) -> list[str]:
         return [line]
     for item in section.items:
         if _item_is_checked(line, item):
-            return [item.entity_text, _mark(line)]
-    return [_mark(line)]
+            return [item.entity_text, _seal(line)]
+    return [_seal(line)]
 
 
 def _item_has_taught_analytes(item: FormSchemaItem) -> bool:
@@ -227,12 +247,29 @@ def _match_ordered_test_items(
     ]
 
 
+def _taught_analyte_labels(items: list[FormSchemaItem]) -> list[str]:
+    """Return every taught analyte label across ``items``."""
+    return [
+        str(analyte.get("label") or "")
+        for item in items
+        for analyte in item.analytes
+        if analyte.get("label")
+    ]
+
+
 def _process_ordered_tests_lines(lines: list[str], section: FormSection) -> list[str]:
-    """Expand taught blood rows; suppress admin boilerplate when no analytes."""
+    """Keep resulted rows verbatim; mark every other row non-extractable.
+
+    A taught blood table is printed whether or not the tests were
+    resulted, so a row carrying nothing but battery labels is evidence of
+    no result and must not reach the model as extractable text.
+
+    A row that does report a result passes through unchanged. The values
+    the referrer typed are the only place those results exist, so
+    rewriting the row would delete the result before extraction.
+    """
     if not _section_has_taught_analytes(section):
         return [_mark(ln) if ln.strip() else ln for ln in lines]
-
-    from libs.pipeline.form_schema_template import expand_ordered_tests_row
 
     out: list[str] = []
     for ln in lines:
@@ -244,8 +281,8 @@ def _process_ordered_tests_lines(lines: list[str], section: FormSection) -> list
             for item in _match_ordered_test_items(ln, section.items)
             if _item_has_taught_analytes(item)
         ]
-        if taught:
-            out.extend(expand_ordered_tests_row(item) for item in taught)
+        if taught and row_reports_a_result(ln, _taught_analyte_labels(taught)):
+            out.append(ln)
             continue
         out.append(_mark(ln))
     return out
@@ -257,7 +294,7 @@ def _process_section_lines(lines: list[str], section: FormSection) -> list[str]:
     if stype == "ordered_tests":
         return _process_ordered_tests_lines(lines, section)
     if stype in ("admin", "template_noise"):
-        return [_mark(ln) if ln.strip() else ln for ln in lines]
+        return [_seal(ln) if ln.strip() else ln for ln in lines]
     if stype == "free_text":
         return list(lines)
     out: list[str] = []

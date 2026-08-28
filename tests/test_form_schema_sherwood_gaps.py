@@ -154,11 +154,22 @@ def test_tfts_and_inr_on_one_row_both_expand() -> None:
 
 
 def test_single_battery_row_is_unchanged_in_shape() -> None:
+    """One row in, one row out -- and unresulted, so nothing to extract."""
     text = "Blood Results (Last ):\n| FBC |  | Hb , WCC , Plts , MCV , Neut |  |\n"
     result = apply_schema_to_text(text, _schema(_preset_section()))
     body = [ln for ln in result.splitlines() if "FBC" in ln]
     assert len(body) == 1
     assert "Hb" in body[0]
+    assert NON_EXTRACTABLE_MARKER in body[0]
+
+
+def test_resulted_single_battery_row_stays_extractable() -> None:
+    """The same row, once resulted, reaches the model with its values."""
+    text = "Blood Results (Last ):\n| FBC | 23.06.26 | Hb 118 g/L |  |\n"
+    result = apply_schema_to_text(text, _schema(_preset_section()))
+    body = [ln for ln in result.splitlines() if "FBC" in ln]
+    assert len(body) == 1
+    assert "118" in body[0]
     assert NON_EXTRACTABLE_MARKER not in body[0]
 
 

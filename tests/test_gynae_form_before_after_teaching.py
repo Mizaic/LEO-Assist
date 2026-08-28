@@ -101,13 +101,21 @@ GYNAE_SCHEMA = FormSchema(
             label="Section A: Cancer type",
             start_pattern=r"(?i)section\s+a:",
             items=[
-                FormSchemaItem("Ovary", "Ovarian cancer suspected", "finding", "present"),
-                FormSchemaItem("Cervix", "Cervical cancer suspected", "finding", "present"),
+                FormSchemaItem(
+                    "Ovary", "Ovarian cancer suspected", "finding", "present"
+                ),
+                FormSchemaItem(
+                    "Cervix", "Cervical cancer suspected", "finding", "present"
+                ),
                 FormSchemaItem(
                     "Endometrium", "Endometrial cancer suspected", "finding", "present"
                 ),
-                FormSchemaItem("Vagina", "Vaginal cancer suspected", "finding", "present"),
-                FormSchemaItem("Vulva", "Vulvar cancer suspected", "finding", "present"),
+                FormSchemaItem(
+                    "Vagina", "Vaginal cancer suspected", "finding", "present"
+                ),
+                FormSchemaItem(
+                    "Vulva", "Vulvar cancer suspected", "finding", "present"
+                ),
             ],
         ),
         FormSection(
@@ -174,7 +182,9 @@ GYNAE_SCHEMA = FormSchema(
                     "finding",
                     "present",
                 ),
-                FormSchemaItem("Fit", "Clinical Frailty Scale: 2 - Fit", "finding", "present"),
+                FormSchemaItem(
+                    "Fit", "Clinical Frailty Scale: 2 - Fit", "finding", "present"
+                ),
                 FormSchemaItem(
                     "Managing well",
                     "Clinical Frailty Scale: 3 - Managing well",
@@ -206,9 +216,9 @@ def test_before_teaching_low_few_shot_causes_gate_pause() -> None:
         few_shot_max_similarity=0.18,  # real-world value for an unseen form
         known_fingerprints={},
     )
-    assert quality.document_quality_score < 0.6, (
-        f"Expected gate pause (score < 0.6) but got {quality.document_quality_score}"
-    )
+    assert (
+        quality.document_quality_score < 0.6
+    ), f"Expected gate pause (score < 0.6) but got {quality.document_quality_score}"
     assert "few_shot_ood" in quality.quality_reasons
 
 
@@ -228,9 +238,9 @@ def test_before_teaching_llm_sees_checkbox_noise() -> None:
     # The generic normaliser leaves "Cervix [X]" visible as-is
     # because it has a checked box -- it passes through as a candidate for extraction.
     # The LLM then extracts "Cervix [X]" as a literal entity.
-    assert "Cervix [X]" in normalised or "Cervical cancer suspected" not in normalised, (
-        "Without schema the LLM input should NOT have clean entity text for Cervix"
-    )
+    assert (
+        "Cervix [X]" in normalised or "Cervical cancer suspected" not in normalised
+    ), "Without schema the LLM input should NOT have clean entity text for Cervix"
 
 
 def test_before_teaching_section_c_narrative_mixed_with_noise() -> None:
@@ -240,7 +250,10 @@ def test_before_teaching_section_c_narrative_mixed_with_noise() -> None:
     assert "vaginal discharge" in normalised.lower()
     assert "polyp noted" in normalised.lower()
     # But scale items from Section E still appear without clean entity text
-    assert "Very Fit [X]" in normalised or "Clinical Frailty Scale: 1 - Very Fit" not in normalised
+    assert (
+        "Very Fit [X]" in normalised
+        or "Clinical Frailty Scale: 1 - Very Fit" not in normalised
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -271,15 +284,13 @@ def test_after_teaching_unchecked_sites_are_non_extractable() -> None:
     """After teaching: Ovary [ ] and Endometrium [ ] are marked non-extractable."""
     reset_schema_cache()
     result = apply_schema_to_text(GYNAE_2WW_LETTER, GYNAE_SCHEMA)
-    non_ex_lines = [
-        ln for ln in result.splitlines() if NON_EXTRACTABLE_MARKER in ln
-    ]
-    assert any("Ovary" in ln for ln in non_ex_lines), (
-        "Unchecked 'Ovary' should be marked non-extractable"
-    )
-    assert any("Endometrium" in ln for ln in non_ex_lines), (
-        "Unchecked 'Endometrium' should be marked non-extractable"
-    )
+    non_ex_lines = [ln for ln in result.splitlines() if NON_EXTRACTABLE_MARKER in ln]
+    assert any(
+        "Ovary" in ln for ln in non_ex_lines
+    ), "Unchecked 'Ovary' should be marked non-extractable"
+    assert any(
+        "Endometrium" in ln for ln in non_ex_lines
+    ), "Unchecked 'Endometrium' should be marked non-extractable"
 
 
 def test_after_teaching_b1_yes_becomes_entity() -> None:
@@ -294,9 +305,9 @@ def test_after_teaching_b2_no_is_non_extractable() -> None:
     reset_schema_cache()
     result = apply_schema_to_text(GYNAE_2WW_LETTER, GYNAE_SCHEMA)
     non_ex = [ln for ln in result.splitlines() if NON_EXTRACTABLE_MARKER in ln]
-    assert any("B2" in ln for ln in non_ex), (
-        "Unchecked B2 row should be marked non-extractable"
-    )
+    assert any(
+        "B2" in ln for ln in non_ex
+    ), "Unchecked B2 row should be marked non-extractable"
 
 
 def test_after_teaching_section_c_narrative_unchanged() -> None:
@@ -309,10 +320,9 @@ def test_after_teaching_section_c_narrative_unchanged() -> None:
     assert "BMI: 20.2" in result
 
 
-def test_after_teaching_section_d_with_analytes_expands_placeholders() -> None:
-    """After teaching analytes: blood rows expand with value placeholders."""
-    reset_schema_cache()
-    schema = FormSchema(
+def _blood_schema_with_taught_analytes() -> FormSchema:
+    """Schema whose Section D teaches one battery with one analyte."""
+    return FormSchema(
         schema_id="test-gynae-blood",
         fingerprint=form_fingerprint(GYNAE_2WW_LETTER),
         form_name="Gynaecology 2WW Referral",
@@ -344,11 +354,38 @@ def test_after_teaching_section_d_with_analytes_expands_placeholders() -> None:
             *GYNAE_SCHEMA.sections[-2:],
         ],
     )
-    result = apply_schema_to_text(GYNAE_2WW_LETTER, schema)
-    assert "Hb {{NUMERIC_VALUE}} {{UNIT}}" in result
+
+
+def test_taught_analytes_do_not_make_an_unresulted_row_extractable() -> None:
+    """Teaching analytes must not turn an order into a result slot.
+
+    This letter's Section D names the tests and reports no values, so
+    every taught row is an order. Emitting analyte value slots would
+    offer the model somewhere to put a number the letter never gave.
+    """
+    reset_schema_cache()
+    result = apply_schema_to_text(
+        GYNAE_2WW_LETTER, _blood_schema_with_taught_analytes()
+    )
+    assert "{{NUMERIC_VALUE}}" not in result
+    assert "{{UNIT}}" not in result
     fbc_lines = [ln for ln in result.splitlines() if "FBC" in ln]
     assert fbc_lines
-    assert all(NON_EXTRACTABLE_MARKER not in ln for ln in fbc_lines)
+    assert all(NON_EXTRACTABLE_MARKER in ln for ln in fbc_lines)
+
+
+def test_taught_analytes_keep_a_reported_result_extractable() -> None:
+    """A row the referrer resulted reaches the model with its values."""
+    reset_schema_cache()
+    letter = GYNAE_2WW_LETTER.replace(
+        "BLOODS DONE TODAY",
+        "BLOODS DONE TODAY\n    | FBC | 23.06.26 | Hb 118 g/L |",
+    )
+    result = apply_schema_to_text(letter, _blood_schema_with_taught_analytes())
+    resulted = [ln for ln in result.splitlines() if "118" in ln]
+    assert resulted
+    assert all(NON_EXTRACTABLE_MARKER not in ln for ln in resulted)
+    assert "g/L" in result
 
 
 def test_after_teaching_section_d_tests_are_non_extractable() -> None:
@@ -356,9 +393,9 @@ def test_after_teaching_section_d_tests_are_non_extractable() -> None:
     reset_schema_cache()
     result = apply_schema_to_text(GYNAE_2WW_LETTER, GYNAE_SCHEMA)
     non_ex = [ln for ln in result.splitlines() if NON_EXTRACTABLE_MARKER in ln]
-    assert any("FBC" in ln for ln in non_ex), (
-        "Ordered test 'FBC' should be marked non-extractable"
-    )
+    assert any(
+        "FBC" in ln for ln in non_ex
+    ), "Ordered test 'FBC' should be marked non-extractable"
 
 
 def test_after_teaching_section_e_scale_produces_entity() -> None:
@@ -373,9 +410,9 @@ def test_after_teaching_section_f_admin_is_non_extractable() -> None:
     reset_schema_cache()
     result = apply_schema_to_text(GYNAE_2WW_LETTER, GYNAE_SCHEMA)
     non_ex = [ln for ln in result.splitlines() if NON_EXTRACTABLE_MARKER in ln]
-    assert any("Allergies" in ln or "Medication" in ln for ln in non_ex), (
-        "Admin section F content should be non-extractable"
-    )
+    assert any(
+        "Allergies" in ln or "Medication" in ln for ln in non_ex
+    ), "Admin section F content should be non-extractable"
 
 
 # ---------------------------------------------------------------------------

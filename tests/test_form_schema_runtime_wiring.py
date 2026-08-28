@@ -36,12 +36,14 @@ FBC_ITEM = FormSchemaItem(
     value_placeholder="{{NUMERIC_VALUE}} {{UNIT}}",
 )
 
-ORDERED_TESTS_TEXT = textwrap.dedent("""\
+ORDERED_TESTS_TEXT = textwrap.dedent(
+    """\
     Section D: Investigations performed
     MANDATORY the following tests must be undertaken
     FBC | 124 g/L | 12.5 |
     BLOODS DONE TODAY
-    """)
+    """
+)
 
 ORDERED_TESTS_SCHEMA = FormSchema(
     schema_id="test-ordered-tests",
@@ -64,12 +66,14 @@ ORDERED_TESTS_SCHEMA = FormSchema(
 # The same section with each value beside the analyte it belongs to.
 # GGT is taught but is not one of the abbreviations the deterministic
 # blood-panel extractor knows, so only schema seeding can produce it.
-RESULTED_TESTS_TEXT = textwrap.dedent("""\
+RESULTED_TESTS_TEXT = textwrap.dedent(
+    """\
     Section D: Investigations performed
     MANDATORY the following tests must be undertaken
     FBC | 23.06.26 | Hb 124 g/L , WCC 12.5 x10^9/L , GGT 30 U/L |
     BLOODS DONE TODAY
-    """)
+    """
+)
 
 RESULTED_FBC_ITEM = replace(
     FBC_ITEM,
@@ -166,10 +170,10 @@ def test_merge_results_loads_taught_schema_from_neo4j_when_cache_empty() -> None
 
 
 def test_ordered_tests_with_analytes_not_fully_suppressed() -> None:
-    """Normalised text contains Hb placeholder, not full-section suppression."""
+    """A resulted row keeps its values while boilerplate stays suppressed."""
     result = apply_schema_to_text(ORDERED_TESTS_TEXT, ORDERED_TESTS_SCHEMA)
-    assert "Hb {{NUMERIC_VALUE}} {{UNIT}}" in result
-    assert "{{NUMERIC_VALUE}}" in result
+    assert "124 g/L" in result
+    assert "{{NUMERIC_VALUE}}" not in result
     # FBC row with taught analytes must stay extractable
     fbc_lines = [ln for ln in result.splitlines() if "FBC" in ln]
     assert fbc_lines, "Expected an FBC row in normalised output"

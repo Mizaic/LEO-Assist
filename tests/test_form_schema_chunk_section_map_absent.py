@@ -116,8 +116,14 @@ def test_section_c_narrative_survives_without_a_chunk_map() -> None:
         assert marker in section_c.lower()
 
 
-def test_forcing_blood_table_into_ordered_tests_invents_placeholders() -> None:
-    """A map entry for the unresulted blood table would fabricate values."""
+def test_forcing_blood_table_into_ordered_tests_invents_nothing() -> None:
+    """Binding the unresulted blood table to Section D fabricates no value.
+
+    This once emitted a value slot per taught analyte, so mapping the
+    table to its own section invented somewhere to put results the
+    letter never carried. Result gating closes that off: an unresulted
+    row is marked non-extractable whether or not the map binds it.
+    """
     schema = _taught_schema()
     chunks = _stored_chunks()
     without_map = normalise_chunks_with_schema(schema, chunks, [])
@@ -126,5 +132,6 @@ def test_forcing_blood_table_into_ordered_tests_invents_placeholders() -> None:
         chunks,
         [{"chunk_idx": BLOOD_TABLE_INDEX, "section_id": "section_d_investigations"}],
     )
-    assert "{{NUMERIC_VALUE}}" not in without_map[BLOOD_TABLE_INDEX]
-    assert "{{NUMERIC_VALUE}}" in forced[BLOOD_TABLE_INDEX]
+    for text in (without_map[BLOOD_TABLE_INDEX], forced[BLOOD_TABLE_INDEX]):
+        assert "{{NUMERIC_VALUE}}" not in text
+        assert "{{UNIT}}" not in text
