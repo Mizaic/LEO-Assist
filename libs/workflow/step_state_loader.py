@@ -39,6 +39,17 @@ from libs.validation_lab.tenant import (
 
 logger = logging.getLogger(__name__)
 
+# Source node labels that already name the receiving-service anchor.
+_HEALTHCARE_SCOPE_LABELS: frozenset[str] = frozenset(
+    {"ReferralRequest", "CommunicationRequest"}
+)
+
+# Fallback anchors, tried in order, when the source label is rewritten.
+_HEALTHCARE_SCOPE_STATE_KEYS: tuple[tuple[str, str], ...] = (
+    ("ReferralRequest", "referral_id"),
+    ("CommunicationRequest", "communication_request_id"),
+)
+
 REFERRAL_HANDOFF_KEYS: tuple[str, ...] = (
     "chunk_ids",
     "communication_request_id",
@@ -465,6 +476,27 @@ def load_step_state(
     return state
 
 
+def _healthcare_scope_source(
+    state: dict[str, Any],
+    source_type: str,
+    source_id: str,
+) -> tuple[str, str]:
+    """Return the graph node label and id that carry receiving-service scope.
+
+    ``default_source_fields`` rewrites ``source_node_type`` to "Chunk" for
+    every referral bundle, and ``source_node_id`` to the DocumentReference
+    id. Neither identifies the receiving trust, so the scope is resolved
+    from the referral (or Advice and Guidance request) id on state instead.
+    """
+    if source_type in _HEALTHCARE_SCOPE_LABELS:
+        return source_type, str(source_id or "").strip()
+    for label, state_key in _HEALTHCARE_SCOPE_STATE_KEYS:
+        candidate = str(state.get(state_key) or "").strip()
+        if candidate:
+            return label, candidate
+    return "", ""
+
+
 def _apply_healthcare_service_scope(
     client: PatientGraphClient,
     state: dict[str, Any],
@@ -472,12 +504,13 @@ def _apply_healthcare_service_scope(
     source_type: str,
     source_id: str,
 ) -> None:
-    if source_type not in {"ReferralRequest", "CommunicationRequest"}:
+    scope_type, scope_id = _healthcare_scope_source(state, source_type, source_id)
+    if not scope_type:
         return
     service = resolve_healthcare_service(
         client,
-        source_node_type=source_type,
-        source_node_id=source_id,
+        source_node_type=scope_type,
+        source_node_id=scope_id,
     )
     apply_healthcare_service_scope(
         state,
