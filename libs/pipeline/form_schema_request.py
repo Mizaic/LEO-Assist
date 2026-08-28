@@ -8,13 +8,23 @@ from __future__ import annotations
 from typing import Any
 
 from libs.pipeline.form_schema_normalizer import FormSchemaItem, FormSection
+from libs.pipeline.form_schema_section_types import validate_section_type
 
 
 def dict_to_section(raw: dict[str, Any]) -> FormSection:
+    """Build a :class:`FormSection`, rejecting an unusable section type.
+
+    Raises:
+        ValueError: When ``section_type`` is not one the normaliser can
+            dispatch on. Storing such a value would leave the section's
+            tick boxes unprocessed.
+    """
     items = [dict_to_item(i) for i in (raw.get("items") or [])]
     return FormSection(
         section_id=raw.get("section_id") or "",
-        section_type=raw.get("section_type") or "free_text",  # type: ignore[arg-type]
+        section_type=validate_section_type(  # type: ignore[arg-type]
+            raw.get("section_type") or "free_text"
+        ),
         label=raw.get("label") or "",
         start_pattern=raw.get("start_pattern") or "",
         items=items,

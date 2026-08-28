@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from fastapi import Query
 
@@ -52,6 +52,7 @@ from libs.pipeline.form_schema_request import (
     schema_summary_from_row,
     schema_to_dict,
 )
+from libs.pipeline.form_schema_section_types import validate_section_type
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
     delete_form_schema,
@@ -104,6 +105,12 @@ class FormSectionRequest(BaseModel):
     start_pattern: str = ""
     items: list[FormSchemaItemRequest] = Field(default_factory=list)
     semantic_tags: list[str] = Field(default_factory=list)
+
+    @field_validator("section_type")
+    @classmethod
+    def _known_section_type(cls, value: str) -> str:
+        """Reject a section type the checkbox normaliser cannot dispatch on."""
+        return validate_section_type(value)
 
 
 class CompletenessGroupRequest(BaseModel):

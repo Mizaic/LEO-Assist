@@ -3,7 +3,7 @@
   "sections": [
     {
       "section_id": "section_a_cancer_type",
-      "section_type": "checkbox",
+      "section_type": "checkbox_multi",
       "label": "Section A: Gynaecological Cancer type suspected",
       "start_pattern": "Section A",
       "items": [
@@ -64,7 +64,7 @@
     },
     {
       "section_id": "section_b_symptoms",
-      "section_type": "checkbox",
+      "section_type": "checkbox_yesno",
       "label": "Section B: Signs/symptoms for 14-day rule criteria",
       "start_pattern": "Section B",
       "items": [
@@ -165,7 +165,7 @@
     },
     {
       "section_id": "primary_care_pathway",
-      "section_type": "checkbox",
+      "section_type": "checkbox_yesno",
       "label": "Primary Care Pathway (PMB pathway -- if all ticked no USC referral)",
       "start_pattern": "For post menopausal bleeding",
       "items": [
@@ -214,7 +214,7 @@
     },
     {
       "section_id": "patient_awareness",
-      "section_type": "checkbox",
+      "section_type": "checkbox_yesno",
       "label": "Patient Awareness",
       "start_pattern": "Does the patient know",
       "items": [
@@ -654,7 +654,7 @@
     },
     {
       "section_id": "section_e_performance",
-      "section_type": "checkbox",
+      "section_type": "scale",
       "label": "Section E: Performance Status (Clinical Frailty Scale)",
       "start_pattern": "Section E",
       "items": [

@@ -4,10 +4,27 @@
  * Atlas trace: DI-5C9CA57B
  */
 import {
+  coerceSectionType,
   detectSections,
   type FormSchemaItem,
   type FormSchemaSection,
 } from "./formSchemaDetector";
+
+/**
+ * Repair section types on sections that came from the server.
+ *
+ * A saved schema or an LLM detect response is JSON, not a typed value.
+ * An unrecognised type would leave the editor dropdown blank and would be
+ * rejected by the API on save, so fix it as it comes in.
+ */
+export function coerceLoadedSections(
+  sections: FormSchemaSection[],
+): FormSchemaSection[] {
+  return sections.map((section) => ({
+    ...section,
+    section_type: coerceSectionType(section.section_type),
+  }));
+}
 
 export function emptySection(index: number): FormSchemaSection {
   return {
@@ -240,7 +257,11 @@ async function loadSchemaByFingerprint(
     });
     if (!existing.ok) return null;
     const payload = (await existing.json()) as { schema: LoadedTeachSchema | null };
-    return payload.schema;
+    if (!payload.schema) return null;
+    return {
+      ...payload.schema,
+      sections: coerceLoadedSections(payload.schema.sections ?? []),
+    };
   } catch {
     return null;
   }

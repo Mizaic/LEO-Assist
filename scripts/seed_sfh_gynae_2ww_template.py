@@ -93,7 +93,7 @@ def build_section_a() -> dict:
     """Section A -- cancer type suspected."""
     return _section(
         section_id="section_a_cancer_type",
-        section_type="checkbox",
+        section_type="checkbox_multi",
         label="Section A: Gynaecological Cancer type suspected",
         start_pattern="Section A",
         items=[
@@ -111,7 +111,7 @@ def build_section_b() -> dict:
     """Section B -- signs and symptoms 14-day rule."""
     return _section(
         section_id="section_b_symptoms",
-        section_type="checkbox",
+        section_type="checkbox_yesno",
         label="Section B: Signs/symptoms for 14-day rule criteria",
         start_pattern="Section B",
         items=[
@@ -166,7 +166,7 @@ def build_primary_care_pathway() -> dict:
     """Primary care pathway decision block (PMB pathway)."""
     return _section(
         section_id="primary_care_pathway",
-        section_type="checkbox",
+        section_type="checkbox_yesno",
         label="Primary Care Pathway (PMB pathway -- if all ticked no USC referral)",
         start_pattern="For post menopausal bleeding",
         items=[
@@ -194,7 +194,7 @@ def build_patient_awareness() -> dict:
     """Patient awareness block."""
     return _section(
         section_id="patient_awareness",
-        section_type="checkbox",
+        section_type="checkbox_yesno",
         label="Patient Awareness",
         start_pattern="Does the patient know",
         items=[
@@ -432,7 +432,7 @@ def build_section_e() -> dict:
     """Section E -- performance status (Clinical Frailty Scale)."""
     return _section(
         section_id="section_e_performance",
-        section_type="checkbox",
+        section_type="scale",
         label="Section E: Performance Status (Clinical Frailty Scale)",
         start_pattern="Section E",
         items=[

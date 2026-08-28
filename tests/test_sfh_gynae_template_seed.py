@@ -116,9 +116,21 @@ def test_all_sections_have_start_pattern(template: dict) -> None:
         ), f"Section {sec['section_id']} has no start_pattern"
 
 
+def test_every_section_type_is_one_the_normaliser_handles(template: dict) -> None:
+    """An unrecognised type makes the checkbox control a silent no-op."""
+    from libs.pipeline.form_schema_section_types import VALID_SECTION_TYPES
+
+    bad = {
+        s["section_id"]: s["section_type"]
+        for s in template["sections"]
+        if s["section_type"] not in VALID_SECTION_TYPES
+    }
+    assert not bad, f"unrecognised section types: {bad}"
+
+
 def test_section_a_cancer_types(sections_by_id: dict) -> None:
     sec = sections_by_id["section_a_cancer_type"]
-    assert sec["section_type"] == "checkbox"
+    assert sec["section_type"] == "checkbox_multi"
     patterns = {i["pattern"] for i in sec["items"]}
     missing = CANCER_TYPE_ITEMS - patterns
     assert not missing, f"Section A missing cancer types: {missing}"
@@ -127,7 +139,7 @@ def test_section_a_cancer_types(sections_by_id: dict) -> None:
 
 def test_section_b_all_nine_items(sections_by_id: dict) -> None:
     sec = sections_by_id["section_b_symptoms"]
-    assert sec["section_type"] == "checkbox"
+    assert sec["section_type"] == "checkbox_yesno"
     patterns = " ".join(i["pattern"] for i in sec["items"])
     for prefix in SYMPTOM_PREFIXES:
         assert prefix in patterns, f"Section B missing item {prefix}"
@@ -162,7 +174,7 @@ def test_ca125_present(sections_by_id: dict) -> None:
 
 def test_section_e_frailty_scale_nine_items(sections_by_id: dict) -> None:
     sec = sections_by_id["section_e_performance"]
-    assert sec["section_type"] == "checkbox"
+    assert sec["section_type"] == "scale"
     assert len(sec["items"]) == 9, "Clinical Frailty Scale must have 9 items"
 
 

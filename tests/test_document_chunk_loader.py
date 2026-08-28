@@ -186,7 +186,7 @@ def test_build_document_chunk_state_writes_loaded_schema_key() -> None:
         sections=[
             FormSection(
                 section_id="A",
-                section_type="checkbox",
+                section_type="checkbox_multi",
                 label="Cancer type",
                 start_pattern="Section A: cancer type suspected",
                 items=[],

@@ -34,7 +34,7 @@ LETTER = (
 def _section() -> FormSection:
     return FormSection(
         section_id="A",
-        section_type="checkbox",
+        section_type="checkbox_multi",
         label="Cancer type",
         start_pattern="Section A: cancer type suspected",
         items=[],

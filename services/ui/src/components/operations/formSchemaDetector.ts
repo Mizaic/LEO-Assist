@@ -13,16 +13,42 @@ import {
   withSplitScales,
 } from "./formSchemaDetectExtras";
 
-export type SectionType =
-  | "checkbox_single"
-  | "checkbox_yesno"
-  | "checkbox_multi"
-  | "free_text"
-  | "scale"
-  | "ordered_tests"
-  | "observable"
-  | "admin"
-  | "template_noise";
+/**
+ * The section types the checkbox normaliser can dispatch on. This must stay
+ * in step with SectionType in libs/pipeline/form_schema_normalizer.py; a
+ * value outside it leaves the tick boxes unprocessed.
+ */
+export const SECTION_TYPES = [
+  "checkbox_single",
+  "checkbox_yesno",
+  "checkbox_multi",
+  "free_text",
+  "scale",
+  "ordered_tests",
+  "observable",
+  "admin",
+  "template_noise",
+] as const;
+
+export type SectionType = (typeof SECTION_TYPES)[number];
+
+/** Free text neither fabricates a finding nor hides one. */
+export const SAFE_SECTION_TYPE: SectionType = "free_text";
+
+// Values seen from the server that map cleanly onto the vocabulary. Keep
+// this to observed evidence only; a guessed alias is a silent wrong answer.
+const SECTION_TYPE_ALIASES: Record<string, SectionType> = {
+  checkbox: "checkbox_multi",
+};
+
+/** Return the nearest usable section type for a value from the server. */
+export function coerceSectionType(value: unknown): SectionType {
+  const text = typeof value === "string" ? value.trim() : "";
+  if ((SECTION_TYPES as readonly string[]).includes(text)) {
+    return text as SectionType;
+  }
+  return SECTION_TYPE_ALIASES[text.toLowerCase()] ?? SAFE_SECTION_TYPE;
+}
 
 export interface AnalyteEntry {
   label: string;

@@ -163,7 +163,7 @@ def test_rebind_keeps_sections_and_writes_live_ids() -> None:
     existing.sections = [
         FormSection(
             section_id="A",
-            section_type="checkbox",
+            section_type="checkbox_multi",
             label="Cancer type",
             start_pattern="Section A",
             items=[],

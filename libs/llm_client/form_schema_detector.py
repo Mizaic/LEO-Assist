@@ -21,6 +21,10 @@ from libs.llm_client.prompt_safety import (
     cap_llm_response,
     sanitise_for_prompt,
 )
+from libs.pipeline.form_schema_section_types import (
+    VALID_SECTION_TYPES,
+    coerce_section_type,
+)
 from libs.pipeline.form_section_splitter import (
     is_incomplete_schema,
     split_form_sections,
@@ -28,7 +32,9 @@ from libs.pipeline.form_section_splitter import (
 
 log = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = INJECTION_GUARD + """
+_SYSTEM_PROMPT = (
+    INJECTION_GUARD
+    + """
 You are a clinical form structure analyser for NHS referral forms.
 Given raw referral form text, identify every distinct section and classify it.
 
@@ -58,8 +64,10 @@ cells separated by "|", and apply these rules:
 
 start_pattern must be the heading text WITHOUT the surrounding pipes.
 
-SECTION TYPES -- choose exactly one per section:
+SECTION TYPES -- choose exactly one per section. Use one of these exact
+strings. "checkbox" on its own is not a section type and will be rejected:
 - checkbox_single  : Options where ONE is checked (e.g. cancer type tick-boxes)
+- checkbox_multi   : Options where MORE THAN ONE may be checked
 - checkbox_yesno   : Each criterion has a Yes/No pair (e.g. B1 Yes [X] No [ ])
 - scale            : Numbered/labelled scale, one item selected (Frailty, ECOG)
 - free_text        : Narrative clinical prose -- ALWAYS PRESERVE for the LLM
@@ -197,6 +205,7 @@ Use precise clinical language for entity_text. Examples:
 
 Return one JSON object matching the supplied schema. No prose.
 """
+)
 
 _MAX_FORM_CHARS = 6000
 _MAX_RESPONSE_CHARS = 16000
@@ -223,7 +232,10 @@ _OUTPUT_SCHEMA: dict[str, Any] = {
                 "properties": {
                     "section_id": {"type": "string"},
                     "label": {"type": "string"},
-                    "section_type": {"type": "string"},
+                    "section_type": {
+                        "type": "string",
+                        "enum": sorted(VALID_SECTION_TYPES),
+                    },
                     "start_pattern": {"type": "string"},
                     "default_semantic_tags": {
                         "type": "array",
@@ -343,10 +355,21 @@ def _load_json(cleaned: str) -> Any | None:
 
 
 def _validate_section(raw: dict[str, Any]) -> dict[str, Any]:
+    """Normalise one proposed section.
+
+    The section type is coerced rather than rejected: this is a proposal
+    the clinician reviews and can change in the teach dialog, and one bad
+    value must not throw away every other section the model found. The
+    substitution is logged, and the API still refuses to save anything
+    outside the vocabulary.
+    """
     return {
         "section_id": str(raw.get("section_id", "?")),
         "label": str(raw.get("label", "")),
-        "section_type": str(raw.get("section_type", "free_text")),
+        "section_type": coerce_section_type(
+            raw.get("section_type", "free_text"),
+            source="llm form-schema detector",
+        ),
         "start_pattern": str(raw.get("start_pattern", "")),
         "default_semantic_tags": _coerce_semantic_tags(raw),
         "items": [

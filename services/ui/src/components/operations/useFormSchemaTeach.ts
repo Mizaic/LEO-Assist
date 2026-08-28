@@ -10,6 +10,7 @@ import {
   type FormSchemaSection,
 } from "./formSchemaDetector";
 import {
+  coerceLoadedSections,
   detectFailureMessage,
   emptySection,
   isIncompleteSchema,
@@ -298,7 +299,7 @@ async function tryDetect(
       return [];
     }
     const payload = (await detect.json()) as { sections: FormSchemaSection[] };
-    return payload.sections ?? [];
+    return coerceLoadedSections(payload.sections ?? []);
   } catch {
     setError("We could not reach LEO. Add a section, or try again.");
     return [];
