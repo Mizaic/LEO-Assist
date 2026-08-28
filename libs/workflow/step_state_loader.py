@@ -151,34 +151,18 @@ def load_document_chunks_into_state(
     state: dict[str, Any],
     request: StepRequest,
 ) -> None:
+    """Load referral chunks after the trigger chunk scope check.
+
+    One pipeline: the Validation Lab and patient reprocess take the same
+    path as a BAU production run, so a green Lab run is evidence about
+    production. The Lab's synthetic graph satisfies the real scope query
+    through its fixture data, not a code exemption -- scaffold_referral
+    writes ReferralRequest -[:HAS_DOCUMENT]-> DocumentReference
+    -[:HAS_CHUNK]-> Chunk plus ReferralRequest -[:FOR_PATIENT]-> Patient,
+    and tags every chunk with the Lab tenant id.
+    """
     chunk_ids = chunk_ids_from_state(state)
     if not chunk_ids or state.get("sentences"):
-        return
-    if is_validation_lab_pipeline_state(state):
-        loaded = load_document_chunks_from_neo4j(
-            client,
-            chunk_ids,
-            organization_id=str(
-                state.get("healthcare_service_org_id") or state.get("org_id") or ""
-            ),
-            service_id=str(
-                state.get("healthcare_service_id") or state.get("service_id") or ""
-            ),
-            ers_service_id=str(state.get("healthcare_service_ers_id") or ""),
-        )
-        state.update(loaded)
-        if not loaded.get("errors"):
-            return
-        logger.warning(
-            "validation_lab document_chunks load failed run_id=%s "
-            "chunk_count=%d errors=%s",
-            request.run_id,
-            len(chunk_ids),
-            loaded.get("errors"),
-        )
-        state["errors"] = list(state.get("errors") or []) + list(
-            loaded.get("errors") or []
-        )
         return
     scope_errors = _validate_trigger_chunk_scope(client, state, chunk_ids)
     if scope_errors:
