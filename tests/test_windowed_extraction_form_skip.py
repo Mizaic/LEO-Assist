@@ -5,6 +5,9 @@ referral. Document-chunks mode routes through the windowed extractor,
 which re-applied the generic checkbox normaliser and cut the Section C
 narrative from 928 characters to 113 characters.
 
+The normaliser no longer shortens a line, so the untaught path keeps the
+narrative too. It marks the checkbox instead of deleting what follows it.
+
 Atlas trace:
   DI: DI-5C9CA57B  (form checkbox normalisation)
   DO: DO-020C7B5C
@@ -157,13 +160,17 @@ def test_taught_form_section_c_reaches_model_unmodified() -> None:
 
 
 def test_untaught_form_still_gets_generic_normalisation() -> None:
-    """With no taught schema the generic checkbox normaliser still runs."""
+    """With no taught schema the generic checkbox normaliser still runs.
+
+    Running it must mark the unticked checkbox and keep the narrative, so
+    an untaught form still yields the referral reason.
+    """
     reset_schema_cache()
     seen = _capture_llm_chunk_texts(_base_state())
     section_c = seen[_section_c_id(_sherwood_chunks())]
-    assert len(section_c) < SECTION_C_CHARS
+    assert "[NON_EXTRACTABLE] Cognitive Impairment" in section_c
     for marker in SECTION_C_MARKERS:
-        assert marker not in section_c.lower()
+        assert marker in section_c.lower()
 
 
 def test_orphan_fingerprint_without_match_still_normalises() -> None:
@@ -172,7 +179,9 @@ def test_orphan_fingerprint_without_match_still_normalises() -> None:
     state = _base_state(form_schema_fingerprint=TAUGHT_FINGERPRINT)
     seen = _capture_llm_chunk_texts(state)
     section_c = seen[_section_c_id(_sherwood_chunks())]
-    assert len(section_c) < SECTION_C_CHARS
+    assert "[NON_EXTRACTABLE] Cognitive Impairment" in section_c
+    for marker in SECTION_C_MARKERS:
+        assert marker in section_c.lower()
 
 
 def test_chunk_loader_publishes_resolved_schema_keys() -> None:

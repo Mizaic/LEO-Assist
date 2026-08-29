@@ -90,6 +90,9 @@ _FORM_CHROME = re.compile(
 )
 
 _TABLE_SEP = re.compile(r"^\s*\|?\s*:?-{2,}")
+_BOX_LABEL_ONLY = re.compile(
+    r"(?i)^(?:\s*(?:yes|no|x)?\s*(?:\[[^\]]*\]|\([^)]*\))\s*(?:yes|no)?\s*)+$"
+)
 
 
 def _has_unchecked(text: str) -> bool:
@@ -113,8 +116,39 @@ def _mark(text: str) -> str:
     return f"{NON_EXTRACTABLE_MARKER} {stripped}"
 
 
+def _layout_rules():
+    from libs.ner.form_layout_rules import apply_form_layout_rules
+
+    return apply_form_layout_rules
+
+
+def _keeps_narrative(cell: str) -> bool:
+    """True when a cell mixes a checkbox with free text that must survive.
+
+    Suppressing the whole cell would delete the referral reason, so the
+    checkbox is marked in place instead and the prose is left alone.
+    """
+    from libs.ner.form_layout_rules import has_trailing_prose
+
+    if not (_has_unchecked(cell) or _has_checked(cell)):
+        return False
+    return has_trailing_prose(cell)
+
+
 def _is_unchecked_only(cell: str) -> bool:
     return bool(_UNCHECKED_ONLY.match(cell.strip()))
+
+
+def _is_unticked_box_cell(cell: str) -> bool:
+    """True for a box-only cell with nothing ticked, e.g. ``Yes [ ] No [ ]``.
+
+    The criterion sitting next to such a cell was not selected, so it says
+    nothing about this patient and is marked rather than deleted.
+    """
+    core = cell.strip()
+    if not core or _has_checked(core) or not _has_unchecked(core):
+        return False
+    return bool(_BOX_LABEL_ONLY.match(core))
 
 
 def _is_checked_only(cell: str) -> bool:
@@ -157,7 +191,10 @@ def _pipe_pair_or_cell(
                 return pieces, 2
             return pieces, 1
 
-    if cell_s and _is_unchecked_only(nxt_s):
+    if cell_s and _keeps_narrative(cell_s):
+        return [_layout_rules()(cell_s)], 1
+
+    if cell_s and (_is_unchecked_only(nxt_s) or _is_unticked_box_cell(nxt_s)):
         return [_mark(cell_s), _mark(nxt_s)], 2
     if cell_s and _is_checked_only(nxt_s):
         return [cell_s, nxt_s], 2
@@ -200,6 +237,8 @@ def _normalise_plain_line(line: str, *, in_appendix: bool) -> str:
         return _mark(stripped)
     if in_appendix and not _has_checked(stripped):
         return _mark(stripped)
+    if _keeps_narrative(stripped):
+        return _layout_rules()(stripped)
     line = _suppress_unchecked_yes_no(line)
     stripped = line.strip()
     if _has_unchecked(stripped) and not _has_checked(stripped):

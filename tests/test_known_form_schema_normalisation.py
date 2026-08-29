@@ -41,12 +41,19 @@ def test_has_taught_form_schema_needs_match_and_fingerprint() -> None:
 
 
 def test_taught_form_skips_second_generic_normalisation() -> None:
-    chunk = SentenceChunk("c6", _section_c_chunk_text(), 0, 928)
+    """Skipping is a passthrough; running the normaliser keeps the narrative.
 
-    truncated = normalise_chunks_for_llm([chunk], skip=False)[0].text.lower()
-    assert "vaginal discharge" not in truncated
-    assert "polyp noted" not in truncated
+    The generic normaliser used to cut Section C down to the text before the
+    Cognitive Impairment checkbox, which deleted the referral reason. It must
+    now mark the checkbox and leave every clinical phrase in place.
+    """
+    raw = _section_c_chunk_text()
+    chunk = SentenceChunk("c6", raw, 0, 928)
 
-    preserved = normalise_chunks_for_llm([chunk], skip=True)[0].text.lower()
-    assert "vaginal discharge" in preserved
-    assert "polyp noted" in preserved
+    normalised = normalise_chunks_for_llm([chunk], skip=False)[0].text
+    assert "vaginal discharge" in normalised.lower()
+    assert "polyp noted" in normalised.lower()
+    assert "[NON_EXTRACTABLE] Cognitive Impairment" in normalised
+
+    preserved = normalise_chunks_for_llm([chunk], skip=True)[0].text
+    assert preserved == raw
