@@ -185,8 +185,31 @@ class GuidelineEvaluator:
     load overhead is negligible.
     """
 
-    def __init__(self, store: BitmapStore | None = None) -> None:
+    def __init__(self, store: BitmapStore | None = None, neo4j_session=None) -> None:
         self._store = store or BitmapStore()
+        self._neo4j_session = neo4j_session
+
+    def _make_related_lookup(self) -> Callable[[str], dict[str, Any]] | None:
+        """Build a SNOMED concept-neighbour lookup backed by the Neo4j session.
+
+        Returns None when no session is available so callers degrade gracefully.
+        The lookup is used by apply_already_done_filter at evaluation time to
+        traverse Interprets / HAS_COMPONENT relationships for concepts that
+        were not pre-compiled into already_done_evidence_ids.
+        """
+        if self._neo4j_session is None:
+            return None
+        session = self._neo4j_session
+
+        def _lookup(concept_id: str) -> dict[str, Any]:
+            from services.terminology_api.app.services.guideline_compiler import (
+                GuidelineCompiler,
+            )
+
+            result = GuidelineCompiler._snomed_related_dict(concept_id, session)
+            return result or {}
+
+        return _lookup
 
     def evaluate_patient(
         self,
@@ -338,6 +361,7 @@ class GuidelineEvaluator:
                 _format_match(rule, matched_via=matched_via),
                 codes,
                 ctx.observations,
+                related_lookup=self._make_related_lookup(),
             )
             if payload is not None:
                 matches.append(payload)

@@ -25,6 +25,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from libs.auth.service_auth import verify_service_token
+from libs.neo4j_client.client import KnowledgeGraphClient
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 from services.terminology_api.app.services.guideline_compiler import (
     CompileScope,
@@ -187,30 +188,32 @@ def evaluate_patient(req: EvaluateRequest) -> dict:
 
     Fast: typically completes in under 10ms for rulesets of up to 500 rules.
     """
-    evaluator = GuidelineEvaluator()
-    return evaluator.evaluate_patient(
-        req.patient_codes,
-        req.pathway_id,
-        patient_age=req.patient_age,
-        patient_sex=req.patient_sex,
-        scope_type=req.scope_type,
-        scope_id=req.scope_id,
-        ruleset_version=req.ruleset_version,
-        patient_observations=(
-            [obs.model_dump() for obs in req.observations] if req.observations else None
-        ),
-        active_medications=(
-            [m.model_dump() for m in req.active_medications]
-            if req.active_medications
-            else None
-        ),
-        allergies=([a.model_dump() for a in req.allergies] if req.allergies else None),
-        treatment_history=(
-            [t.model_dump() for t in req.treatment_history]
-            if req.treatment_history
-            else None
-        ),
-    )
+    client = KnowledgeGraphClient()
+    with client.session() as session:
+        evaluator = GuidelineEvaluator(neo4j_session=session)
+        return evaluator.evaluate_patient(
+            req.patient_codes,
+            req.pathway_id,
+            patient_age=req.patient_age,
+            patient_sex=req.patient_sex,
+            scope_type=req.scope_type,
+            scope_id=req.scope_id,
+            ruleset_version=req.ruleset_version,
+            patient_observations=(
+                [obs.model_dump() for obs in req.observations] if req.observations else None
+            ),
+            active_medications=(
+                [m.model_dump() for m in req.active_medications]
+                if req.active_medications
+                else None
+            ),
+            allergies=([a.model_dump() for a in req.allergies] if req.allergies else None),
+            treatment_history=(
+                [t.model_dump() for t in req.treatment_history]
+                if req.treatment_history
+                else None
+            ),
+        )
 
 
 class DiagnoseRequest(BaseModel):
