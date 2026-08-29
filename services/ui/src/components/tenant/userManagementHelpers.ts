@@ -1,3 +1,10 @@
+/**
+ * Atlas trace:
+ *   DO: DO-35D11EED
+ *   DI: DI-A94D6E99
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-35D11EED")
+ */
+
 export function initials(nameOrEmail: string): string {
   const parts = nameOrEmail.split(/[\s@.]+/).filter(Boolean);
   return parts

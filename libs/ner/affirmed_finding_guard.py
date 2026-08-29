@@ -3,7 +3,10 @@
 Form 'No [ ]' and distant dates must not invert 'X noted', 'uses X',
 or 'new X'. True 'no X' / 'denies X' stay absent.
 
-Atlas: DI-0F9542BF / DO-15449C6E / VT-A1919820
+Atlas trace:
+  DO: DO-15449C6E
+  DI: DI-0F9542BF
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-15449C6E")
 """
 
 from __future__ import annotations
