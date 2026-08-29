@@ -217,11 +217,13 @@ def _evaluate_dual_compliance(
 
     if primary_ids:
         for guideline_id in primary_ids:
+            # Catalogue ids such as NG12 must use the full published
+            # ruleset. The scoped compile for NG12 is a stale subset.
             payload = _evaluate_guideline(
                 state,
                 codes,
-                scope_type="guideline",
-                scope_id=guideline_id,
+                scope_type="global",
+                scope_id=None,
                 pathway_filter=guideline_id,
             )
             primary_payload = payload

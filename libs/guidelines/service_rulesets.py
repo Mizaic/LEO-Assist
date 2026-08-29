@@ -9,11 +9,14 @@ Atlas:
 from __future__ import annotations
 
 BREAST_SERVICE_ID = "117038"
+GYNAE_SERVICE_ID = "7980224"
 BREAST_GUIDELINE_IDS = ("NG12",)
+GYNAE_GUIDELINE_IDS = ("NG12",)
 PLACEHOLDER_GUIDELINE_IDS = frozenset({"val-gardena-defaults", "val-gardena-default"})
 
 _SERVICE_GUIDELINES: dict[str, tuple[str, ...]] = {
     BREAST_SERVICE_ID: BREAST_GUIDELINE_IDS,
+    GYNAE_SERVICE_ID: GYNAE_GUIDELINE_IDS,
 }
 
 

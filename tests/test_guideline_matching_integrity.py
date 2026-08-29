@@ -16,6 +16,7 @@ from libs.guidelines.action_already_done import action_already_done
 from libs.guidelines.organ_gate import rule_requires_absent_organ
 from libs.guidelines.service_rulesets import (
     BREAST_SERVICE_ID,
+    GYNAE_SERVICE_ID,
     guideline_ids_for_service,
 )
 from libs.pipeline_graph.subgraphs.compliance import (
@@ -164,6 +165,46 @@ def test_missing_ruleset_degrades_and_is_not_called_unsupported() -> None:
 
 def test_breast_service_117038_is_bound_to_ng12() -> None:
     assert guideline_ids_for_service("117038") == ("NG12",)
+
+
+def test_gynae_service_7980224_is_bound_to_ng12() -> None:
+    assert guideline_ids_for_service(GYNAE_SERVICE_ID) == ("NG12",)
+
+
+def test_catalogue_ng12_uses_the_full_published_ruleset() -> None:
+    calls: list[dict[str, Any]] = []
+
+    class _Eval:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def evaluate_patient(self, codes: list[str], **kwargs: Any) -> dict[str, Any]:
+            calls.append(dict(kwargs))
+            return {"matched_rules": []}
+
+    with (
+        patch(
+            "services.terminology_api.app.services.guideline_evaluator.GuidelineEvaluator",
+            _Eval,
+        ),
+        patch(
+            "libs.neo4j_client.client.KnowledgeGraphClient",
+            side_effect=RuntimeError("no graph"),
+        ),
+    ):
+        _evaluate_dual_compliance(
+            {
+                "healthcare_service_id": BREAST_SERVICE_ID,
+                "primary_guideline_ids": ["NG12"],
+            },
+            ["89164003"],
+        )
+
+    assert calls
+    primary = calls[0]
+    assert primary.get("pathway_filter") == "NG12"
+    assert primary.get("scope_type") == "global"
+    assert primary.get("scope_id") is None
 
 
 def test_placeholder_primary_ids_yield_to_compiled_catalogue() -> None:
