@@ -457,12 +457,17 @@ def partition_background_sources(
     budget = max_input_tokens if max_input_tokens is not None else _max_input_tokens()
     per_part_budget = max(1, budget - system_prompt_reserve_tokens)
 
-    # Codes appear in EVERY part, so account for them once as a fixed
-    # per-part overhead. Same for the referring_specialty + JSON
-    # wrapper.
+    # Compute packing overhead using the JSON envelope structure only --
+    # no codes. Codes are filtered per partition (each partition only
+    # carries codes for its own sources), so they must not inflate the
+    # shared fixed overhead that drives the bin-packing calculation.
+    # Including all codes here caused the budget to go negative for
+    # patients with many coded facts, making every source "oversize"
+    # and forcing too_many_parts even when the sources themselves are
+    # small.
     overhead_body = build_codes_first_envelope(
         [],
-        codes,
+        [],  # no codes -- packing budget is source-only
         coverage,
         referring_specialty=referring_specialty,
         completeness_result=completeness_result,
@@ -517,9 +522,11 @@ def partition_background_sources(
     total_parts = len(packed)
     partitions: list[Partition] = []
     for idx, part_slices in enumerate(packed, start=1):
+        part_source_ids = {s.source_id for s in part_slices}
+        part_codes = [c for c in codes if c.source_id in part_source_ids]
         msg = _build_user_message(
             part_slices,
-            codes,
+            part_codes,
             referring_specialty=referring_specialty,
             part_index=idx,
             part_total=total_parts,
