@@ -53,6 +53,7 @@ from libs.sbar.audit_persistence import (
     validate_completion_preconditions,
 )
 from libs.sbar.context_integrity import ContextIntegrityResult, validate_sbar_context
+from libs.sbar.section_status import integrity_status_for, section_status
 from libs.sbar.error_messages import (
     FriendlyError,
     FriendlyNotice,
@@ -143,6 +144,7 @@ class SBAROrchestrator:
         evaluator=evaluate_codes_against_guidelines,
         formatter=format_assessment,
         policy_runtime: Any | None = None,
+        dry_run: bool = False,
     ) -> None:
         self._client = patient_graph_client
         self._publish = publish_progress or _default_publisher()
@@ -152,6 +154,7 @@ class SBAROrchestrator:
         self._evaluate = evaluator
         self._format = formatter
         self._policy_runtime = policy_runtime
+        self._dry_run = bool(dry_run)
 
     # -- public --------------------------------------------------------
 
@@ -309,6 +312,10 @@ class SBAROrchestrator:
                 SET_SITUATION,
                 assessment_id=assessment_id,
                 situation=situation_md,
+                situation_status=section_status(
+                    text=situation_md,
+                    error=(sit_friendly or {}).get("message"),
+                ),
             )
             self._emit(
                 run_id,
@@ -351,6 +358,10 @@ class SBAROrchestrator:
                 assessment_id=assessment_id,
                 background=background_md,
                 background_parts=json.dumps(background_parts),
+                background_status=section_status(
+                    text=background_md,
+                    error=(bg_friendly or {}).get("message"),
+                ),
             )
             self._emit(
                 run_id,
@@ -469,6 +480,13 @@ class SBAROrchestrator:
                 assessment=narrative.markdown,
                 assessment_codes=narrative.codes,
                 assessment_rules=json.dumps(narrative.rules),
+                assessment_status=section_status(
+                    text=narrative.markdown,
+                    error=next(
+                        (e for e in errors if str(e).startswith("assessment:")),
+                        None,
+                    ),
+                ),
             )
             self._emit(
                 run_id,
@@ -546,6 +564,10 @@ class SBAROrchestrator:
                 assessment_id=assessment_id,
                 recommendation=recommendation_md,
                 recommendation_actions=json.dumps(actions),
+                recommendation_status=section_status(
+                    text=recommendation_md,
+                    error=(rec_friendly or {}).get("message"),
+                ),
             )
             self._emit(
                 run_id,
@@ -612,6 +634,9 @@ class SBAROrchestrator:
                 assessment_id=assessment_id,
                 content=content,
                 status=status,
+                context_integrity_status=integrity_status_for(
+                    audit_blockers=audit_blockers
+                ),
                 errors=errors,
                 stt=hints.get("stt"),
                 stt_evidence=hints.get("stt_evidence"),
@@ -801,9 +826,15 @@ class SBAROrchestrator:
 
         return PatientGraphClient()
 
-    @staticmethod
-    def _run_cypher(client: Any, query: str, **params: Any) -> list[dict[str, Any]]:
+    def _run_cypher(
+        self, client: Any, query: str, **params: Any
+    ) -> list[dict[str, Any]]:
         """Run Cypher via client.run() so transient connection errors retry."""
+        from libs.referral_quality.inprocess_dry_run import is_write_cypher
+
+        if self._dry_run and is_write_cypher(query):
+            logger.info("dry_run=True - skipping SBAR write")
+            return []
         if hasattr(client, "run"):
             return client.run(query, **params)
         with client.session() as session:
@@ -891,6 +922,7 @@ class SBAROrchestrator:
                     "ids in the task do not match._"
                 ),
                 status="error",
+                context_integrity_status="failed",
                 errors=errors,
                 stt=None,
                 stt_evidence=None,

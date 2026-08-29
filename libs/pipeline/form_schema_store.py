@@ -72,6 +72,17 @@ class FormSchemaWrite:
     service_name: str = ""
     organization_ods_code: str = ""
     completeness_groups: list[dict[str, Any]] = field(default_factory=list)
+    prompt_contract: bool = False
+
+
+def _parse_completeness_groups(raw: Any) -> list[dict[str, Any]]:
+    """Read taught completeness groups from a FormSchema record."""
+    if not raw:
+        return []
+    parsed = json.loads(raw) if isinstance(raw, str) else raw
+    if not isinstance(parsed, list):
+        return []
+    return [item for item in parsed if isinstance(item, dict)]
 
 
 def reset_schema_cache() -> None:
@@ -82,6 +93,11 @@ def reset_schema_cache() -> None:
 def get_cached_schema(fingerprint: str) -> FormSchema | None:
     """Return a cached schema for *fingerprint*, or ``None`` if unknown."""
     return _SCHEMA_CACHE.get(fingerprint)
+
+
+def remember_schema(schema: FormSchema) -> None:
+    """Keep a taught schema in the process cache for local onboarding."""
+    _SCHEMA_CACHE[schema.fingerprint] = schema
 
 
 def _record_to_schema(record: dict[str, Any]) -> FormSchema:
@@ -106,6 +122,10 @@ def _record_to_schema(record: dict[str, Any]) -> FormSchema:
         service_name=record.get("service_name") or "",
         organization_ods_code=record.get("organization_ods_code") or "",
         chunk_section_map=chunk_section_map,
+        prompt_contract=bool(record.get("prompt_contract")),
+        completeness_groups=_parse_completeness_groups(
+            record.get("completeness_groups_json")
+        ),
     )
 
 
@@ -458,6 +478,10 @@ def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
         organization_name=schema.organization_name,
         service_name=schema.service_name,
         organization_ods_code=schema.organization_ods_code,
+        prompt_contract=bool(schema.prompt_contract),
+        completeness_groups_json=json.dumps(
+            write.completeness_groups, ensure_ascii=True
+        ),
     )
     if schema.service_id and write.completeness_groups:
         ensure_service_completeness_domain(
@@ -489,7 +513,7 @@ def rebind_form_schema_ids(client: Any, write: FormSchemaWrite) -> str:
         return "seeded"
     same_org = existing.organization_id == write.organization_id
     same_svc = existing.service_id == write.service_id
-    if same_org and same_svc:
+    if same_org and same_svc and not write.completeness_groups:
         return "skipped"
     rebound = FormSchemaWrite(
         fingerprint=existing.fingerprint,
@@ -503,6 +527,7 @@ def rebind_form_schema_ids(client: Any, write: FormSchemaWrite) -> str:
         organization_name=write.organization_name,
         service_name=write.service_name,
         organization_ods_code=write.organization_ods_code,
+        completeness_groups=write.completeness_groups,
     )
     save_form_schema(client, rebound)
     return "updated"
@@ -534,6 +559,8 @@ def _build_schema(write: FormSchemaWrite) -> FormSchema:
         organization_name=write.organization_name,
         service_name=write.service_name,
         organization_ods_code=write.organization_ods_code or write.organization_id,
+        prompt_contract=bool(write.prompt_contract),
+        completeness_groups=list(write.completeness_groups),
     )
 
 

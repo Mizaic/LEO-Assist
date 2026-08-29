@@ -1,0 +1,55 @@
+{
+  "form_name": "Demo Breast 2WW",
+  "fingerprint": "demo-v1",
+  "organization_id": "RK5",
+  "service_id": "117038",
+  "sections": [
+    {
+      "section_id": "admin_header",
+      "section_type": "admin",
+      "label": "Breast Unit Referral Form header",
+      "start_pattern": "Breast Unit Referral Form",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "section_a",
+      "section_type": "checkbox_multi",
+      "label": "Section A: 2WW symptoms",
+      "start_pattern": "Section A",
+      "items": [
+        {
+          "pattern": "A1.",
+          "entity_text": "Newly presenting discrete hard breast lump",
+          "semantic_tag": "finding",
+          "assertion": "present"
+        }
+      ],
+      "semantic_tags": ["finding"]
+    },
+    {
+      "section_id": "points",
+      "section_type": "template_noise",
+      "label": "Points to remember",
+      "start_pattern": "Points to remember",
+      "items": [],
+      "semantic_tags": []
+    }
+  ],
+  "completeness_groups": [
+    {
+      "name": "two_ww_criterion_required",
+      "kind": "at_least_one",
+      "required": true,
+      "min_count": 1,
+      "semantic_categories": [],
+      "concept_ids": [],
+      "members": [
+        {
+          "section_id": "section_a",
+          "item_pattern": "A1."
+        }
+      ]
+    }
+  ]
+}

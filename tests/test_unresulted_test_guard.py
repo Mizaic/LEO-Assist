@@ -158,6 +158,30 @@ class TestWhatItMustNotTouch:
         assert dropped == []
         assert len(kept) == 1
 
+    def test_historical_procedure_in_pmh_table_is_kept(self) -> None:
+        """A past hysterectomy in a PMH table is not an unresulted blood test.
+
+        Atlas: DI-0B907354 / VT-24D1E4F6
+        """
+        text = (
+            "| Past medical history | Notes |\n"
+            "| Hysterectomy | performed |\n"
+        )
+        start = text.index("Hysterectomy")
+        ent = {
+            "text": "Hysterectomy",
+            "label": "procedure",
+            "start": start,
+            "end": start + len("Hysterectomy"),
+            "assertion": "historical",
+        }
+
+        kept, dropped = suppress_unresulted_test_mentions([ent], text)
+
+        assert dropped == []
+        assert len(kept) == 1
+        assert kept[0]["text"] == "Hysterectomy"
+
     def test_prose_is_never_touched(self) -> None:
         text = "Bloods were taken today and FBC was normal."
         ent = {

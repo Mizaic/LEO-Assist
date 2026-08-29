@@ -166,7 +166,8 @@ def test_chunk_map_built_over_another_segmentation_does_not_misroute(
         chunk_section_map=[{"chunk_idx": i, "section_id": "ADMIN"} for i in range(40)],
     )
     parts = normalise_chunks_with_schema(schema, chunks, schema.chunk_section_map)
-    assert "Cervical cancer suspected" in parts[2]
+    assert "Cervix" in parts[2]
+    assert "Cervical cancer suspected" not in parts[2]
 
 
 def test_chunk_map_with_null_chunk_idx_falls_back_to_position(
@@ -190,7 +191,8 @@ def test_chunk_map_with_null_chunk_idx_falls_back_to_position(
     entries = [{"chunk_idx": None, "section_id": "A"} for _ in chunks]
     parts = normalise_chunks_with_schema(schema, chunks, entries)
     assert len(parts) == len(chunks)
-    assert "Cervical cancer suspected" in parts[2]
+    assert "Cervix" in parts[2]
+    assert "Cervical cancer suspected" not in parts[2]
 
 
 def test_normalise_returns_one_part_per_chunk(chunks: list[str]) -> None:

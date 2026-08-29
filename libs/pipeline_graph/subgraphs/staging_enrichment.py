@@ -81,6 +81,7 @@ SET ep.cancer_stage = $cancer_stage,
 class StagingState(TypedDict, total=False):
     patient_id: str
     episode_ids: list[str]
+    dry_run: bool
     errors: list[str]
 
 
@@ -132,6 +133,9 @@ def _extract_evidence(rows: list[dict[str, Any]]) -> tuple[str | None, str | Non
 def enrich_staging(state: StagingState) -> dict[str, Any]:
     errors = list(state.get("errors") or [])
     episode_ids = list(state.get("episode_ids") or [])
+    if state.get("dry_run"):
+        logger.info("dry_run=True - skipping staging write")
+        return {"errors": errors}
     if not episode_ids:
         return {"errors": errors}
 

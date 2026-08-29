@@ -277,6 +277,9 @@ def _format_spoa_assessment(
     service_specialty = str(primary.get("service_specialty") or "").strip()
     primary_ids = list(primary.get("guideline_ids") or guideline_ids or [])
     supported = bool(primary.get("supported"))
+    ruleset_missing = bool(primary.get("ruleset_missing")) or (
+        bool(compliance_context.get("degraded")) and not supported
+    )
 
     lines: list[str] = []
     if service_name:
@@ -291,16 +294,14 @@ def _format_spoa_assessment(
             "_Receiving service is not linked; guideline scope may be incomplete._"
         )
 
-    if supported:
-        lines.append("**Supported by receiving service?** yes.")
-        lines.extend(_render_rule_section("Primary matches", primary_rules))
-    else:
-        lines.append("**Supported by receiving service?** no.")
-        lines.append(
-            "_No matching guideline rules fired for this patient's coded evidence "
-            f"against the receiving service scope._"
+    lines.extend(
+        _receiving_support_lines(
+            supported=supported,
+            ruleset_missing=ruleset_missing,
+            primary_rules=primary_rules,
+            patient_codes=patient_codes,
         )
-        lines.append(f"Reviewed against {len(patient_codes)} SNOMED concept(s).")
+    )
 
     if alternative_rules:
         lines.append("")
@@ -330,6 +331,32 @@ def _format_spoa_assessment(
         spoa_disposition=spoa_disposition,
         spoa_disposition_evidence=spoa_disposition_evidence,
     )
+
+
+def _receiving_support_lines(
+    *,
+    supported: bool,
+    ruleset_missing: bool,
+    primary_rules: list[dict[str, Any]],
+    patient_codes: list[str],
+) -> list[str]:
+    if ruleset_missing:
+        return [
+            "We could not check the receiving service ruleset.",
+            "A person needs to review this referral.",
+        ]
+    if supported:
+        lines = ["**Supported by receiving service?** yes."]
+        lines.extend(_render_rule_section("Primary matches", primary_rules))
+        return lines
+    return [
+        "**Supported by receiving service?** no.",
+        (
+            "_No matching guideline rules fired for this patient's coded evidence "
+            "against the receiving service scope._"
+        ),
+        f"Reviewed against {len(patient_codes)} SNOMED concept(s).",
+    ]
 
 
 def _render_rule_section(title: str, rules: list[dict[str, Any]]) -> list[str]:

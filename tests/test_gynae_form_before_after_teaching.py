@@ -273,11 +273,12 @@ def test_after_teaching_gate_bypassed_score_is_one() -> None:
     assert quality.quality_reasons == []
 
 
-def test_after_teaching_checked_cancer_site_becomes_entity() -> None:
-    """After teaching: Cervix [X] in Section A becomes 'Cervical cancer suspected'."""
+def test_after_teaching_checked_cancer_site_is_sealed() -> None:
+    """After teaching: Cervix [X] is sealed, not rewritten as synthesised prose."""
     reset_schema_cache()
     result = apply_schema_to_text(GYNAE_2WW_LETTER, GYNAE_SCHEMA)
-    assert "Cervical cancer suspected" in result
+    assert "Cervical cancer suspected" not in result
+    assert NON_EXTRACTABLE_MARKER in result
 
 
 def test_after_teaching_unchecked_sites_are_non_extractable() -> None:
@@ -293,11 +294,18 @@ def test_after_teaching_unchecked_sites_are_non_extractable() -> None:
     ), "Unchecked 'Endometrium' should be marked non-extractable"
 
 
-def test_after_teaching_b1_yes_becomes_entity() -> None:
-    """After teaching: B1 Yes [X] becomes a clinical entity sentence."""
+def test_after_teaching_b1_yes_is_sealed() -> None:
+    """After teaching: B1 Yes [X] is sealed, not rewritten as a new sentence."""
     reset_schema_cache()
     result = apply_schema_to_text(GYNAE_2WW_LETTER, GYNAE_SCHEMA)
-    assert "Lesion suspicious of cancer of cervix or vagina on speculum" in result
+    extractable = [
+        ln for ln in result.splitlines() if NON_EXTRACTABLE_MARKER not in ln
+    ]
+    assert not any(
+        ln.strip() == "Lesion suspicious of cancer of cervix or vagina on speculum"
+        for ln in extractable
+    )
+    assert any("B1" in ln and NON_EXTRACTABLE_MARKER in ln for ln in result.splitlines())
 
 
 def test_after_teaching_b2_no_is_non_extractable() -> None:
@@ -398,11 +406,12 @@ def test_after_teaching_section_d_tests_are_non_extractable() -> None:
     ), "Ordered test 'FBC' should be marked non-extractable"
 
 
-def test_after_teaching_section_e_scale_produces_entity() -> None:
-    """After teaching: 'Very Fit [X]' in Section E scale produces entity text."""
+def test_after_teaching_section_e_scale_is_sealed() -> None:
+    """After teaching: 'Very Fit [X]' is sealed, not rewritten as synthesised prose."""
     reset_schema_cache()
     result = apply_schema_to_text(GYNAE_2WW_LETTER, GYNAE_SCHEMA)
-    assert "Clinical Frailty Scale: 1 - Very Fit" in result
+    assert "Clinical Frailty Scale: 1 - Very Fit" not in result
+    assert NON_EXTRACTABLE_MARKER in result
 
 
 def test_after_teaching_section_f_admin_is_non_extractable() -> None:

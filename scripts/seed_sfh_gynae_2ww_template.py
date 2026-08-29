@@ -22,6 +22,10 @@ from pathlib import Path
 
 import requests
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 FINGERPRINT = "sfh-gynae-2ww-v1"
 FIXTURE_PATH = Path(__file__).parent.parent / (
     "tests/fixtures/form_schema/sfh_gynae_2ww_template.json"
@@ -108,7 +112,12 @@ def build_section_a() -> dict:
 
 
 def build_section_b() -> dict:
-    """Section B -- signs and symptoms 14-day rule."""
+    """Section B -- signs and symptoms 14-day rule.
+
+    Item patterns use the short prefix only (e.g. "B1.") so that the hit's
+    item_pattern matches the completeness group member's item_pattern exactly.
+    The full description goes in entity_text, not in pattern.
+    """
     return _section(
         section_id="section_b_symptoms",
         section_type="checkbox_yesno",
@@ -116,45 +125,39 @@ def build_section_b() -> dict:
         start_pattern="Section B",
         items=[
             _item(
-                "B1. Lesion suspicious of cancer of cervix or vagina on "
-                "speculum examination",
+                "B1.",
                 "Lesion suspicious of cervical or vaginal cancer on speculum",
             ),
             _item(
-                "B2. Lesion suspicious of cancer on clinical examination "
-                "of the vulva",
+                "B2.",
                 "Lesion suspicious of vulval cancer on examination",
             ),
             _item(
-                "B3. Palpable pelvic mass not obvious fibroids",
+                "B3.",
                 "Palpable pelvic mass (not fibroids)",
             ),
             _item(
-                "B4. Suspicious pelvic mass on pelvic ultrasound",
+                "B4.",
                 "Suspicious pelvic mass on ultrasound",
             ),
             _item(
-                "B5. More than one or a single heavy episode of postmenopausal "
-                "bleeding (PMB) in woman aged >55 who are NOT on HRT",
+                "B5.",
                 "Postmenopausal bleeding in woman aged over 55 not on HRT",
             ),
             _item(
-                "B6. Postcoital bleeding (PCB) age >35 years that persists "
-                "for more than 4 weeks",
+                "B6.",
                 "Postcoital bleeding persisting more than 4 weeks, age over 35",
             ),
             _item(
-                "B7. HRT: Unexpected or prolonged bleeding persisting for "
-                "more than 4 weeks after STOPPING HRT",
+                "B7.",
                 "Unexpected bleeding more than 4 weeks after stopping HRT",
             ),
             _item(
-                "B8. HRT: bleeding persisting AFTER 6 months of HRT use, "
-                "if on continuous combined HRT",
+                "B8.",
                 "Bleeding persisting after 6 months of continuous combined HRT",
             ),
             _item(
-                "B9. Suspicion of ovarian cancer and increased CA125 " "postmenopausal",
+                "B9.",
                 "Suspicion of ovarian cancer with raised CA125, postmenopausal",
             ),
         ],
@@ -428,6 +431,17 @@ def build_section_d() -> dict:
     )
 
 
+def build_points_to_remember_noise() -> dict:
+    """Guidance that must never become a patient fact."""
+    return _section(
+        section_id="points_to_remember",
+        section_type="template_noise",
+        label="Points to remember",
+        start_pattern="Points to remember",
+        items=[],
+    )
+
+
 def build_section_e() -> dict:
     """Section E -- performance status (Clinical Frailty Scale)."""
     return _section(
@@ -543,6 +557,7 @@ def _built_template() -> dict:
             build_section_c(),
             build_section_d(),
             build_section_e(),
+            build_points_to_remember_noise(),
         ],
         "saved_by": "seed_sfh_gynae_2ww_template",
         "status": "active",
@@ -579,6 +594,56 @@ def post_to_api(api_url: str, payload: dict) -> None:
         sys.exit(2)
 
 
+def write_graph(payload: dict) -> None:
+    """Persist the schema on the patient graph NEO4J_URI points at."""
+    from dotenv import load_dotenv
+
+    for name in ("secrets/.env", "secrets/.env.secrets", ".env"):
+        load_dotenv(ROOT / name, override=False)
+    import os
+
+    from libs.neo4j_client.client import PatientGraphClient
+    from libs.pipeline.form_schema_request import (
+        build_sections_from_request,
+        normalize_sections_for_request,
+    )
+    from libs.pipeline.form_schema_store import FormSchemaWrite, save_form_schema
+
+    sections = build_sections_from_request(
+        normalize_sections_for_request(payload["sections"])
+    )
+    uri = os.getenv("NEO4J_URI", "") or os.getenv("NEO4J_PATIENT_URI", "")
+    print(f"neo4j         : {uri}")
+    if "localhost" in uri or not uri.startswith("neo4j+s://"):
+        raise SystemExit(f"Refusing to write: NEO4J_URI is not production Aura ({uri})")
+    client = PatientGraphClient()
+    try:
+        saved = save_form_schema(
+            client,
+            FormSchemaWrite(
+                fingerprint=FINGERPRINT,
+                form_name=payload["form_name"],
+                sections=sections,
+                created_by=payload.get("saved_by") or "seed_sfh_gynae_2ww_template",
+                schema_id=FINGERPRINT,
+                status=payload.get("status") or "active",
+                organization_id=payload["organization_id"],
+                service_id=payload["service_id"],
+                organization_name=payload["organization_name"],
+                service_name=payload["service_name"],
+                organization_ods_code=payload["organization_ods_code"],
+                completeness_groups=payload.get("completeness_groups") or [],
+            ),
+        )
+        print(
+            f"saved         : {saved.fingerprint} org={saved.organization_id} "
+            f"service={saved.service_id} "
+            f"groups={len(saved.completeness_groups)}"
+        )
+    finally:
+        client.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Seed SFH Gynae 2WW form schema template"
@@ -593,15 +658,22 @@ def main() -> None:
         action="store_true",
         help="Only write the fixture file; skip the API call",
     )
+    parser.add_argument(
+        "--write-graph",
+        action="store_true",
+        help="Write the schema to the patient graph (NEO4J_URI).",
+    )
     args = parser.parse_args()
 
     payload = _built_template()
     save_fixture(payload)
 
-    if not args.fixture_only:
-        post_to_api(args.api_url, payload)
+    if args.fixture_only:
+        print("Fixture-only mode: skipping API and graph write.")
+    elif args.write_graph:
+        write_graph(payload)
     else:
-        print("Fixture-only mode: skipping API call.")
+        post_to_api(args.api_url, payload)
 
 
 if __name__ == "__main__":

@@ -44,6 +44,22 @@ def permitted_child_types(scope_type: ScopeType | None) -> list[str]:
     return _PERMITTED_CHILD_TYPES.get(scope_type, [])
 
 
+_E2E_SESSION_DATA = {
+    "email": "e2e.clinician@example.com",
+    "is_platform_admin": True,
+    "org_ids": [],
+    "idle_timeout_minutes": 30,
+}
+
+
+def _is_e2e_mode() -> bool:
+    """True only in local dev with the explicit E2E flag.  Never in production."""
+    return (
+        os.getenv("APP_ENV", "production") != "production"
+        and os.getenv("E2E_MODE") == "true"
+    )
+
+
 def get_session_data(
     leo_session: Annotated[str | None, Cookie(alias=COOKIE_NAME)] = None,
 ) -> dict:
@@ -51,7 +67,12 @@ def get_session_data(
 
     Slides the idle timer on every authenticated API call so long editor
     sessions that hit feature APIs stay alive (DI-8A96990F).
+
+    In local E2E mode (APP_ENV != production, E2E_MODE=true) returns a
+    synthetic admin session so the UI can be demoed without Redis.
     """
+    if _is_e2e_mode():
+        return _E2E_SESSION_DATA
     if not leo_session:
         raise HTTPException(status_code=401, detail="Not authenticated")
     data = load_session(leo_session)

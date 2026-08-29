@@ -1155,6 +1155,7 @@ _PMH_POSITIVE_RE = re.compile(
 
 _PMH_NEGATED_RE = re.compile(
     r"\b(?:no|denies|without|nil)\s+(?:known\s+)?"
+    r"(?:family\s+)?"
     r"(?:background|history|hx|h/?o)\s+of\b",
     re.IGNORECASE,
 )
@@ -1297,15 +1298,14 @@ def _is_situation_entity(ent: dict[str, Any]) -> bool:
 
 
 def _situation_guard_blob(ent: dict[str, Any]) -> str:
-    parts = [
-        ent.get("text"),
-        ent.get("evidence"),
-        ent.get("term"),
-        ent.get("normalized"),
-        ent.get("normalized_lookup"),
-        ent.get("lookup_term"),
-    ]
-    return " ".join(str(p) for p in parts if p)
+    """Return the evidence sentence only -- never a SNOMED preferred term."""
+    return str(
+        ent.get("evidence_sentence")
+        or ent.get("sentence")
+        or ent.get("evidence")
+        or ent.get("text")
+        or ""
+    )
 
 
 def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
@@ -1317,7 +1317,7 @@ def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
     Atlas: DI-95CB940F / DO-847F1ED5 / VT-BA44A8B3.
     """
     for ent in entities:
-        if ent.get("assertion") == "present":
+        if ent.get("assertion") in {"present", "assertion_unverified"}:
             continue
         if not _is_situation_entity(ent):
             continue
@@ -1341,16 +1341,27 @@ def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
             )
 
 
-def apply_false_absent_assertion_guards(entities: list[dict[str, Any]]) -> None:
-    """Run lifestyle-status, PMH, situation-present, and contrast guards."""
+def apply_false_absent_assertion_guards(
+    entities: list[dict[str, Any]], *, respect_context: bool = False
+) -> None:
+    """Run lifestyle-status, PMH, situation-present, and contrast guards.
+
+    When *respect_context* is True, skip facts ConText has already settled
+    so a later terminology pass cannot re-flip them.
+    """
     from libs.ner.affirmed_finding_guard import fix_locally_affirmed_assertions
     from libs.ner.contrast_negation_guard import fix_contrast_positive_false_absent
 
-    fix_lifestyle_status_assertions(entities)
-    fix_pmh_list_false_absent(entities)
-    fix_situation_present_assertions(entities)
-    fix_contrast_positive_false_absent(entities)
-    fix_locally_affirmed_assertions(entities)
+    targets = [
+        ent
+        for ent in entities
+        if not (respect_context and ent.get("_assertion_source") == "context")
+    ]
+    fix_lifestyle_status_assertions(targets)
+    fix_pmh_list_false_absent(targets)
+    fix_situation_present_assertions(targets)
+    fix_contrast_positive_false_absent(targets)
+    fix_locally_affirmed_assertions(targets)
 
 
 # ── Layer 8: Situation Lookup Normalisation ──

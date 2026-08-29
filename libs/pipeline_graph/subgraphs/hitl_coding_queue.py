@@ -25,6 +25,7 @@ class HitlCodingQueueState(TypedDict, total=False):
     llm_check_changes: list[dict[str, Any]]
     encounter_status: str
     training_labels_written: int
+    dry_run: bool
     errors: list[str]
 
 
@@ -55,6 +56,9 @@ def queue_hitl_coding(state: HitlCodingQueueState) -> dict[str, Any]:
     encounter_text = str(state.get("encounter_text") or "")
     errors = list(state.get("errors") or [])
     if not changes:
+        return {"training_labels_written": 0, "encounter_status": "auto_ready"}
+    if state.get("dry_run"):
+        logger.info("dry_run=True - skipping coding HITL writes")
         return {"training_labels_written": 0, "encounter_status": "auto_ready"}
     try:
         from libs.cypher.training_candidate_queries import UPSERT_TRAINING_CANDIDATE
@@ -88,7 +92,11 @@ def queue_hitl_coding(state: HitlCodingQueueState) -> dict[str, Any]:
         }
     except Exception as exc:
         errors.append(f"hitl_coding_queue: {exc}")
-        return {"training_labels_written": 0, "encounter_status": "queue_failed", "errors": errors}
+        return {
+            "training_labels_written": 0,
+            "encounter_status": "queue_failed",
+            "errors": errors,
+        }
 
 
 def build_hitl_coding_queue_subgraph() -> CompiledStateGraph:

@@ -61,6 +61,8 @@ SET
     s.organization_name = $organization_name,
     s.service_name     = $service_name,
     s.organization_ods_code = $organization_ods_code,
+    s.prompt_contract  = $prompt_contract,
+    s.completeness_groups_json = $completeness_groups_json,
     s.updated_at       = datetime(),
     s.created_by       = $created_by
 WITH s
@@ -92,7 +94,9 @@ RETURN s.schema_id AS schema_id,
        s.service_id AS service_id,
        s.organization_name AS organization_name,
        s.service_name AS service_name,
-       s.organization_ods_code AS organization_ods_code
+       s.organization_ods_code AS organization_ods_code,
+       s.prompt_contract AS prompt_contract,
+       s.completeness_groups_json AS completeness_groups_json
 """
 
 GET_FORM_SCHEMA_BY_FINGERPRINT = """
@@ -110,7 +114,9 @@ RETURN s.schema_id AS schema_id,
        s.organization_name AS organization_name,
        s.service_name AS service_name,
        s.organization_ods_code AS organization_ods_code,
-       s.chunk_section_map AS chunk_section_map
+       s.chunk_section_map AS chunk_section_map,
+       s.prompt_contract AS prompt_contract,
+       s.completeness_groups_json AS completeness_groups_json
 """
 
 GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE = """
@@ -131,7 +137,9 @@ RETURN s.schema_id AS schema_id,
        s.organization_name AS organization_name,
        s.service_name AS service_name,
        s.organization_ods_code AS organization_ods_code,
-       s.chunk_section_map AS chunk_section_map
+       s.chunk_section_map AS chunk_section_map,
+       s.prompt_contract AS prompt_contract,
+       s.completeness_groups_json AS completeness_groups_json
 ORDER BY s.updated_at DESC
 LIMIT 1
 """

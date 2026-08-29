@@ -151,14 +151,15 @@ def _make_schema(*sections: FormSection) -> FormSchema:
 # ---------------------------------------------------------------------------
 
 
-def test_checked_item_produces_entity_text() -> None:
+def test_checked_item_does_not_insert_synthesised_text() -> None:
     text = (
         "Section A: Gynaecological Cancer type suspected\n"
         "Ovary [ ] Cervix [X] Endometrium [ ] Vagina [ ] Vulva [ ]\n"
     )
     schema = _make_schema(CANCER_SITE_SECTION)
     result = apply_schema_to_text(text, schema)
-    assert "Cervical cancer suspected" in result
+    assert "Cervical cancer suspected" not in result
+    assert NON_EXTRACTABLE_MARKER in result
 
 
 def test_unchecked_items_are_non_extractable() -> None:
@@ -191,14 +192,15 @@ def test_no_checked_item_marks_whole_section_non_extractable() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_yes_checked_produces_entity_text() -> None:
+def test_yes_checked_does_not_insert_synthesised_text() -> None:
     text = (
         "Section B: Signs and symptoms\n"
         "B1. Lesion suspicious of cancer of cervix | Yes [X] No [ ]\n"
     )
     schema = _make_schema(CRITERIA_SECTION)
     result = apply_schema_to_text(text, schema)
-    assert "Lesion suspicious of cancer of cervix or vagina on speculum" in result
+    assert "Lesion suspicious of cancer of cervix or vagina on speculum" not in result
+    assert NON_EXTRACTABLE_MARKER in result
 
 
 def test_no_checked_is_non_extractable() -> None:
@@ -223,7 +225,7 @@ def test_unchecked_yesno_row_is_non_extractable() -> None:
     assert NON_EXTRACTABLE_MARKER in result
 
 
-def test_multiple_criteria_only_checked_ones_appear() -> None:
+def test_multiple_criteria_do_not_insert_synthesised_text() -> None:
     text = (
         "Section B: Signs and symptoms\n"
         "B1. Lesion on cervix | Yes [X] No [ ]\n"
@@ -232,9 +234,10 @@ def test_multiple_criteria_only_checked_ones_appear() -> None:
     )
     schema = _make_schema(CRITERIA_SECTION)
     result = apply_schema_to_text(text, schema)
-    assert "Lesion suspicious of cancer of cervix or vagina on speculum" in result
+    assert "Lesion suspicious of cancer of cervix or vagina on speculum" not in result
     assert "Lesion suspicious of cancer on clinical examination of vulva" not in result
-    assert "Postmenopausal bleeding" not in result
+    assert "Postmenopausal bleeding in woman aged over 55 not on HRT" not in result
+    assert result.count(NON_EXTRACTABLE_MARKER) >= 3
 
 
 # ---------------------------------------------------------------------------
@@ -299,13 +302,14 @@ def test_ordered_tests_test_names_not_extracted() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_scale_checked_value_produces_entity_text() -> None:
+def test_scale_checked_value_does_not_insert_synthesised_text() -> None:
     text = (
         "Clinical Frailty Scale\n" "1. Very Fit [X]  2. Fit [ ]  3. Managing well [ ]\n"
     )
     schema = _make_schema(FRAILTY_SECTION)
     result = apply_schema_to_text(text, schema)
-    assert "Clinical Frailty Scale: Very Fit" in result
+    assert "Clinical Frailty Scale: Very Fit" not in result
+    assert NON_EXTRACTABLE_MARKER in result
 
 
 def test_scale_unchecked_items_are_non_extractable() -> None:
@@ -365,8 +369,8 @@ def test_multi_section_schema_handles_each_section_correctly() -> None:
         INVESTIGATIONS_SECTION,
     )
     result = apply_schema_to_text(text, schema)
-    assert "Cervical cancer suspected" in result
-    assert "Lesion suspicious of cancer of cervix or vagina on speculum" in result
+    assert "Cervical cancer suspected" not in result
+    assert "Lesion suspicious of cancer of cervix or vagina on speculum" not in result
     assert "BMI: 20.2" in result
     assert "Polyp on cervix" in result
     non_ex_count = result.count(NON_EXTRACTABLE_MARKER)

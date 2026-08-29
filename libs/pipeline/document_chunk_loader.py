@@ -62,17 +62,23 @@ ORDER BY ordinal ASC
 
 
 def _mark_non_extractable_chunk(text: str) -> str:
-    """Return text unchanged, or prepend [NON_EXTRACTABLE] if it is admin content.
+    """Mark every line in a guidance block as non-extractable.
 
     A PDF document header or "Points to remember" block is template chrome,
-    not patient narrative. Prepending the marker tells the LLM to skip the
-    whole chunk. The raw text is still in encounter_text so span resolution
-    works -- extraction skipping is enforced by the model instruction, not
-    by text removal.
+    not patient narrative. Every line is prefixed with the marker so that
+    llm_facing_text removes the full block, not just the heading line.
+    The raw text is kept in encounter_text so span resolution works.
     """
     if not text or not _NON_EXTRACTABLE_CHUNK_RE.search(text):
         return text
-    return f"{NON_EXTRACTABLE_MARKER} {text.strip()}"
+    marked_lines = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith(NON_EXTRACTABLE_MARKER):
+            marked_lines.append(f"{NON_EXTRACTABLE_MARKER} {stripped}")
+        else:
+            marked_lines.append(line)
+    return "\n".join(marked_lines)
 
 
 def strip_pdf_attachments(text: str) -> str:
@@ -220,7 +226,7 @@ def _normalise_chunk_texts(
     service_id: str = "",
     ers_service_id: str = "",
     resolve_schema: bool = True,
-) -> tuple[list[str], dict[str, str]]:
+) -> tuple[list[str], dict[str, Any]]:
     """Normalise chunk texts, using chunk_section_map when a schema is known.
 
     ``resolve_schema=False`` skips the taught-form lookup for callers whose
@@ -228,8 +234,6 @@ def _normalise_chunk_texts(
     clinician's email. There is nothing to resolve, and the lookup would
     otherwise make the caller depend on the graph being reachable.
     """
-    from libs.pipeline.form_schema_normalizer import normalise_chunks_with_schema
-
     if not resolve_schema:
         from libs.pipeline.form_schema_store import form_schema_state_fields
 
@@ -243,18 +247,38 @@ def _normalise_chunk_texts(
     )
     if not raw_texts:
         return [], fields
-    from libs.ner.form_layout_rules import apply_form_layout_rules
+    normalised, extra = _rewrite_and_cover(schema, raw_texts)
+    return [_mark_non_extractable_chunk(t) for t in normalised], {**fields, **extra}
 
+
+def _rewrite_and_cover(
+    schema: Any, raw_texts: list[str]
+) -> tuple[list[str], dict[str, Any]]:
+    """Rewrite chunk texts and attach taught-form coverage fields."""
+    from libs.ner.form_layout_rules import apply_form_layout_rules
+    from libs.pipeline.document_role import seal_administrative_documents
+    from libs.pipeline.form_schema_normalizer import normalise_chunks_with_schema
+
+    extra: dict[str, Any] = {}
     if schema is not None and schema.sections:
-        normalised = [
+        from libs.pipeline.form_coverage import coverage_state_fields
+        from libs.pipeline.form_section_hits import collect_section_hits
+
+        rewritten = [
             apply_form_layout_rules(text)
             for text in normalise_chunks_with_schema(
                 schema, raw_texts, schema.chunk_section_map
             )
         ]
+        extra = coverage_state_fields(schema, raw_texts, schema.chunk_section_map)
+        extra["section_hits"] = collect_section_hits(
+            schema, raw_texts, schema.chunk_section_map
+        )
+        if schema.completeness_groups:
+            extra["completeness_groups"] = list(schema.completeness_groups)
     else:
-        normalised = [normalize_form_checkbox_text(text) for text in raw_texts]
-    return [_mark_non_extractable_chunk(t) for t in normalised], fields
+        rewritten = [normalize_form_checkbox_text(text) for text in raw_texts]
+    return [seal_administrative_documents(text) for text in rewritten], extra
 
 
 def _prepare_chunk_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

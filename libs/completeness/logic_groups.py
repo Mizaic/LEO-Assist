@@ -24,6 +24,9 @@ KIND_ALIASES = {
     "one_of": "one_of",
     "n_of": "n_of",
     "if_then": "if_then",
+    "at_least_one": "one_of",
+    "required_section": "n_of",
+    "recommended_section": "optional",
 }
 
 LeafEvaluator = Callable[[dict[str, Any]], dict[str, Any]]
@@ -69,11 +72,17 @@ def evaluate_logic_group(
     """Evaluate one group, including logic wrappers."""
     kind = resolve_kind(group)
     if kind == "one_of":
-        return _evaluate_n_of(group, evaluate_leaf, min_needed=1)
+        return _evaluate_n_of(group, evaluate_leaf, min_needed=min_count_for(group, 1))
     if kind == "n_of":
-        return _evaluate_n_of(group, evaluate_leaf, min_needed=min_count_for(group, 2))
+        raw_kind = str(group.get("kind") or "").strip()
+        n_of_default = 1 if raw_kind == "required_section" else 2
+        return _evaluate_n_of(
+            group, evaluate_leaf, min_needed=min_count_for(group, n_of_default)
+        )
     if kind == "if_then":
         return _evaluate_if_then(group, evaluate_leaf)
+    if kind == "optional" and group.get("members"):
+        return _evaluate_n_of(group, evaluate_leaf, min_needed=min_count_for(group, 1))
     if kind == "mandatory" and group.get("members"):
         return _evaluate_n_of(
             group,
@@ -84,6 +93,7 @@ def evaluate_logic_group(
     row["kind"] = kind
     row["required"] = kind != "optional"
     row.setdefault("matched_member_names", [])
+    row.setdefault("outcome", "matched" if row.get("matched") else "not_matched")
     return row
 
 
@@ -102,11 +112,22 @@ def _evaluate_n_of(
         "kind": kind,
         "required": kind != "optional",
         "matched": matched,
+        "outcome": _n_of_outcome(rows, matched),
         "matched_member_names": matched_names,
         "matched_concept_ids": _merge_ids(rows, "matched_concept_ids"),
         "missing_concept_ids": _merge_ids(rows, "missing_concept_ids"),
-        "matched_semantic_category": any(row.get("matched_semantic_category") for row in rows),
+        "matched_semantic_category": any(
+            row.get("matched_semantic_category") for row in rows
+        ),
     }
+
+
+def _n_of_outcome(rows: list[dict[str, Any]], matched: bool) -> str:
+    if matched:
+        return "matched"
+    if rows and all(row.get("outcome") == "not_assessable" for row in rows):
+        return "not_assessable"
+    return "not_matched"
 
 
 def _evaluate_if_then(
@@ -114,24 +135,40 @@ def _evaluate_if_then(
     evaluate_leaf: LeafEvaluator,
 ) -> dict[str, Any]:
     if_row = evaluate_leaf(_as_group(group.get("if_group")))
+    if if_row.get("outcome") == "not_assessable":
+        return {
+            "name": str(group.get("name") or ""),
+            "kind": "if_then",
+            "required": True,
+            "matched": False,
+            "outcome": "not_assessable",
+            "matched_member_names": [],
+            "matched_concept_ids": if_row.get("matched_concept_ids") or [],
+            "missing_concept_ids": [],
+            "matched_semantic_category": bool(if_row.get("matched_semantic_category")),
+        }
     if not if_row["matched"]:
         return {
             "name": str(group.get("name") or ""),
             "kind": "if_then",
             "required": False,
             "matched": True,
+            "outcome": "matched",
             "matched_member_names": [],
             "matched_concept_ids": if_row.get("matched_concept_ids") or [],
             "missing_concept_ids": [],
             "matched_semantic_category": bool(if_row.get("matched_semantic_category")),
         }
     then_row = evaluate_leaf(_as_group(group.get("then_group")))
+    then_matched = bool(then_row["matched"])
     return {
         "name": str(group.get("name") or ""),
         "kind": "if_then",
         "required": True,
-        "matched": bool(then_row["matched"]),
-        "matched_member_names": [then_row["name"]] if then_row["matched"] else [],
+        "matched": then_matched,
+        "outcome": then_row.get("outcome")
+        or ("matched" if then_matched else "not_matched"),
+        "matched_member_names": [then_row["name"]] if then_matched else [],
         "matched_concept_ids": then_row.get("matched_concept_ids") or [],
         "missing_concept_ids": then_row.get("missing_concept_ids") or [],
         "matched_semantic_category": bool(then_row.get("matched_semantic_category")),

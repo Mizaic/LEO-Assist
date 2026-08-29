@@ -35,12 +35,16 @@ def _normalise_one(group: Any) -> dict[str, Any]:
         "kind": kind,
         "min_count": _as_int(data.get("min_count", data.get("min")), 1),
         "semantic_categories": [
-            str(tag).strip() for tag in (data.get("semantic_categories") or []) if str(tag).strip()
+            str(tag).strip()
+            for tag in (data.get("semantic_categories") or [])
+            if str(tag).strip()
         ],
         "concept_ids": _concept_ids(data.get("concept_ids")),
         "members": members,
         "if_group": _optional_nested(data.get("if_group")),
         "then_group": _optional_nested(data.get("then_group")),
+        "section_id": str(data.get("section_id") or "").strip(),
+        "item_pattern": str(data.get("item_pattern") or "").strip(),
     }
 
 
@@ -51,9 +55,13 @@ def _normalise_member(item: Any) -> dict[str, Any]:
         "required": False,
         "kind": "optional",
         "semantic_categories": [
-            str(tag).strip() for tag in (data.get("semantic_categories") or []) if str(tag).strip()
+            str(tag).strip()
+            for tag in (data.get("semantic_categories") or [])
+            if str(tag).strip()
         ],
         "concept_ids": _concept_ids(data.get("concept_ids")),
+        "section_id": str(data.get("section_id") or "").strip(),
+        "item_pattern": str(data.get("item_pattern") or "").strip(),
     }
 
 

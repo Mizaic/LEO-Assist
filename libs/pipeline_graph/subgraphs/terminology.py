@@ -385,7 +385,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
         guard_suspected_cancer_resolutions(encounter_text, resolved)
         fix_double_negated_situations(resolved)
         fix_polarity_encoded_findings(resolved)
-        apply_false_absent_assertion_guards(resolved)
+        apply_false_absent_assertion_guards(resolved, respect_context=True)
         resolved = enrich_lab_result_findings(
             resolved,
             patient_sex=state.get("patient_sex"),

@@ -12,6 +12,7 @@ from functools import partial
 from typing import Any, Callable
 
 from libs.completeness.logic_groups import evaluate_logic_group
+from libs.pipeline.form_section_hits import form_hit_result
 from libs.terminology.semantic_tag import normalise_semantic_tag
 
 _ISA_DESCENDANTS_QUERY = (
@@ -83,8 +84,9 @@ def evaluate_completeness_groups(
     present_concept_ids: set[int],
     present_semantic_tags: set[str],
     isa_expansion: dict[int, set[int]] | None = None,
+    section_hits: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Evaluate completeness groups against present concepts and semantic tags."""
+    """Evaluate completeness groups against facts and taught-form hits."""
     matched: list[dict[str, Any]] = []
     missing: list[dict[str, Any]] = []
     leaf = partial(
@@ -92,15 +94,22 @@ def evaluate_completeness_groups(
         present_concept_ids=present_concept_ids,
         present_semantic_tags=present_semantic_tags,
         isa_expansion=isa_expansion,
+        section_hits=section_hits or [],
     )
     for group in schema:
         row = evaluate_logic_group(group, leaf)
         (matched if row["matched"] else missing).append(row)
+    required_unassessed = [
+        row
+        for row in missing
+        if row["required"] and row.get("outcome") == "not_assessable"
+    ]
     return {
         "matched_groups": matched,
         "missing_groups": missing,
         "complete": not any(row["required"] for row in missing),
         "concept_ids": sorted(present_concept_ids),
+        "degraded": bool(required_unassessed),
     }
 
 
@@ -110,6 +119,7 @@ def _evaluate_leaf(
     present_concept_ids: set[int],
     present_semantic_tags: set[str],
     isa_expansion: dict[int, set[int]] | None,
+    section_hits: list[dict[str, Any]],
 ) -> dict[str, Any]:
     required_ids = {
         int(cid) for cid in group.get("concept_ids", []) if _parse_concept_id(cid)
@@ -120,15 +130,54 @@ def _evaluate_leaf(
     )
     tag_hit = bool(categories & present_semantic_tags)
     missing_tags = bool(categories) and not tag_hit
+    form_matched, form_assessable = form_hit_result(group, section_hits)
+    matched, outcome = _leaf_outcome(
+        required_ids=required_ids,
+        categories=categories,
+        absent_ids=absent_ids,
+        missing_tags=missing_tags,
+        form_matched=form_matched,
+        form_assessable=form_assessable,
+        has_form=_has_form_fields(group),
+    )
     return {
         "name": str(group.get("name") or ""),
         "required": bool(group.get("required", True)),
-        "matched": not absent_ids and not missing_tags,
+        "matched": matched,
+        "outcome": outcome,
         "matched_concept_ids": id_hits,
         "missing_concept_ids": absent_ids,
         "matched_semantic_category": tag_hit,
         "matched_member_names": [],
     }
+
+
+def _has_form_fields(group: dict[str, Any]) -> bool:
+    return bool(
+        str(group.get("section_id") or "").strip()
+        or str(group.get("item_pattern") or "").strip()
+    )
+
+
+def _leaf_outcome(
+    *,
+    required_ids: set[int],
+    categories: set[str],
+    absent_ids: list[int],
+    missing_tags: bool,
+    form_matched: bool,
+    form_assessable: bool,
+    has_form: bool,
+) -> tuple[bool, str]:
+    has_legacy = bool(required_ids) or bool(categories)
+    if form_assessable and form_matched:
+        return True, "matched"
+    if has_legacy:
+        matched = not absent_ids and not missing_tags
+        return matched, "matched" if matched else "not_matched"
+    if has_form and form_assessable:
+        return False, "not_matched"
+    return False, "not_assessable"
 
 
 def _concept_match(

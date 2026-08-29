@@ -68,10 +68,13 @@ async def prepare_gate3_context(
         allowed_chunk_ids=allowed_chunk_ids or [],
         run_id=str(getattr(payload, "run_id", "") or ""),
     )
+    extra = dict(getattr(payload, "extra", None) or {})
     structured = build_structured_situation(
         referral_request=referral_request,
         referral_reason=recall_evidence,
         trigger_scoped_letter=_trigger_scoped_letter(resolved_sources),
+        form_clinical_section=extra.get("form_clinical_section"),
+        form_sections=extra.get("form_sections"),
         run_id=str(getattr(payload, "run_id", "") or ""),
     )
 
@@ -99,6 +102,8 @@ async def prepare_gate3_context(
                 referral_request=referral_request,
                 referral_reason=recall_evidence,
                 trigger_scoped_letter=_trigger_scoped_letter(resolved_sources),
+                form_clinical_section=extra.get("form_clinical_section"),
+                form_sections=extra.get("form_sections"),
                 run_id=str(getattr(payload, "run_id", "") or ""),
             )
 

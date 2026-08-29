@@ -16,6 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from libs.guidelines.service_rulesets import resolve_primary_guideline_ids
+
 _RESOLVE_CYPHER = """
 MATCH (src {id: $source_id})
 WHERE $source_label IN labels(src)
@@ -156,7 +158,11 @@ def apply_healthcare_service_scope(
     if service.organization_name:
         state["healthcare_service_org_name"] = service.organization_name
 
-    primary_ids = list(override_ids or service.guideline_ids)
+    primary_ids = list(override_ids) or resolve_primary_guideline_ids(
+        service.id,
+        service.guideline_ids,
+        ers_service_id=service.ers_service_id,
+    )
     state["primary_guideline_ids"] = primary_ids
     if primary_ids:
         state["guideline_scope_type"] = "guideline"

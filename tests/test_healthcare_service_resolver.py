@@ -115,3 +115,17 @@ def test_missing_service_soft_fails_without_override() -> None:
     apply_healthcare_service_scope(state, None)
     assert state["healthcare_service_missing"] is True
     assert "primary_guideline_ids" not in state
+
+
+def test_placeholder_graph_guidelines_yield_to_compiled_catalogue() -> None:
+    state: dict = {}
+    service = HealthcareServiceScope(
+        id="117038",
+        name="Breast Clinic - Kings Mill Hospital - SFHFT - RK5",
+        specialty="2WW Breast",
+        guideline_ids=["val-gardena-defaults"],
+        ers_service_id="117038",
+    )
+    apply_healthcare_service_scope(state, service)
+    assert state["primary_guideline_ids"] == ["NG12"]
+    assert state["guideline_scope_id"] == "NG12"

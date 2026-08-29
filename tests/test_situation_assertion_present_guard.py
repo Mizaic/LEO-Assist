@@ -104,3 +104,22 @@ def test_prompt_keeps_site_named_suspected_cancer() -> None:
 
 def test_guidelines_fh_assertion_present() -> None:
     assert "FH of breast cancer | situation | present" in ANNOTATION_GUIDELINES_V1
+
+
+def test_situation_guard_does_not_match_preferred_term() -> None:
+    """A SNOMED preferred term must not restore present on its own.
+
+    Atlas: DI-0B907354 / VT-24D1E4F6
+    """
+    ent = {
+        "label": "situation",
+        "assertion": "possible",
+        "text": "ovarian cyst",
+        "evidence_sentence": "Ultrasound shows an ovarian cyst.",
+        "term": "Malignant neoplasm of ovary suspected (situation)",
+        "lookup_term": "malignant neoplasm of ovary suspected",
+        "normalized": "Malignant neoplasm of ovary suspected",
+    }
+    fix_situation_present_assertions([ent])
+    assert ent["assertion"] == "possible"
+    assert "_assertion_guard" not in ent

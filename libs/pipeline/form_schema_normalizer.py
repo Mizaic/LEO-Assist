@@ -5,7 +5,8 @@ Atlas trace:
 
 Once a :FormSchema exists for a form fingerprint, this module rewrites
 form text deterministically before LLM extraction:
-- Checked checkbox items become clinical entity sentences.
+- Checkbox and scale rows are sealed so the model cannot re-quote them.
+- Ticked facts are seeded at raw-letter offsets by form_checkbox_seed.
 - Unchecked items and noise sections are marked NON_EXTRACTABLE.
 - Free-text sections are left unchanged.
 - The quality gate is bypassed (score = 1.0) when a schema is present.
@@ -113,6 +114,8 @@ class FormSchema:
     service_name: str = ""
     organization_ods_code: str = ""
     chunk_section_map: list[dict[str, Any]] = field(default_factory=list)
+    prompt_contract: bool = False
+    completeness_groups: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _mark(line: str) -> str:
@@ -141,8 +144,51 @@ def _seal(line: str) -> str:
     return _mark(line)
 
 
+_BOX_CAPTURE_RE = re.compile(r"\[([^\]]*)\]|\(([^)]*)\)")
+# Packed-row pairing must ignore prose in parentheses, such as
+# "(Please tick one of the following...)". Only square tick boxes count.
+_TICK_BOX_RE = re.compile(r"\[([^\]]*)\]")
+
+
 def _has_any_box(line: str) -> bool:
     return bool(_CHECKED_RE.search(line) or _UNCHECKED_RE.search(line))
+
+
+def _box_is_checked(match: re.Match[str]) -> bool:
+    content = (match.group(1) or match.group(2) or "").strip()
+    return bool(_BOX_CHECKED_RE.match(content))
+
+
+def _items_in_line_order(
+    line: str, items: list[FormSchemaItem]
+) -> list[FormSchemaItem]:
+    """Return taught items that appear on *line*, left to right."""
+    found: list[tuple[int, FormSchemaItem]] = []
+    for item in items:
+        match = safe_search(item.pattern, line)
+        if match is not None:
+            found.append((match.start(), item))
+    found.sort(key=lambda pair: pair[0])
+    return [item for _start, item in found]
+
+
+def _paired_checked_texts(line: str, items: list[FormSchemaItem]) -> list[str] | None:
+    """Pair N items with N boxes on one row, in left-to-right order.
+
+    The Breast Unit 2WW form prints A3-A6 (and ECOG 0-4) on one line
+    with the tick boxes clustered at the end. First-box-after-pattern
+    would assign every item the first box. None means the line is not
+    this packed shape, so the caller should use the per-item rule.
+    """
+    ordered = _items_in_line_order(line, items)
+    boxes = list(_TICK_BOX_RE.finditer(line))
+    if len(ordered) < 2 or len(boxes) < len(ordered):
+        return None
+    return [
+        item.entity_text
+        for item, box in zip(ordered, boxes, strict=False)
+        if _box_is_checked(box)
+    ]
 
 
 def _item_is_checked(line: str, item: FormSchemaItem) -> bool | None:
@@ -151,31 +197,17 @@ def _item_is_checked(line: str, item: FormSchemaItem) -> bool | None:
     if match is None:
         return None
     after = line[match.start() :]
-    box_match = re.search(r"\[([^\]]*)\]|\(([^)]*)\)", after)
+    box_match = _BOX_CAPTURE_RE.search(after)
     if box_match is None:
         return None
-    content = (box_match.group(1) or box_match.group(2) or "").strip()
-    return bool(re.match(r"[Xx*]|YES|yes", content))
+    return _box_is_checked(box_match)
 
 
 def _process_checkbox_line(line: str, section: FormSection) -> list[str]:
-    """Handle one line for checkbox_single or checkbox_multi."""
+    """Seal checkbox rows. Ticked facts are seeded at raw-letter offsets."""
     if not _has_any_box(line):
         return [line]
-    entity_lines: list[str] = []
-    found_any = False
-    for item in section.items:
-        checked = _item_is_checked(line, item)
-        if checked is None:
-            continue
-        found_any = True
-        if checked:
-            entity_lines.append(item.entity_text)
-    if found_any:
-        return entity_lines + [_seal(line)]
-    if _has_any_box(line):
-        return [_seal(line)]
-    return [line]
+    return [_seal(line)]
 
 
 def _yes_no_answer(line: str) -> str | None:
@@ -201,12 +233,10 @@ def _yes_no_answer(line: str) -> str | None:
 
 
 def _process_yesno_line(line: str, section: FormSection) -> list[str]:
-    """Handle one line for checkbox_yesno."""
+    """Seal yes/no rows. Ticked facts are seeded at raw-letter offsets."""
     for item in section.items:
         if safe_search(item.pattern, line) is None:
             continue
-        if _yes_no_answer(line) == "yes":
-            return [item.entity_text, _seal(line)]
         return [_seal(line)]
     if _has_any_box(line):
         return [_seal(line)]
@@ -214,12 +244,9 @@ def _process_yesno_line(line: str, section: FormSection) -> list[str]:
 
 
 def _process_scale_line(line: str, section: FormSection) -> list[str]:
-    """Handle one line for scale."""
+    """Seal scale rows. Ticked facts are seeded at raw-letter offsets."""
     if not _has_any_box(line):
         return [line]
-    for item in section.items:
-        if _item_is_checked(line, item):
-            return [item.entity_text, _seal(line)]
     return [_seal(line)]
 
 
@@ -368,7 +395,10 @@ def _apply_chunk_text_stateful(
         if matched is not None:
             _flush()
             current_section = matched
-            out.append(line)
+            if matched.section_type in ("admin", "template_noise") and line.strip():
+                out.append(_seal(line))
+            else:
+                out.append(line)
         else:
             pending.append(line)
     _flush()

@@ -92,6 +92,8 @@ class ExtractionState(TypedDict, total=False):
     form_schema_fingerprint: str
     form_schema_match: str
     form_schema_label: str
+    section_hits: list[dict[str, Any]]
+    completeness_groups: list[dict[str, Any]]
 
 
 _VALID_MODEL_MODES = {"llm", "ner", "auto"}
@@ -410,7 +412,7 @@ def _chunk_load_payload(
         )
     else:
         fields = form_schema_state_fields("none")
-    return {
+    payload = {
         "encounter_text": loaded.get("encounter_text") or "",
         "sentences": loaded.get("sentences") or [],
         "chunk_id_by_sentence_id": dict(loaded.get("chunk_id_by_sentence_id") or {}),
@@ -418,6 +420,45 @@ def _chunk_load_payload(
         "errors": errors,
         **fields,
     }
+    hits = loaded.get("section_hits")
+    if hits is not None:
+        payload["section_hits"] = list(hits)
+    groups = loaded.get("completeness_groups")
+    if groups is not None:
+        payload["completeness_groups"] = list(groups)
+    return payload
+
+
+def _raw_texts_from_sentences(sentences: list[dict[str, Any]]) -> list[str]:
+    texts: list[str] = []
+    for row in sentences:
+        raw = str(row.get("text_raw") or row.get("text") or "")
+        if raw.strip():
+            texts.append(raw)
+    return texts
+
+
+def _taught_form_hit_fields(state: dict[str, Any], texts: list[str]) -> dict[str, Any]:
+    """Collect taught-form hits when the caller did not already supply them."""
+    extra: dict[str, Any] = {}
+    if state.get("section_hits") is not None:
+        extra["section_hits"] = list(state.get("section_hits") or [])
+        if state.get("completeness_groups") is not None:
+            extra["completeness_groups"] = list(state.get("completeness_groups") or [])
+        return extra
+    from libs.pipeline.form_schema_store import get_cached_schema
+    from libs.pipeline.form_section_hits import collect_section_hits
+
+    fingerprint = str(state.get("form_schema_fingerprint") or "").strip()
+    schema = get_cached_schema(fingerprint) if fingerprint not in {"", "none"} else None
+    if schema is None or not schema.sections or not texts:
+        return extra
+    extra["section_hits"] = collect_section_hits(
+        schema, texts, schema.chunk_section_map
+    )
+    if schema.completeness_groups:
+        extra["completeness_groups"] = list(schema.completeness_groups)
+    return extra
 
 
 def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
@@ -437,12 +478,17 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
                 str(s.get("text") or "") for s in raw_sentences if s.get("text")
             )
         schema_fields = _form_schema_fields_from_state(state, encounter_text)
+        hit_fields = _taught_form_hit_fields(
+            {**state, **schema_fields},
+            _raw_texts_from_sentences(raw_sentences),
+        )
         return {
             "encounter_text": encounter_text,
             "sentences": raw_sentences,
             "chunk_id_by_sentence_id": dict(state.get("chunk_id_by_sentence_id") or {}),
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
             **schema_fields,
+            **hit_fields,
         }
 
     chunk_ids = chunk_ids_from_state(state)
@@ -744,6 +790,11 @@ def _run_llm_extraction(
 
     schema_fields = _form_schema_fields_from_state(state, encounter_text)
     known_form = schema_fields["form_schema_match"] != "none"
+    from libs.referral_quality.form_contract import contract_for_state
+
+    contract = contract_for_state(schema_fields)
+    if contract:
+        system_prompt = f"{system_prompt}\n\n{contract}"
     org_id, service_id, _ers_id = _schema_scope(state)
     logger.info(
         "extract_llm form_schema_match=%s fingerprint=%s org=%s service=%s",
@@ -826,6 +877,7 @@ def _enrich_with_blood_panel_entities(
         merge_blood_panel_entities,
     )
     from libs.pipeline.document_quality import form_fingerprint
+    from libs.pipeline.form_checkbox_seed import seed_checkbox_entities
     from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
     from libs.pipeline.form_schema_store import get_cached_schema, resolve_form_schema
 
@@ -852,6 +904,7 @@ def _enrich_with_blood_panel_entities(
     seeded: list[dict[str, Any]] = []
     if schema is not None:
         seeded = seed_ordered_tests_entities(encounter_text, schema)
+        seeded.extend(seed_checkbox_entities(encounter_text, schema))
         merged = merge_blood_panel_entities(merged, seeded)
 
     if len(merged) > len(result.get("entities") or []):

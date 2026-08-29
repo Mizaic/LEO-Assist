@@ -26,6 +26,7 @@ class HitlNerQueueState(TypedDict, total=False):
     relation_changes: list[dict[str, Any]]
     encounter_status: str
     training_labels_written: int
+    dry_run: bool
     errors: list[str]
 
 
@@ -81,6 +82,9 @@ def queue_hitl_ner(state: HitlNerQueueState) -> dict[str, Any]:
     all_changes = changes + relation_changes
     if not all_changes:
         return {"training_labels_written": 0, "encounter_status": "auto_ready"}
+    if state.get("dry_run"):
+        logger.info("dry_run=True - skipping NER HITL writes")
+        return {"training_labels_written": 0, "encounter_status": "auto_ready"}
     try:
         from libs.cypher.training_candidate_queries import UPSERT_TRAINING_CANDIDATE
         from libs.neo4j_client.client import KnowledgeGraphClient
@@ -118,7 +122,11 @@ def queue_hitl_ner(state: HitlNerQueueState) -> dict[str, Any]:
         }
     except Exception as exc:
         errors.append(f"hitl_ner_queue: {exc}")
-        return {"training_labels_written": 0, "encounter_status": "queue_failed", "errors": errors}
+        return {
+            "training_labels_written": 0,
+            "encounter_status": "queue_failed",
+            "errors": errors,
+        }
 
 
 def build_hitl_ner_queue_subgraph() -> CompiledStateGraph:

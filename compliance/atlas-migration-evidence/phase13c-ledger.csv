@@ -52,7 +52,7 @@ libs/cypher/post_processor_rule_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none
 libs/cypher/preset_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/pricing_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,none,.py,
 libs/cypher/prompt_config_queries.py,stamped,DO-83EBEE2C,DI-B954388C,,none,.py,
-libs/cypher/reference_range_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
+libs/cypher/reference_range_queries.py,missing_file,DO-BE96444E,DI-BAC284B4,,none,.py,file no longer exists
 libs/cypher/remediation_queries.py,stamped,DO-C5890265,DI-09E26C1D,,none,.py,
 libs/cypher/role_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,legacy,.py,
 libs/cypher/sbar_assessment_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,legacy,.py,
@@ -397,7 +397,7 @@ services/api/app/routers/presets.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
 services/api/app/routers/pricing.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
 services/api/app/routers/prompts.py,stamped,DO-83EBEE2C,DI-B954388C,,none,.py,
 services/api/app/routers/proxy.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
-services/api/app/routers/reference_ranges.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/reference_ranges.py,missing_file,DO-EC41233C,DI-9D0DF618,,none,.py,file no longer exists
 services/api/app/routers/review.py,stamped,DO-3FC2C9D7,DI-8804DA01,,none,.py,
 services/api/app/routers/sbar.py,stamped,DO-EC41233C,DI-9D0DF618,,legacy,.py,
 services/api/app/routers/terminology.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
@@ -805,20 +805,20 @@ services/ui/src/app/admin/domains/[id]/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,
 services/ui/src/app/admin/domains/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/gold-dataset/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx,stamped,DO-E647765A,DI-0C8FBAF7,,none,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/ActionPanel.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/ActionPanel.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,file no longer exists
 services/ui/src/app/admin/guidance/EditRuleDialog/ChipSearchPopover.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
 services/ui/src/app/admin/guidance/EditRuleDialog/ConceptCoachPopover.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
 services/ui/src/app/admin/guidance/EditRuleDialog/ConceptSearchPanel.tsx,stamped,DO-D6CE2AA5,DI-A3107424,,none,.tsx,
 services/ui/src/app/admin/guidance/EditRuleDialog/HorizontalStepper.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewBanner.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewDrawer.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewBanner.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,file no longer exists
+services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewDrawer.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,file no longer exists
 services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewPane.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx,stamped,DO-D6CE2AA5,DI-A3107424,,none,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx,missing_file,DO-D6CE2AA5,DI-A3107424,,none,.tsx,file no longer exists
 services/ui/src/app/admin/guidance/EditRuleDialog/SeedDescendantsList.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/StepRail.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/StepRail.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,file no longer exists
 services/ui/src/app/admin/guidance/EditRuleDialog/SummaryCard.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/guidance/EditRuleDialog/SynonymChipEditor.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/TestPatientsPanel.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
+services/ui/src/app/admin/guidance/EditRuleDialog/TestPatientsPanel.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,atlas,.tsx,file no longer exists
 services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.action.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.coach.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
@@ -834,13 +834,13 @@ services/ui/src/app/admin/guidance/EditRuleDialog/index.tsx,stamped,DO-D6CE2AA5,
 services/ui/src/app/admin/guidance/EditRuleDialog/namedSets.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.ts,
 services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step1Who.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
 services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step2Suggest.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step3Try.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step3Try.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,file no longer exists
 services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step4Save.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
 services/ui/src/app/admin/guidance/EditRuleDialog/treeOps.ts,stamped,DO-D6CE2AA5,DI-A3107424,,legacy,.ts,
 services/ui/src/app/admin/guidance/EditRuleDialog/treeToSentence.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.ts,
 services/ui/src/app/admin/guidance/EditRuleDialog/types.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.ts,
 services/ui/src/app/admin/guidance/EditRuleDialog/vaguePhrases.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.ts,
-services/ui/src/app/admin/guidance/GuidelineSubgraphDrawer.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/guidance/GuidelineSubgraphDrawer.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,file no longer exists
 services/ui/src/app/admin/guidance/LoadedGuidelinesPanel.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/guidance/NiceLoaderSection.tsx,stamped,DO-E647765A,DI-0C8FBAF7,,none,.tsx,
 services/ui/src/app/admin/guidance/RuleReviewSection.tsx,stamped,DO-E647765A,DI-0C8FBAF7,,legacy,.tsx,
@@ -850,22 +850,22 @@ services/ui/src/app/admin/guidance/__tests__/RuleReviewSection.merge.test.ts,exc
 services/ui/src/app/admin/guidance/page.tsx,stamped,DO-0A8B7188,"DI-0C8FBAF7, DI-AA9F5EDA",,legacy,.tsx,
 services/ui/src/app/admin/integrations/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/knowledge/page.tsx,stamped,DO-9A5C65AF,"DI-5E7E8CEF, DI-6424B6FC, DI-BE09736F",,legacy,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/BuildPatientDialog.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
-services/ui/src/app/admin/knowledge/test-patients/CopyFromRealDialog.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
-services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromRuleDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromScenarioDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/api.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.ts,
-services/ui/src/app/admin/knowledge/test-patients/editor/EditTestPatientDrawer.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/editor/EncounterListEditor.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/editor/ExpectedSbarEditor.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/editor/RulePickerDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/editor/SnomedConceptPicker.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/page.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
-services/ui/src/app/admin/knowledge/test-patients/replay/ReplayResultsDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/replay/RulesetNotCompiledBanner.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/knowledge/test-patients/BuildPatientDialog.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,atlas,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/CopyFromRealDialog.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,atlas,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromRuleDialog.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromScenarioDialog.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/api.ts,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.ts,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/editor/EditTestPatientDrawer.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/editor/EncounterListEditor.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/editor/ExpectedSbarEditor.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/editor/RulePickerDialog.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/editor/SnomedConceptPicker.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/page.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,atlas,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/replay/ReplayResultsDialog.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,file no longer exists
+services/ui/src/app/admin/knowledge/test-patients/replay/RulesetNotCompiledBanner.tsx,missing_file,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,file no longer exists
 services/ui/src/app/admin/knowledge/test-patients/replay/__tests__/ReplayResultsDialog.iso13485.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/knowledge/test-patients/replay/__tests__/RulesetNotCompiledBanner.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/app/admin/knowledge/test-patients/types.ts,already_atlas,,,,atlas,.ts,canonical Atlas trace block present
+services/ui/src/app/admin/knowledge/test-patients/types.ts,missing_file,DO-2C03CA0E,DI-3F771AFB,,atlas,.ts,file no longer exists
 services/ui/src/app/admin/models/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/operations/__tests__/OperationsDashboard.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/operations/page.tsx,stamped,DO-89920463,DI-AF5A1668,,none,.tsx,
@@ -933,8 +933,8 @@ services/ui/src/app/care/benchmarks/upload/page.tsx,stamped,DO-5F9A50D8,DI-1D584
 services/ui/src/app/care/cohorts/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/app/care/dashboard/page.tsx,stamped,DO-A59215DA,DI-900CB621,,none,.tsx,
 services/ui/src/app/care/encounters/page.tsx,stamped,DO-F78C84A6,DI-D0FC22FE,,none,.tsx,
-services/ui/src/app/care/measures/[id]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
-services/ui/src/app/care/measures/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/measures/[id]/page.tsx,missing_file,DO-5F9A50D8,DI-1D584D40,,none,.tsx,file no longer exists
+services/ui/src/app/care/measures/page.tsx,missing_file,DO-5F9A50D8,DI-1D584D40,,none,.tsx,file no longer exists
 services/ui/src/app/care/pathways/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/app/care/patients/[patientId]/encounters/[encounterId]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/app/care/patients/[patientId]/encounters/view/[encounterId]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
@@ -942,9 +942,9 @@ services/ui/src/app/care/patients/[patientId]/page.tsx,stamped,DO-5F9A50D8,DI-1D
 services/ui/src/app/care/patients/[patientId]/timeline/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/app/care/patients/page.tsx,stamped,DO-146D93D0,DI-6EA84931,,none,.tsx,
 services/ui/src/app/care/portal/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
-services/ui/src/app/care/reports/[id]/edit/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
-services/ui/src/app/care/reports/[id]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
-services/ui/src/app/care/reports/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/reports/[id]/edit/page.tsx,missing_file,DO-5F9A50D8,DI-1D584D40,,none,.tsx,file no longer exists
+services/ui/src/app/care/reports/[id]/page.tsx,missing_file,DO-5F9A50D8,DI-1D584D40,,none,.tsx,file no longer exists
+services/ui/src/app/care/reports/page.tsx,missing_file,DO-5F9A50D8,DI-1D584D40,,none,.tsx,file no longer exists
 services/ui/src/app/care/safety-netting/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/app/care/wellbeing/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/app/cohorts/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
@@ -957,8 +957,8 @@ services/ui/src/app/gold-dataset/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,
 services/ui/src/app/layout.tsx,stamped,DO-4A8227DD,"DI-522BBCC4, DI-61CB27B2, DI-985976A3",,legacy,.tsx,
 services/ui/src/app/loading.tsx,stamped,DO-A2553F87,DI-425CA252,,none,.tsx,
 services/ui/src/app/mail/page.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
-services/ui/src/app/measures/[id]/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
-services/ui/src/app/measures/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/measures/[id]/page.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
+services/ui/src/app/measures/page.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
 services/ui/src/app/not-found.tsx,stamped,DO-A2553F87,DI-425CA252,,none,.tsx,
 services/ui/src/app/onboarding/accept/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
 services/ui/src/app/operations/page.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
@@ -971,14 +971,14 @@ services/ui/src/app/patients/[patientId]/timeline/page.tsx,stamped,DO-5F9A50D8,D
 services/ui/src/app/patients/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/app/pipeline/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
 services/ui/src/app/portal/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
-services/ui/src/app/reports/[id]/edit/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
-services/ui/src/app/reports/[id]/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
-services/ui/src/app/reports/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/reports/[id]/edit/page.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
+services/ui/src/app/reports/[id]/page.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
+services/ui/src/app/reports/page.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
 services/ui/src/app/safety-netting/__tests__/SafetyNetAlertsPage.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/safety-netting/page.tsx,stamped,DO-B1116B14,DI-35494904,,none,.tsx,
 services/ui/src/app/settings/context-rules/page.tsx,stamped,DO-CFA1ED55,DI-340279C1,,legacy,.tsx,
 services/ui/src/app/settings/domains/[id]/page.tsx,stamped,DO-2340F614,DI-4885D9FF,,none,.tsx,
-services/ui/src/app/settings/domains/_components/ConfigureSubdomainDialog.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/settings/domains/_components/ConfigureSubdomainDialog.tsx,missing_file,DO-21936FDD,DI-09DF0A10,,none,.tsx,file no longer exists
 services/ui/src/app/settings/domains/_components/CreateSubdomainDialog.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
 services/ui/src/app/settings/domains/_components/DomainDetailChrome.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
 services/ui/src/app/settings/domains/_components/DomainSubdomainCards.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
@@ -1036,13 +1036,13 @@ services/ui/src/components/audit/ConsultationsSection.tsx,stamped,DO-2E8544FD,DI
 services/ui/src/components/audit/DemographicsSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/audit/DiagnosticIntervalSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/audit/DirectionChip.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
-services/ui/src/components/audit/EmergencyReferralRoutesSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/EmergencyReferralRoutesSection.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
 services/ui/src/components/audit/IntervalStripPlot.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/audit/InvestigationsSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/audit/MultipleConsultationsSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/audit/PlaceOfPresentationSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/audit/PrimaryCareIntervalSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
-services/ui/src/components/audit/ReferralsSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/ReferralsSection.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
 services/ui/src/components/audit/SafetyNettingSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/audit/SectionCard.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/audit/SummaryStatsRow.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
@@ -1081,7 +1081,7 @@ services/ui/src/components/editor/DataElementSettings.tsx,stamped,DO-30A82196,DI
 services/ui/src/components/editor/Element.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
 services/ui/src/components/editor/ElementPalette.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
 services/ui/src/components/editor/InterpretationSettings.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
-services/ui/src/components/editor/MeasureSettings.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/MeasureSettings.tsx,missing_file,DO-30A82196,DI-85B110A5,,none,.tsx,file no longer exists
 services/ui/src/components/editor/Page.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
 services/ui/src/components/editor/PageThumbnails.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
 services/ui/src/components/editor/PropertiesPanel.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
@@ -1167,11 +1167,11 @@ services/ui/src/components/gold-editor/useDualSaveAdapter.ts,stamped,DO-30A82196
 services/ui/src/components/markdown-editor/MarkdownEditor.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
 services/ui/src/components/markdown-editor/Toolbar.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
 services/ui/src/components/markdown-editor/index.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
-services/ui/src/components/measures/LibraryPicker.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
-services/ui/src/components/measures/MeasureEditor.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
-services/ui/src/components/measures/MeasureList.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
-services/ui/src/components/measures/MeasurePickerDialog.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
-services/ui/src/components/measures/QueryBuilder.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/measures/LibraryPicker.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
+services/ui/src/components/measures/MeasureEditor.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
+services/ui/src/components/measures/MeasureList.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
+services/ui/src/components/measures/MeasurePickerDialog.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
+services/ui/src/components/measures/QueryBuilder.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
 services/ui/src/components/measures/measureCategoryUtils.ts,stamped,DO-2E8544FD,DI-C65FD45B,,none,.ts,
 services/ui/src/components/mission-control/AuditTrailTab.tsx,stamped,DO-146D93D0,DI-6EA84931,,none,.tsx,
 services/ui/src/components/mission-control/CodedDataTab.tsx,stamped,DO-146D93D0,DI-6EA84931,,none,.tsx,
@@ -1200,7 +1200,7 @@ services/ui/src/components/mission-control/ReviewActionsPanel.tsx,stamped,DO-EE7
 services/ui/src/components/mission-control/Score3DMap.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,none,.tsx,
 services/ui/src/components/mission-control/ScoreHistogram.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,none,.tsx,
 services/ui/src/components/mission-control/StatusBadge.tsx,stamped,DO-146D93D0,DI-6EA84931,,none,.tsx,
-services/ui/src/components/mission-control/TimelineBinPopover.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/TimelineBinPopover.tsx,missing_file,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,file no longer exists
 services/ui/src/components/mission-control/TimelineHistogramBar.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
 services/ui/src/components/mission-control/TimelineOverlays.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
 services/ui/src/components/mission-control/TimelineRangeBrush.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
@@ -1283,7 +1283,7 @@ services/ui/src/components/pathway/nodes/_base/index.ts,stamped,DO-B5DB3744,DI-C
 services/ui/src/components/pathway/nodes/nodeTypes.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
 services/ui/src/components/pathway/panel/ConditionRuleBuilder.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
 services/ui/src/components/pathway/viewer/MiniHitlCard.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
-services/ui/src/components/reports/ReportList.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/reports/ReportList.tsx,missing_file,DO-2E8544FD,DI-C65FD45B,,none,.tsx,file no longer exists
 services/ui/src/components/reports/__tests__/ReportList.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/research/GuidedNextSteps.tsx,stamped,DO-3AD4D385,DI-9DCBC4BA,,none,.tsx,
 services/ui/src/components/research/HeadlineResult.tsx,stamped,DO-3AD4D385,DI-9DCBC4BA,,none,.tsx,
