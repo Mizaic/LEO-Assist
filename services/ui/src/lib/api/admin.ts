@@ -45,6 +45,11 @@ export interface Org {
   subscription?: OrgSubscription | null;
 }
 
+export interface UserGroup {
+  id: string;
+  name: string;
+}
+
 export interface User {
   id?: string;
   email: string;
@@ -53,6 +58,8 @@ export interface User {
   org_ids: string[];
   org_names: string[];
   roles: Array<{ role: string; org_id?: string }>;
+  groups: UserGroup[];
+  legacy_roles: string[];
   last_seen_at?: string;
   invited_at?: string;
   active_sessions_count: number;
@@ -208,13 +215,20 @@ export async function createUser(body: {
   name: string;
   is_platform_admin?: boolean;
   org_ids?: string[];
+  group_ids?: string[];
 }): Promise<{ email: string }> {
   return api.post<{ email: string }>(`${ADMIN_BASE}/users`, body);
 }
 
 export async function patchUser(
   email: string,
-  body: { name?: string; is_platform_admin?: boolean; org_ids?: string[] }
+  body: {
+    name?: string;
+    is_platform_admin?: boolean;
+    org_ids?: string[];
+    group_ids?: string[];
+    clear_legacy_roles?: boolean;
+  }
 ): Promise<{ email: string }> {
   return apiFetch<{ email: string }>(`${ADMIN_BASE}/users/${encodeURIComponent(email)}`, {
     method: 'PATCH',

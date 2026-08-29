@@ -73,3 +73,24 @@ def test_schema_has_user_constraint_and_email_index():
 
 def test_canonical_role_seed_sets_hccp_role_id():
     assert "r.id" in rq.SEED_CANONICAL_ROLES
+
+
+def test_list_practitioners_returns_groups_and_legacy_roles():
+    query = aq.LIST_PRACTITIONERS
+    assert "legacy_roles" in query
+    assert "AS groups" in query
+    assert "[:HAS_ROLE]->(legacy:Role)" in query
+    assert "IS_MEMBER_OF" in query
+
+
+def test_set_user_groups_replaces_memberships():
+    query = aq.SET_USER_GROUPS
+    assert "IS_MEMBER_OF" in query
+    assert "DELETE m" in query
+    assert "$group_ids" in query
+
+
+def test_clear_legacy_user_roles_drops_direct_has_role():
+    query = aq.CLEAR_LEGACY_USER_ROLES
+    assert "(u:User {email: $email})-[r:HAS_ROLE]->" in query
+    assert "DELETE r" in query
