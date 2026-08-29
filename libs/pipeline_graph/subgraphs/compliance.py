@@ -16,6 +16,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from libs.guidelines.organ_gate import rule_requires_absent_organ
 from libs.guidelines.service_rulesets import resolve_primary_guideline_ids
+from libs.sbar.form_assessability import missing_referral_reason
 from libs.lab_results.pipeline import observations_from_entities
 from libs.pipeline_graph.subgraphs.compliance_diagnostics import (
     build_guideline_diagnostics,
@@ -48,6 +49,11 @@ class ComplianceState(TypedDict, total=False):
     stage_summary: dict[str, Any]
     guideline_diagnostics: dict[str, Any]
     errors: list[str]
+    completeness_result: dict[str, Any]
+    completeness_groups: list[dict[str, Any]]
+    section_hits: list[dict[str, Any]]
+    referral_reason: str
+    form_clinical_section: str
 
 
 _GUIDELINE_EXCLUDED_ASSERTIONS = frozenset(
@@ -318,31 +324,98 @@ def _guideline_evaluator() -> Any:
     return GuidelineEvaluator()
 
 
+def _missing_reason_compliance(state: ComplianceState) -> dict[str, Any]:
+    """No guideline rules when there is no reason for referral to check."""
+    return {
+        "matched_rules": [],
+        "primary": {
+            "guideline_ids": list(state.get("primary_guideline_ids") or []),
+            "matched_rules": [],
+            "service_id": state.get("healthcare_service_id"),
+            "service_name": state.get("healthcare_service_name"),
+            "service_specialty": state.get("healthcare_service_specialty"),
+            "supported": False,
+            "ruleset_missing": False,
+        },
+        "alternatives": {"guideline_ids": [], "matched_rules": []},
+        "healthcare_service_missing": bool(state.get("healthcare_service_missing")),
+        "is_compliant": False,
+        "degraded": True,
+        "missing_referral_reason": True,
+    }
+
+
+def _completeness_for_gate(state: ComplianceState) -> dict[str, Any] | None:
+    existing = state.get("completeness_result")
+    if existing:
+        return existing
+    groups = [
+        group
+        for group in (state.get("completeness_groups") or [])
+        if isinstance(group, dict)
+    ]
+    if not groups:
+        return None
+    from libs.completeness.evaluator import (
+        concept_ids_from_entities,
+        evaluate_completeness_groups,
+        semantic_tags_from_entities,
+    )
+
+    entities = list(state.get("entities") or [])
+    return evaluate_completeness_groups(
+        groups,
+        present_concept_ids=concept_ids_from_entities(entities),
+        present_semantic_tags=semantic_tags_from_entities(entities),
+        section_hits=list(state.get("section_hits") or []),
+    )
+
+
+def _ok_payload(
+    state: ComplianceState,
+    result: dict[str, Any],
+    codes: list[str],
+    entities: list[dict[str, Any]],
+    errors: list[str],
+) -> dict[str, Any]:
+    payload = {
+        "compliance_result": result,
+        "compliance_report": result,
+        "guideline_result": result,
+        "stage_summary": build_stage_summary(
+            state, codes=codes, entities=entities, result=result
+        ),
+        "errors": errors,
+    }
+    if state.get("capture_validation_output"):
+        payload["guideline_diagnostics"] = build_guideline_diagnostics(
+            _guideline_evaluator(),
+            state,
+            codes=codes,
+            result=result,
+        )
+    return payload
+
+
 def evaluate_compliance(state: ComplianceState) -> dict[str, Any]:
     patient_id = state.get("patient_id") or ""
     logger.info("Evaluating compliance for patient %s", patient_id)
     errors = list(state.get("errors") or [])
     entities = list(state.get("entities") or [])
     codes = _entity_codes(entities)
+    if missing_referral_reason(
+        referral_reason=state.get("referral_reason"),
+        completeness=_completeness_for_gate(state),
+        section_hits=list(state.get("section_hits") or []),
+        entities=entities,
+        form_clinical_section=state.get("form_clinical_section"),
+    ):
+        return _ok_payload(
+            state, _missing_reason_compliance(state), codes, entities, errors
+        )
     try:
         result = _evaluate_dual_compliance(state, codes)
-        payload = {
-            "compliance_result": result,
-            "compliance_report": result,
-            "guideline_result": result,
-            "stage_summary": build_stage_summary(
-                state, codes=codes, entities=entities, result=result
-            ),
-            "errors": errors,
-        }
-        if state.get("capture_validation_output"):
-            payload["guideline_diagnostics"] = build_guideline_diagnostics(
-                _guideline_evaluator(),
-                state,
-                codes=codes,
-                result=result,
-            )
-        return payload
+        return _ok_payload(state, result, codes, entities, errors)
     except Exception as exc:
         logger.exception("Guideline evaluation failed")
         errors.append(f"guideline_evaluation: {exc}")

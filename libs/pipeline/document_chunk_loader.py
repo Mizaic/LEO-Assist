@@ -22,24 +22,21 @@ from libs.pipeline_contracts.text import (
 
 # The HCCP bundle assembler (combine_referral_markdown in HCCP-Agents) writes a
 # header line before each document:  --- Document: {title} ---
-# PDF attachments (e.g. the e-RS "Clinical Information.pdf" wrapper) are
-# administrative boilerplate.  Including them in encounter_text contaminates
-# the form fingerprint, inflates the wrapper penalty, and degrades few-shot
-# similarity -- causing false-positive pauses even after teaching.
-# This pattern strips the first PDF-titled section and everything after it.
+# PDF attachments vary between referrals of one form. Including them in the
+# fingerprint would unbind a taught :FormSchema. This pattern strips the
+# first PDF-titled section for hashing only. Extraction still reads the
+# attachment: the national e-RS Clinical Information.pdf often carries the
+# only reason-for-referral narrative.
 _PDF_BOUNDARY_RE = re.compile(
     r"\n*---\s*Document:[^\n]+\.pdf\s*---.*$",
     re.DOTALL | re.IGNORECASE,
 )
 
-# Chunks whose content must not be extracted from.
-# These are detected by leading text patterns, not form schema section type:
-#   - PDF attachment headers (e-RS Clinical Information wrapper -- routing admin)
-#   - "Points to remember" blocks (printed guidance on the form template)
-# The raw text is kept in encounter_text for span resolution; only the
-# model-facing normalised text is blanked with [NON_EXTRACTABLE].
+# Printed guidance blocks must not become findings. Document role already
+# seals administrative cover sheets. Do not reseal a clinical PDF here --
+# the e-RS Clinical Information form carries reason-for-referral and results.
 _NON_EXTRACTABLE_CHUNK_RE = re.compile(
-    r"^\s*---\s*Document:[^\n]+\.pdf\s*---" r"|^\s*Points\s+to\s+remember",
+    r"^\s*Points\s+to\s+remember",
     re.IGNORECASE,
 )
 
@@ -64,10 +61,10 @@ ORDER BY ordinal ASC
 def _mark_non_extractable_chunk(text: str) -> str:
     """Mark every line in a guidance block as non-extractable.
 
-    A PDF document header or "Points to remember" block is template chrome,
-    not patient narrative. Every line is prefixed with the marker so that
-    llm_facing_text removes the full block, not just the heading line.
-    The raw text is kept in encounter_text so span resolution works.
+    A "Points to remember" block is printed guidance, not patient narrative.
+    Every line is prefixed with the marker so that llm_facing_text removes
+    the full block, not just the heading line. The raw text is kept in
+    encounter_text so span resolution works.
     """
     if not text or not _NON_EXTRACTABLE_CHUNK_RE.search(text):
         return text
@@ -215,6 +212,11 @@ def _resolve_chunk_schema(
             service_id=service_id,
             ers_service_id=ers_service_id,
         )
+        from libs.pipeline.form_schema_compose import bind_national_ers_if_needed
+
+        schema, match, loaded_key, label = bind_national_ers_if_needed(
+            client, schema, raw_texts, (match, loaded_key, label)
+        )
     finally:
         client.close()
     return schema, form_schema_state_fields(match, loaded_key, label)
@@ -262,7 +264,10 @@ def _rewrite_and_cover(
     extra: dict[str, Any] = {}
     if schema is not None and schema.sections:
         from libs.pipeline.form_coverage import coverage_state_fields
-        from libs.pipeline.form_section_hits import collect_section_hits
+        from libs.pipeline.form_schema_compose import (
+            taught_hits_for_bundle,
+            taught_sections_for_bundle,
+        )
 
         rewritten = [
             apply_form_layout_rules(text)
@@ -271,9 +276,8 @@ def _rewrite_and_cover(
             )
         ]
         extra = coverage_state_fields(schema, raw_texts, schema.chunk_section_map)
-        extra["section_hits"] = collect_section_hits(
-            schema, raw_texts, schema.chunk_section_map
-        )
+        extra["section_hits"] = taught_hits_for_bundle(schema, raw_texts)
+        extra["form_sections"] = taught_sections_for_bundle(schema, raw_texts)
         if schema.completeness_groups:
             extra["completeness_groups"] = list(schema.completeness_groups)
     else:

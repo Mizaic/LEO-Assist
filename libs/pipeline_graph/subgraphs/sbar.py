@@ -55,6 +55,8 @@ class SBARSubgraphState(TypedDict, total=False):
     form_clinical_section: str
     form_sections: list[dict[str, Any]]
     completeness_result: dict[str, Any]
+    entities: list[dict[str, Any]]
+    section_hits: list[dict[str, Any]]
     dry_run: bool
     sbar_assessment_id: str
     sbar_status: str
@@ -198,6 +200,8 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
             "chunk_ids": list(state.get("chunk_ids") or []),
             "referral_id": referral_id,
             "referral_reason": str(state.get("referral_reason") or "").strip(),
+            "entities": list(state.get("entities") or []),
+            "section_hits": list(state.get("section_hits") or []),
             "completeness_result": state.get("completeness_result"),
             "compliance_result": state.get("compliance_result"),
             "source_node_type": str(state.get("source_node_type") or "ReferralRequest"),

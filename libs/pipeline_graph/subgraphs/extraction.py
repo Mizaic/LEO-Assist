@@ -94,6 +94,7 @@ class ExtractionState(TypedDict, total=False):
     form_schema_label: str
     section_hits: list[dict[str, Any]]
     completeness_groups: list[dict[str, Any]]
+    form_sections: list[dict[str, Any]]
 
 
 _VALID_MODEL_MODES = {"llm", "ner", "auto"}
@@ -426,6 +427,9 @@ def _chunk_load_payload(
     groups = loaded.get("completeness_groups")
     if groups is not None:
         payload["completeness_groups"] = list(groups)
+    sections = loaded.get("form_sections")
+    if sections is not None:
+        payload["form_sections"] = list(sections)
     return payload
 
 

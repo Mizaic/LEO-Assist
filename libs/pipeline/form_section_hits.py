@@ -11,6 +11,7 @@ Atlas trace:
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from libs.pipeline.form_pattern_match import safe_search
@@ -28,6 +29,9 @@ from libs.pipeline.form_schema_normalizer import (
 
 _BOX_TYPES = frozenset({"checkbox_single", "checkbox_multi", "checkbox_yesno", "scale"})
 _FREE_TEXT_TYPES = frozenset({"free_text"})
+_EMPTY_FREE_TEXT_RE = re.compile(
+    r"(?i)^\s*(no information provided|see attachment|not specified)\.?\s*$"
+)
 
 
 def collect_section_hits(
@@ -95,7 +99,9 @@ def _line_has_content(line: str) -> bool:
     stripped = line.strip().strip("|").strip()
     if not stripped:
         return False
-    return not set(stripped) <= {"-", ":"}
+    if set(stripped) <= {"-", ":"}:
+        return False
+    return _EMPTY_FREE_TEXT_RE.match(stripped) is None
 
 
 def _free_text_hits(line: str, section: FormSection) -> list[dict[str, Any]]:

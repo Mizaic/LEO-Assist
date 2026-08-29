@@ -434,7 +434,19 @@ class SBAROrchestrator:
                             extra.get("healthcare_service_spoa_id") or ""
                         )
                         or None,
+                        reason_context={
+                            "completeness_result": extra.get("completeness_result"),
+                            "referral_reason": extra.get("referral_reason"),
+                            "entities": extra.get("entities"),
+                            "section_hits": extra.get("section_hits"),
+                            "form_clinical_section": extra.get(
+                                "form_clinical_section"
+                            ),
+                        },
                     )
+                    if spoa_code == "further_information_required":
+                        primary_rules = []
+                        alternative_rules = []
                     narrative: AssessmentNarrative = self._format(
                         matched_rules=primary_rules,
                         patient_codes=patient_codes,
