@@ -4,8 +4,10 @@ Loads :Chunk nodes already on the graph. Does not pull, convert, or
 re-chunk. Does not start a PipelineRun or write facts, SBAR, or
 assessments.
 
-Atlas: Class A tooling for quality review without writeback.
-  UN: UN-8B7C4774  DI: DI-D044C8F1  DO: DO-C4EAEB41  VT: VT-780D715E
+Atlas trace:
+  DO: DO-C4EAEB41
+  DI: DI-D044C8F1
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-C4EAEB41")
 """
 
 from __future__ import annotations

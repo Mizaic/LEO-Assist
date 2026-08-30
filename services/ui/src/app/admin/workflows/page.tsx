@@ -132,7 +132,7 @@ function WorkflowsBody({
         icon={<AccountTreeOutlinedIcon />}
         title="No workflows yet"
         body="Create a workflow to start building referral automation for a service."
-        action={{ label: "New workflow", onClick: () => page.setDialog({ type: "create" }) }}
+        cta={{ label: "New workflow", onClick: () => page.setDialog({ type: "create" }) }}
       />
     );
   }

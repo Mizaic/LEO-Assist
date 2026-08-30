@@ -1,6 +1,6 @@
 """Drop organ-specific guideline rules the patient cannot have.
 
-Atlas:
+Atlas trace:
   DI: DI-D260D249, DI-9AA2CDA5
   DO: DO-C9F7BFC8
   VT: VT-76A1816F

@@ -1,5 +1,10 @@
 """LEO-compatible chunk ID helpers (ported from HCCP-Agents).
 
+Atlas trace:
+  DO: DO-58BD2EA0
+  DI: DI-ACA9659D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-58BD2EA0")
+
 Source: HCCP-Agents/agent/leo_agents/services/referral_document_prep.py
 
 The ID scheme matches ``libs.cypher.chunk_queries.make_chunk_id`` so

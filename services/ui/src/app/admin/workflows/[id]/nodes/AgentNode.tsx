@@ -5,14 +5,14 @@
  */
 
 import { memo } from "react";
-import type { NodeProps } from "@xyflow/react";
+import type { Node, NodeProps } from "@xyflow/react";
 import type { WorkflowNodeData } from "../../types";
 import { WorkflowEntityCard } from "./WorkflowEntityCard";
 
 export const AgentNode = memo(function AgentNode({
   data,
   selected,
-}: NodeProps<WorkflowNodeData>) {
+}: NodeProps<Node<WorkflowNodeData>>) {
   return (
     <WorkflowEntityCard
       data={data}

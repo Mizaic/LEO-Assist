@@ -60,7 +60,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
 
   const ed = useWorkflowEditor(workflowId);
 
-  const onNodeClick: NodeMouseHandler<WorkflowNodeData> = useCallback(
+  const onNodeClick: NodeMouseHandler<Node<WorkflowNodeData>> = useCallback(
     (_, node) => {
       ed.setSelectedNodeId(node.id);
       ed.setSelectedEdgeId(null);
@@ -68,7 +68,7 @@ function CanvasInner({ workflowId }: { workflowId: string }) {
     [ed]
   );
 
-  const onEdgeClick: EdgeMouseHandler<WorkflowEdgeData> = useCallback(
+  const onEdgeClick: EdgeMouseHandler<Edge<WorkflowEdgeData>> = useCallback(
     (_, edge) => {
       ed.setSelectedEdgeId(edge.id);
       ed.setSelectedNodeId(null);

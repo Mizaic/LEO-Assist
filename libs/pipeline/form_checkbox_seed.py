@@ -1,6 +1,6 @@
 """Seed ticked-checkbox facts at raw-letter offsets.
 
-Atlas:
+Atlas trace:
   DI: DI-0B907354
   DO: DO-AC2014F7
   VT: VT-24D1E4F6

@@ -1,5 +1,10 @@
 """Client helpers for the local HCCP doc converter at :8012.
 
+Atlas trace:
+  DO: DO-58BD2EA0
+  DI: DI-ACA9659D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-58BD2EA0")
+
 ``POST /convert`` returns PDF or HTML. ``POST /extract`` returns
 markdown for Word, PDF, HTML, and images. Validation always uses
 ``/extract``.

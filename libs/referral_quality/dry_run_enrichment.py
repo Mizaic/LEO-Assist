@@ -4,9 +4,10 @@ Applies the same Patient demographics and receiving-Service scope as
 ``load_step_state``. Cypher is MATCH-only. Does not start a run or write
 facts.
 
-Atlas: Class A tooling.
-  UN: UN-8B7C4774  DI: DI-D044C8F1  DO: DO-C4EAEB41  VT: VT-780D715E
-  Search: in-process referral dry-run enrichment.
+Atlas trace:
+  DO: DO-C4EAEB41
+  DI: DI-D044C8F1
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-C4EAEB41")
 """
 
 from __future__ import annotations

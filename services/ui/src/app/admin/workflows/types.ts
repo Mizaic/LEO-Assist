@@ -22,9 +22,11 @@ export interface AgentDef {
   alwaysTrigger?: boolean;
   /** Interval in minutes (for ambient/polling agents). */
   interval?: number;
+  /** Default human-in-the-loop gate for this catalogue entry. */
+  defaultOnHitl?: boolean;
 }
 
-export interface WorkflowNodeData {
+export type WorkflowNodeData = {
   agentType: string;
   label: string;
   kind: NodeKind;
@@ -39,12 +41,12 @@ export interface WorkflowNodeData {
   attributes?: ContextAttribute[];
   readOnly?: boolean;
   derived?: boolean;
-}
+} & Record<string, unknown>;
 
-export interface WorkflowEdgeData {
+export type WorkflowEdgeData = {
   /** JSONPath condition, e.g. "$.result == true". Empty = unconditional. */
   condition?: string;
-}
+} & Record<string, unknown>;
 
 export interface Workflow {
   id: string;

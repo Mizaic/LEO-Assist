@@ -61,8 +61,8 @@ function graphToFlow(graph: WorkflowGraph): {
 
 export function useWorkflowEditor(workflowId: string) {
   const [workflowName, setWorkflowName] = useState("Workflow");
-  const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeData>([makeStartNode()]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeData>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<WorkflowNodeData>>([makeStartNode()]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge<WorkflowEdgeData>>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -12,11 +12,15 @@ export const CONTEXT_KINDS = new Set([
 export function isContextNode(node: {
   id?: string;
   type?: string;
-  data?: { kind?: string };
+  data?: unknown;
 }): boolean {
   if (node.id === "__scheduler__") return true;
   if (CONTEXT_KINDS.has(node.type ?? "")) return true;
-  return CONTEXT_KINDS.has(node.data?.kind ?? "");
+  const kind =
+    node.data && typeof node.data === "object" && "kind" in node.data
+      ? String((node.data as { kind?: unknown }).kind ?? "")
+      : "";
+  return CONTEXT_KINDS.has(kind);
 }
 
 type SpineIds = {

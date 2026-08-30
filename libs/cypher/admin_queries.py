@@ -1,6 +1,6 @@
 """Cypher queries for admin/tenant management.
 
-Atlas trace (Mizaic org seed query only):
+Atlas trace:
   DO: DO-72F81432
   DI: DI-96D95459
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-72F81432")

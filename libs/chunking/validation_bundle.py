@@ -1,5 +1,10 @@
 """Disk bundle helpers for local referral-chunk validation.
 
+Atlas trace:
+  DO: DO-58BD2EA0
+  DI: DI-ACA9659D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-58BD2EA0")
+
 The pull script writes one folder per referral. The seed script
 reads that folder and upserts chunks into a local Neo4j. Production
 is never written from these helpers.

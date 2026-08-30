@@ -5,7 +5,7 @@
  */
 
 import { memo } from "react";
-import type { NodeProps } from "@xyflow/react";
+import type { Node, NodeProps } from "@xyflow/react";
 import type { ContextKind, WorkflowNodeData } from "../../types";
 import { ContextEntityCard } from "./ContextEntityCard";
 
@@ -17,7 +17,7 @@ function asContextKind(kind: string | undefined): ContextKind {
 export const ContextNode = memo(function ContextNode({
   data,
   selected,
-}: NodeProps<WorkflowNodeData>) {
+}: NodeProps<Node<WorkflowNodeData>>) {
   return (
     <ContextEntityCard
       data={data}

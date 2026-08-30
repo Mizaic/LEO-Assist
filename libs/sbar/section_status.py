@@ -1,6 +1,6 @@
 """Honest SBAR section and integrity statuses.
 
-Atlas:
+Atlas trace:
   DI: DI-979BDE66, DI-075775FF, DI-B7A69F26
   DO: DO-E2BF30E7
   VT: VT-D9EC5652

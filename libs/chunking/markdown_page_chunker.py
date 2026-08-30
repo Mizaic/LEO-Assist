@@ -1,5 +1,10 @@
 """Markdown chunker ported from HCCP-Agents.
 
+Atlas trace:
+  DO: DO-58BD2EA0
+  DI: DI-ACA9659D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-58BD2EA0")
+
 Source: HCCP-Agents/agent/leo_agents/utils/markdown_page_chunker.py
 
 langchain is not a LEO-AI-CORE dependency. Document objects are a
