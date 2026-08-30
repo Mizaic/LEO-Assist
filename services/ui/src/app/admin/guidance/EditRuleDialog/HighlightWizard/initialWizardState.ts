@@ -58,11 +58,13 @@ function inferGroupingsFromTree(
   const leadClusterGroupings: Record<string, ClusterGrouping> = {};
   pathways.forEach((pathwayNode, index) => {
     const key = pathwayGroupingKey(pathwayNode, index);
-    if (findClusterSubgroupByRole(pathwayNode, "trailing")) {
-      clusterGroupings[key] = "AT_LEAST";
+    const trailing = findClusterSubgroupByRole(pathwayNode, "trailing");
+    if (trailing) {
+      clusterGroupings[key] = trailing.kind === "OR" ? "OR" : "AT_LEAST";
     }
-    if (findClusterSubgroupByRole(pathwayNode, "lead")) {
-      leadClusterGroupings[key] = "AT_LEAST";
+    const lead = findClusterSubgroupByRole(pathwayNode, "lead");
+    if (lead) {
+      leadClusterGroupings[key] = lead.kind === "OR" ? "OR" : "AT_LEAST";
     }
   });
   return { clusterGroupings, leadClusterGroupings };

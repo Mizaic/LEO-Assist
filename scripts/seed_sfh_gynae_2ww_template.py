@@ -130,7 +130,7 @@ def build_section_b() -> dict:
             ),
             _item(
                 "B2.",
-                "Lesion suspicious of vulval cancer on examination",
+                "vulval mass",
             ),
             _item(
                 "B3.",

@@ -80,7 +80,7 @@
         },
         {
           "pattern": "B2.",
-          "entity_text": "Lesion suspicious of vulval cancer on examination",
+          "entity_text": "vulval mass",
           "semantic_tag": "finding",
           "assertion": "present",
           "procedure_snomed": "",

@@ -912,7 +912,7 @@ class TestSoftQualifiersAndFitStatus:
             [
                 _v2_soft_rule(
                     soft_qualifiers=[
-                        {"kind": "first_presentation", "enforcement": "soft"}
+                        {"kind": "unexplained", "enforcement": "soft"}
                     ]
                 )
             ],
@@ -923,7 +923,7 @@ class TestSoftQualifiersAndFitStatus:
         )
         assert len(result["matched_rules"]) == 1
         assert result["matched_rules"][0]["unverified_qualifiers"] == [
-            "first_presentation"
+            "unexplained"
         ]
 
     def test_contradicted_soft_word_does_not_match(self, evaluator_factory):
@@ -967,7 +967,7 @@ class TestSoftQualifiersAndFitStatus:
             [
                 _v2_soft_rule(
                     soft_qualifiers=[
-                        {"kind": "first_presentation", "enforcement": "hard"}
+                        {"kind": "unexplained", "enforcement": "hard"}
                     ]
                 )
             ],

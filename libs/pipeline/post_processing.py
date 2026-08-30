@@ -53,6 +53,7 @@ Layer order
 7c. Observable Trend Split -- split current vs historical result values
 8. Situation Lookup Norm. -- normalise situation text for terminology
 8b. Suspected Cancer Lookup -- enrich lookup_term for suspected referrals
+8d. PMB Salvage           -- menopause/HRT plus vaginal bleed -> 76742009
 9. Disorder Gate          -- LLM dual-model disorder classification (optional)
 """
 
@@ -86,6 +87,7 @@ from libs.pipeline.extraction_term_normaliser import (
 from libs.ner.breast_screening_outcome_recovery import (
     recover_breast_screening_outcome_finding,
 )
+from libs.pipeline.pmb_salvage import salvage_pmb
 from libs.ner.request_reason_recovery import recover_request_reason_entities
 from libs.ner.local_concept_recovery import (
     LocalConceptPattern,
@@ -1904,6 +1906,12 @@ def run_post_processing_with_trace(
         "layer_8b",
         "Suspected Cancer Lookup Enrichment",
         _run_suspected_cancer_lookup,
+    )
+
+    _run_layer(
+        "layer_8d",
+        "PMB Salvage",
+        lambda current: salvage_pmb(encounter_text, current),
     )
 
     # Layer 8c: Unresulted-test guard.

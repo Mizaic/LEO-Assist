@@ -356,6 +356,17 @@ export default function PathwayConditionsStage({
     onUpdate({ kind: "remove", nodeId });
   }
 
+  function clusterGroupKindForRole(role: "lead" | "trailing"): "OR" | "AT_LEAST" {
+    const chosen =
+      role === "lead"
+        ? leadClusterGroupings[pathwayKey]
+        : clusterGroupings[pathwayKey];
+    if (chosen === "AT_LEAST") return "AT_LEAST";
+    if (chosen === "OR") return "OR";
+    const suggested = role === "trailing" ? (pathwayRows.suggestedMin ?? 1) : 1;
+    return suggested > 1 ? "AT_LEAST" : "OR";
+  }
+
   function parentForClusterAdd(item: RecommendationStructureItem): string {
     const decision = decideRowClickTarget(
       pathwayNode,
@@ -370,7 +381,7 @@ export default function PathwayConditionsStage({
       onUpdate({
         kind: "add_group",
         parentNodeId: decision.pathwayNodeId,
-        groupKind: "AT_LEAST",
+        groupKind: clusterGroupKindForRole(decision.role),
         clusterRole: decision.role,
         min: decision.role === "trailing" ? effectiveClusterMin : 1,
       });
@@ -435,7 +446,7 @@ export default function PathwayConditionsStage({
       onUpdate({
         kind: "add_group",
         parentNodeId: decision.pathwayNodeId,
-        groupKind: "AT_LEAST",
+        groupKind: clusterGroupKindForRole(decision.role),
         clusterRole: decision.role,
         min: decision.role === "trailing" ? effectiveClusterMin : 1,
       });

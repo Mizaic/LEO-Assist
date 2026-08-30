@@ -70,3 +70,34 @@ def test_normaliser_does_not_insert_synthesised_entity_text() -> None:
     extractable = [ln for ln in result.splitlines() if NON_EXTRACTABLE_MARKER not in ln]
     assert not any("Cervical cancer suspected" in ln for ln in extractable)
     assert not any("Ovarian cancer suspected" in ln for ln in extractable)
+
+
+def test_ticked_b2_seeds_lookup_term_from_entity_text() -> None:
+    raw = "Section B: Signs/symptoms\nB2. Lesion on vulva Yes [X] No [ ]\n"
+    schema = FormSchema(
+        schema_id="test-b2-seed",
+        fingerprint="b2test",
+        form_name="Gynaecology 2WW Referral",
+        created_by="test",
+        sections=[
+            FormSection(
+                section_id="B",
+                section_type="checkbox_yesno",
+                label="Section B",
+                start_pattern=r"(?i)section\s+b",
+                items=[
+                    FormSchemaItem(
+                        pattern="B2.",
+                        entity_text="vulval lump",
+                        semantic_tag="finding",
+                        assertion="present",
+                    )
+                ],
+            )
+        ],
+    )
+    seeded = seed_checkbox_entities(raw, schema)
+    assert len(seeded) == 1
+    assert seeded[0]["text"] == "B2."
+    assert seeded[0]["entity_text"] == "vulval lump"
+    assert seeded[0]["lookup_term"] == "vulval lump"

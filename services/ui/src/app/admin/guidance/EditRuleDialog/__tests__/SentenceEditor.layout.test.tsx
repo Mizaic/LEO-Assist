@@ -60,7 +60,7 @@ function renderGroup(node: EditableLogicNode, overrides: Partial<Parameters<type
 describe("GroupSentence -- flat leaf-only groups (task 5)", () => {
   it("renders the AND lead-in phrase and both concept chips", () => {
     renderGroup(makeFlatAnd());
-    expect(screen.getByText("Patient must have ALL of these")).toBeInTheDocument();
+    expect(screen.getByText("AND -- patient must have ALL of these")).toBeInTheDocument();
     expect(screen.getByText("Cough")).toBeInTheDocument();
     expect(screen.getByText("Fatigue")).toBeInTheDocument();
   });
@@ -69,7 +69,7 @@ describe("GroupSentence -- flat leaf-only groups (task 5)", () => {
     renderGroup(makeFlatOr());
     // joinNodes puts ", " between all but the last pair and "or " before
     // the last child -- so the group's flowing text should contain "or".
-    const group = screen.getByRole("group", { name: "Patient must have ANY of these" });
+    const group = screen.getByRole("group", { name: "OR -- patient must have ANY of these" });
     expect(group.textContent).toMatch(/or/);
   });
 
@@ -78,7 +78,7 @@ describe("GroupSentence -- flat leaf-only groups (task 5)", () => {
     const tree = makeFlatAnd();
     renderGroup(tree, { onUpdate });
     fireEvent.mouseDown(screen.getByLabelText(/how to match conditions in this group/i));
-    fireEvent.click(screen.getByRole("option", { name: "Patient must have ANY of these" }));
+    fireEvent.click(screen.getByRole("option", { name: "OR -- patient must have ANY of these" }));
     expect(onUpdate).toHaveBeenCalledWith({
       kind: "change_kind",
       nodeId: tree.node_id,
@@ -460,7 +460,7 @@ describe("SentenceEditor -- pathway split rendering (task 9, NG12 1.2.9)", () =>
   it("a non-pathway tree (single AND root) renders one plain sentence, no lettered cards", () => {
     render(<SentenceEditor root={makeFlatAnd()} selectedNodeId={null} onSelect={noop} onUpdate={noop} onRequestAdd={noop} />);
     expect(screen.queryByTestId(/pathway-card-/)).not.toBeInTheDocument();
-    expect(screen.getByText("Patient must have ALL of these")).toBeInTheDocument();
+    expect(screen.getByText("AND -- patient must have ALL of these")).toBeInTheDocument();
   });
 });
 

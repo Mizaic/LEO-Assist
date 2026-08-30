@@ -108,6 +108,35 @@ def _phrase_hit(kind: str, letter: str) -> bool:
     return any(phrase in letter for phrase in _PHRASES.get(kind, ()))
 
 
+def _older_than_window(
+    qualifier: dict[str, Any],
+    patient_facts: dict[str, Any] | None,
+    now: datetime,
+) -> bool:
+    """True when the same concept appears on the record older than the window."""
+    concept_id = str(qualifier.get("concept_id") or "").strip()
+    within_days = qualifier.get("within_days")
+    if within_days is None:
+        within_days = 90
+    if not concept_id:
+        return False
+    if int(within_days) not in RECENCY_DAYS:
+        raise SoftQualifierError(
+            f"within_days must be one of {sorted(RECENCY_DAYS)}; got {within_days!r}."
+        )
+    facts = patient_facts or {}
+    occurrences = (facts.get("concept_occurrences") or {}).get(concept_id)
+    if not occurrences:
+        return False
+    cutoff = _as_utc(now) - timedelta(days=int(within_days))
+    for raw in occurrences:
+        if not isinstance(raw, datetime):
+            continue
+        if _as_utc(raw) < cutoff:
+            return True
+    return False
+
+
 def _count_in_window(
     qualifier: dict[str, Any],
     patient_facts: dict[str, Any] | None,
@@ -154,7 +183,14 @@ def resolve_soft_qualifier(
     min_occ = qualifier.get("min_occurrences")
     if count is not None and min_occ is not None and count >= int(min_occ):
         return "confirmed"
-    if _phrase_hit(kind, _letter_text(patient_facts)):
+    letter = _letter_text(patient_facts)
+    if kind == "first_presentation":
+        if _phrase_hit("repeat_or_chronic", letter):
+            return "contradicted"
+        if _older_than_window(qualifier, patient_facts, now):
+            return "contradicted"
+        return "confirmed"
+    if _phrase_hit(kind, letter):
         return "confirmed"
     return "not_confirmed"
 

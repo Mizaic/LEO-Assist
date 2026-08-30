@@ -6,8 +6,20 @@ from unittest.mock import MagicMock, patch
 
 from libs.pipeline_graph.subgraphs.compliance import (
     _evaluate_dual_compliance,
+    _patient_eval_kwargs,
     evaluate_compliance,
 )
+
+
+def test_patient_eval_passes_letter_text_from_encounter() -> None:
+    kwargs = _patient_eval_kwargs(
+        {"encounter_text": "chronic recurrent vaginal discharge"},
+        [],
+        "guideline",
+        "NG12",
+        "NG12",
+    )
+    assert kwargs["letter_text"] == "chronic recurrent vaginal discharge"
 
 
 def _rule(rule_id: str, guideline_id: str) -> dict:

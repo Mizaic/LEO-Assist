@@ -20,10 +20,10 @@ import type { LogicNodeKind } from "./types";
 
 /** Group-kind dropdown labels. */
 export const GROUP_KIND_LABELS: Record<LogicNodeKind, string> = {
-  AND: "Patient must have ALL of these",
-  OR: "Patient must have ANY of these",
+  AND: "AND -- patient must have ALL of these",
+  OR: "OR -- patient must have ANY of these",
   NOT: "Patient must NOT have any of these",
-  AT_LEAST: "Patient must have at least N of these",
+  AT_LEAST: "AT LEAST -- patient must have at least N of these",
   CONCEPT: "Symptom, sign, procedure, or situation",
   DEMOGRAPHIC: "Patient detail",
   OBSERVATION: "Lab value or reading",
@@ -35,8 +35,8 @@ export const GROUP_KIND_LABELS: Record<LogicNodeKind, string> = {
 
 /** Short label used inside small chips / badges. */
 export const GROUP_KIND_SHORT: Record<LogicNodeKind, string> = {
-  AND: "ALL of these",
-  OR: "ANY of these",
+  AND: "AND -- ALL of these",
+  OR: "OR -- ANY of these",
   NOT: "Should not have",
   AT_LEAST: "AT LEAST n of",
   CONCEPT: "Symptom",

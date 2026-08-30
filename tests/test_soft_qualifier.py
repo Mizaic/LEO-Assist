@@ -28,10 +28,48 @@ def _qualifier(kind: str, **extra: object) -> dict:
     return payload
 
 
-def test_not_confirmed_when_no_phrase_and_no_count_evidence() -> None:
-    """DI-DE8B125E: not_confirmed when there is no phrase and no count evidence."""
+def test_first_presentation_is_open_when_no_repeat_and_no_older_code() -> None:
+    """DI-DE8B125E: first time when the letter is not a repeat and history is new."""
     outcome = resolve_soft_qualifier(
-        _qualifier("first_presentation"),
+        _qualifier("first_presentation", concept_id="271939006", within_days=90),
+        {
+            "letter_text": "vaginal discharge- 10/7 yellowish",
+            "concept_occurrences": {"271939006": []},
+        },
+        NOW,
+    )
+    assert outcome == "confirmed"
+
+
+def test_first_presentation_contradicted_by_chronic_or_repeat_phrase() -> None:
+    """DI-DE8B125E: not first time when the letter names a chronic or repeat problem."""
+    outcome = resolve_soft_qualifier(
+        _qualifier("first_presentation", concept_id="271939006", within_days=90),
+        {"letter_text": "chronic recurrent vaginal discharge"},
+        NOW,
+    )
+    assert outcome == "contradicted"
+
+
+def test_first_presentation_contradicted_by_same_code_older_than_three_months() -> None:
+    """DI-DE8B125E: not first time when the same code is on the record older than 90 days."""
+    outcome = resolve_soft_qualifier(
+        _qualifier("first_presentation", concept_id="271939006", within_days=90),
+        {
+            "letter_text": "vaginal discharge",
+            "concept_occurrences": {
+                "271939006": [datetime(2026, 1, 1, tzinfo=timezone.utc)]
+            },
+        },
+        NOW,
+    )
+    assert outcome == "contradicted"
+
+
+def test_not_confirmed_when_no_phrase_and_no_count_evidence() -> None:
+    """DI-DE8B125E: unexplained stays not_confirmed when there is no phrase."""
+    outcome = resolve_soft_qualifier(
+        _qualifier("unexplained"),
         {"letter_text": "vaginal discharge- 10/7 yellowish"},
         NOW,
     )
@@ -126,8 +164,8 @@ def test_occurrence_window_uses_lab_recency_days() -> None:
         )
 
 
-def test_missing_history_is_not_confirmed_on_soft_count_window() -> None:
-    """DI-0C904503: missing history is not_confirmed, never a fail here."""
+def test_missing_history_is_open_for_first_presentation() -> None:
+    """DI-0C904503: missing history is first time, not a block."""
     outcome = resolve_soft_qualifier(
         _qualifier(
             "first_presentation",
@@ -138,7 +176,7 @@ def test_missing_history_is_not_confirmed_on_soft_count_window() -> None:
         {"letter_text": "", "concept_occurrences": {}},
         NOW,
     )
-    assert outcome == "not_confirmed"
+    assert outcome == "confirmed"
 
 
 def test_min_occurrences_confirmed_when_count_met() -> None:

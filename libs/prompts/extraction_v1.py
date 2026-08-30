@@ -508,6 +508,11 @@ lookup_term whenever they appear in or are clearly implied by sentence_subset:
    with contrast, without contrast, first-line, second-line
    - "screening mammography" -> lookup_term: "screening mammography"
      NOT "mammography"
+8. Gynaecological compound findings: keep PMB as one finding
+   - "PMB", "postmenopausal bleeding", "post-menopausal bleeding",
+     "bleeding after the menopause", "? PMB"
+     -> lookup_term: "postmenopausal bleeding"
+     Do not split into postmenopausal state plus vaginal bleeding.
 
 You MAY normalise abbreviations in lookup_term. You MUST NOT drop the
 qualifier. If the qualifier appears only in context_text (not in

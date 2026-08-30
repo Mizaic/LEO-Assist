@@ -131,6 +131,7 @@ def _patient_eval_kwargs(
         "pathway_filter": resolved_pathway,
         "patient_age": state.get("patient_age"),
         "patient_sex": state.get("patient_sex"),
+        "letter_text": str(state.get("encounter_text") or ""),
         "scope_type": (
             resolved_type if resolved_id or resolved_type == "global" else None
         ),

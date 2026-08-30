@@ -92,10 +92,12 @@ def _append_seed(
         return
     seen.add(key)
     start, end = span
+    taught = item.entity_text or label
     entities.append(
         {
             "text": label,
-            "entity_text": item.entity_text or label,
+            "entity_text": taught,
+            "lookup_term": taught,
             "start": start,
             "end": end,
             "assertion": item.assertion or "present",
