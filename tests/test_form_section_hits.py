@@ -224,6 +224,44 @@ def test_evaluator_matches_member_by_section_id_and_item_pattern() -> None:
     assert "B1" in result["matched_groups"][0]["matched_member_names"]
 
 
+def test_matched_group_records_form_hit_text_when_member_name_blank() -> None:
+    """A match must name what satisfied it, even if the member has no name.
+
+    Atlas: DI-50BE367C / VT-8426C84D
+    """
+    schema = [
+        {
+            "name": "symptom_criterion_required",
+            "kind": "one_of",
+            "required": True,
+            "members": [
+                {
+                    "name": "",
+                    "section_id": "section_b_symptoms",
+                    "item_pattern": r"B1\.",
+                }
+            ],
+        }
+    ]
+    result = evaluate_completeness_groups(
+        schema,
+        present_concept_ids=set(),
+        present_semantic_tags=set(),
+        section_hits=[
+            {
+                "section_id": "section_b_symptoms",
+                "item_pattern": r"B1\.",
+                "entity_text": "Postmenopausal bleeding",
+                "checked": True,
+            }
+        ],
+    )
+    assert result["complete"] is True
+    names = result["matched_groups"][0]["matched_member_names"]
+    assert "Postmenopausal bleeding" in names
+    assert all(str(name).strip() for name in names)
+
+
 def test_kind_aliases_resolve_and_honour_min_count() -> None:
     assert resolve_kind({"kind": "at_least_one"}) == "one_of"
     assert resolve_kind({"kind": "required_section"}) == "n_of"

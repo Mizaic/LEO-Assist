@@ -57,14 +57,37 @@ def form_hit_result(
     member: dict[str, Any], hits: list[dict[str, Any]]
 ) -> tuple[bool, bool]:
     """Return (matched, assessable) for a form-native member."""
-    section_id = str(member.get("section_id") or "").strip()
-    item_pattern = str(member.get("item_pattern") or "").strip()
-    if not section_id and not item_pattern:
+    relevant = _relevant_hits(member, hits)
+    if relevant is None:
         return False, False
-    relevant = [hit for hit in hits if _hit_belongs(hit, section_id, item_pattern)]
     if not relevant:
         return False, False
     return any(bool(hit.get("checked")) for hit in relevant), True
+
+
+def form_hit_labels(member: dict[str, Any], hits: list[dict[str, Any]]) -> list[str]:
+    """Return checked-hit labels that satisfied a form-native member."""
+    relevant = _relevant_hits(member, hits)
+    if not relevant:
+        return []
+    labels: list[str] = []
+    for hit in relevant:
+        if not hit.get("checked"):
+            continue
+        label = str(hit.get("entity_text") or hit.get("item_pattern") or "").strip()
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
+def _relevant_hits(
+    member: dict[str, Any], hits: list[dict[str, Any]]
+) -> list[dict[str, Any]] | None:
+    section_id = str(member.get("section_id") or "").strip()
+    item_pattern = str(member.get("item_pattern") or "").strip()
+    if not section_id and not item_pattern:
+        return None
+    return [hit for hit in hits if _hit_belongs(hit, section_id, item_pattern)]
 
 
 def _hit_belongs(hit: dict[str, Any], section_id: str, item_pattern: str) -> bool:

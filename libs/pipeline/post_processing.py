@@ -1332,13 +1332,40 @@ def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
                 blob[:80],
             )
             continue
-        if _SITUATION_FAMILY_HISTORY_RE.search(blob):
+        if _SITUATION_FAMILY_HISTORY_RE.search(blob) and not _PMH_NEGATED_RE.search(
+            blob
+        ):
             ent["assertion"] = "present"
             ent["_assertion_guard"] = "situation_family_history"
             logger.info(
                 "situation_present_guard: restored present (family history) | text=%r",
                 blob[:80],
             )
+
+
+def fix_negated_family_history_assertions(entities: list[dict[str, Any]]) -> None:
+    """Mark denied family-history situations as absent.
+
+    'no known family history of X' is a denial. Leaving it present makes a
+    negative letter look like a positive family history.
+    Atlas: DI-95CB940F / VT-BA44A8B3.
+    """
+    for ent in entities:
+        if ent.get("assertion") != "present":
+            continue
+        if not _is_situation_entity(ent):
+            continue
+        blob = _situation_guard_blob(ent)
+        if not blob or not _PMH_NEGATED_RE.search(blob):
+            continue
+        if not _SITUATION_FAMILY_HISTORY_RE.search(blob):
+            continue
+        ent["assertion"] = "absent"
+        ent["_assertion_guard"] = "negated_family_history"
+        logger.info(
+            "negated_family_history: assertion set to absent | text=%r",
+            blob[:80],
+        )
 
 
 def apply_false_absent_assertion_guards(
@@ -1360,6 +1387,7 @@ def apply_false_absent_assertion_guards(
     fix_lifestyle_status_assertions(targets)
     fix_pmh_list_false_absent(targets)
     fix_situation_present_assertions(targets)
+    fix_negated_family_history_assertions(targets)
     fix_contrast_positive_false_absent(targets)
     fix_locally_affirmed_assertions(targets)
 

@@ -750,7 +750,10 @@ def _extract_recommendations_from_section(
     from app.services.companion_panel_parser import (
         parse_companion_panels_after_article,
     )
-    from app.services.nice_list_parser import parse_recommendation_list_structure
+    from app.services.nice_list_parser import (
+        parse_recommendation_list_structure,
+        recommendation_title_from_article,
+    )
 
     html = (section_json or {}).get("Content") or ""
     if not html:
@@ -764,14 +767,11 @@ def _extract_recommendations_from_section(
     recs: list[dict[str, Any]] = []
     for article in soup.find_all("article", {"class": "numbered-paragraph"}):
         article_id = article.get("id") or ""
-        heading = article.find(["h5", "h4", "h3"])
-        rec_title = heading.get_text(strip=True) if heading else section_title
+        rec_title = recommendation_title_from_article(article, section_title)
         inner_text = article.get_text(" ", strip=True)
         if not inner_text:
             continue
-        companion_panels = parse_companion_panels_after_article(
-            article, inner_text
-        )
+        companion_panels = parse_companion_panels_after_article(article, inner_text)
         recs.append(
             {
                 "Title": rec_title,
@@ -1080,7 +1080,9 @@ async def _async_ingest(
         _emit(
             job_id,
             "progress",
-            {"step": f"{'; '.join(step_parts).capitalize()} — previous decisions preserved."},
+            {
+                "step": f"{'; '.join(step_parts).capitalize()} — previous decisions preserved."
+            },
         )
 
     _emit(job_id, "progress", {"step": "Fetching chapters..."})

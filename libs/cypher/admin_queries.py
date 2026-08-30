@@ -1,9 +1,9 @@
 """Cypher queries for admin/tenant management.
 
-Atlas trace:
-  DO: DO-308DD1A6
-  DI: DI-D49BCE55
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-308DD1A6")
+Atlas trace (Mizaic org seed query only):
+  DO: DO-72F81432
+  DI: DI-96D95459
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-72F81432")
 
 Organisations, practitioners, groups, roles, and system config.
 Identity and RBAC query strings live in hccp_identity_queries.py.
@@ -164,6 +164,15 @@ SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_nam
     o.created_at = datetime()
 RETURN o.id AS id
 """
+
+# Startup seed for the Mizaic vendor org. organization_id must be set on
+# create: the patient graph requires that property on :Organization.
+MERGE_MIZAIC_ORGANIZATION = (
+    "MERGE (o:Organization {id: $id}) "
+    "ON CREATE SET o.organization_id = $id, o.name = $name, "
+    "              o.odsCode = '', o.short_name = 'Mizaic' "
+    "ON MATCH SET o.organization_id = coalesce(o.organization_id, $id)"
+)
 
 UPDATE_ORG = """
 MATCH (o)

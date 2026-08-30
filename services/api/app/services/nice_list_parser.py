@@ -51,6 +51,34 @@ from bs4.element import Tag
 # with one rule, since it only depends on where the text ends, not on
 # which list it came from.
 _TRAILING_CONNECTOR_RE = re.compile(r",?\s*\bor\b\s*$", re.IGNORECASE)
+_REC_NUMBER_RE = re.compile(r"^(\d+(?:\.\d+)+)\s*$")
+_ARTICLE_ID_NUMBER_RE = re.compile(r"(\d+(?:_\d+)+)$")
+_LEADING_NUMBER_RE = re.compile(r"^(\d+(?:\.\d+)+)\b")
+
+
+def recommendation_title_from_article(article: Tag, section_title: str) -> str:
+    """Return this article's recommendation number, not the section title.
+
+    Nested site subsections (NG12 endometrial 1.5.12-1.5.15) use ``<h6>``
+    instead of ``<h5>``. Falling back to the section title made four
+    siblings share one number so list-structure backfill painted 1.5.13
+    onto 1.5.12.
+    """
+    for heading in article.find_all(["h6", "h5", "h4", "h3"]):
+        text = heading.get_text(strip=True)
+        if _REC_NUMBER_RE.match(text):
+            return text
+    article_id = str(article.get("id") or "")
+    id_match = _ARTICLE_ID_NUMBER_RE.search(article_id)
+    if id_match:
+        return id_match.group(1).replace("_", ".")
+    lead = _LEADING_NUMBER_RE.match(article.get_text(" ", strip=True))
+    if lead:
+        return lead.group(1)
+    heading = article.find(["h6", "h5", "h4", "h3"])
+    if heading:
+        return heading.get_text(strip=True)
+    return section_title
 
 
 def _clean_item_text(text: str) -> str:

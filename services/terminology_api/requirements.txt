@@ -8,7 +8,10 @@ python-dotenv>=1.0.1
 azure-identity>=1.19.0
 azure-keyvault-secrets>=4.8.0
 # text_embedder.py and shared VECTOR_MODEL embedding path
-sentence-transformers>=3.0.0
+# Cap below 4 so pip --upgrade cannot pull ST 6 / transformers 5
+# (breaks spacy-transformers BatchEncoding import).
+sentence-transformers>=3.0.0,<4.0
+transformers>=4.41,<4.50
 pyroaring>=1.0.0
 redis>=5.2.0
 jsonschema>=4.23

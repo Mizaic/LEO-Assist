@@ -106,6 +106,45 @@ def test_guidelines_fh_assertion_present() -> None:
     assert "FH of breast cancer | situation | present" in ANNOTATION_GUIDELINES_V1
 
 
+def test_situation_guard_does_not_restore_negated_family_history() -> None:
+    """A denied family history must not be rewritten as present.
+
+    Atlas: DI-95CB940F / VT-BA44A8B3
+    """
+    ent = {
+        "label": "situation",
+        "assertion": "family",
+        "text": "There is no known family history of breast cancer "
+        "on either the maternal or paternal side",
+        "evidence_sentence": "There is no known family history of breast cancer "
+        "on either the maternal or paternal side",
+        "lookup_term": "family history of malignant neoplasm of breast",
+        "term": "Family history of malignant neoplasm of breast (situation)",
+    }
+    fix_situation_present_assertions([ent])
+    assert ent["assertion"] != "present"
+    assert "_assertion_guard" not in ent
+
+
+def test_negated_family_history_present_is_forced_absent() -> None:
+    """Extractor present on 'no known family history' must become absent.
+
+    Atlas: DI-95CB940F / VT-BA44A8B3
+    """
+    ent = {
+        "label": "situation",
+        "assertion": "present",
+        "text": "There is no known family history of breast cancer "
+        "on either the maternal or paternal side",
+        "evidence_sentence": "There is no known family history of breast cancer "
+        "on either the maternal or paternal side",
+        "term": "Family history of malignant neoplasm of breast (situation)",
+        "concept_id": "429740004",
+    }
+    apply_false_absent_assertion_guards([ent])
+    assert ent["assertion"] == "absent"
+
+
 def test_situation_guard_does_not_match_preferred_term() -> None:
     """A SNOMED preferred term must not restore present on its own.
 

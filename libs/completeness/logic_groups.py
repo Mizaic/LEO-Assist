@@ -104,7 +104,7 @@ def _evaluate_n_of(
 ) -> dict[str, Any]:
     members = [m for m in (group.get("members") or []) if isinstance(m, dict)]
     rows = [evaluate_leaf(member) for member in members]
-    matched_names = [row["name"] for row in rows if row["matched"]]
+    matched_names = _matched_evidence(rows)
     matched = len(matched_names) >= min_needed
     kind = resolve_kind(group)
     return {
@@ -120,6 +120,26 @@ def _evaluate_n_of(
             row.get("matched_semantic_category") for row in rows
         ),
     }
+
+
+def _matched_evidence(rows: list[dict[str, Any]]) -> list[str]:
+    """Collect non-blank names that explain why a member matched."""
+    names: list[str] = []
+    for row in rows:
+        if not row.get("matched"):
+            continue
+        evidence = [
+            str(item).strip()
+            for item in (row.get("matched_member_names") or [])
+            if str(item).strip()
+        ]
+        if evidence:
+            names.extend(item for item in evidence if item not in names)
+            continue
+        name = str(row.get("name") or "").strip()
+        if name and name not in names:
+            names.append(name)
+    return names
 
 
 def _n_of_outcome(rows: list[dict[str, Any]], matched: bool) -> str:

@@ -84,6 +84,11 @@ export const STEP_PREREQUISITES = {
    *  can be added, so this button stays visible after the first. */
   addLabValueLabel: "Add lab value",
   addLabValueAriaLabel: "Add a lab value or reading that always applies",
+  /** Adds a finding that must be absent for every situation. */
+  shouldNotHaveLabel: "Patient should not have",
+  shouldNotHaveAriaLabel:
+    "Add a finding that must not be present for this rule to match",
+  shouldNotHaveHeading: "The patient must NOT have",
   noTextFallback:
     "This rule has no guideline text to highlight. Skip this step for now, or go back and add what must always be true once the wording is available.",
   /** "Captured so far" row for a CONCEPT leaf built from several
@@ -283,6 +288,8 @@ export const STEP_PATHWAY_CONDITIONS = {
    *  visible after the first is added (mirrors Step 1's own button). */
   addLabValueLabel: "Add lab value",
   addLabValueAriaLabel: "Add a lab value or reading for this situation only",
+  addShouldNotHaveAriaLabel:
+    "Add a finding that must not be present for this situation",
   removeConditionAriaLabel: (text: string) => `Remove "${text}" from this situation`,
 } as const;
 
@@ -318,6 +325,10 @@ export const WIZARD_TOOLTIPS = {
   addAgeAlways: "Add an age check that applies to every situation.",
   addSexAlways: "Add a sex check that applies to every situation.",
   addLabValueAlways: "Add a lab value or reading that applies to every situation.",
+  addShouldNotHaveAlways:
+    "Add a finding that must be absent for every situation.",
+  addShouldNotHaveSituation:
+    "Add a finding that must be absent for this situation only.",
   highlightMore: "Select more words from the guideline that must always be true.",
   editCaptured: "Change this captured item.",
   doneEditing: "Finish editing this captured item.",

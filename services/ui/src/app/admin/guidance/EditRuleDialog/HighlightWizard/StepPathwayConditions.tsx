@@ -57,6 +57,7 @@ import PathwayDemographicsPanel, {
   type PathwayDemographicField,
 } from "./PathwayDemographicsPanel";
 import ProblemNodeRow from "./ProblemNodeRow";
+import { ShouldNotHaveButton, ShouldNotHaveSection } from "./ShouldNotHaveSection";
 import RowMultiCodeHighlight from "./RowMultiCodeHighlight";
 import { buildPathwayRows, countUnresolvedRows } from "./wizardMapping";
 import type { ClusterGrouping } from "./wizardMapping";
@@ -158,6 +159,16 @@ export interface StepPathwayConditionsProps {
    */
   onAddPathwayObservation?: () => void;
   /**
+   * Findings inside a NOT group on this pathway -- shown as
+   * "must not have", never mixed into the must-have confirmed list.
+   */
+  shouldNotHaveLeaves?: EditableLogicNode[];
+  /**
+   * Adds a must-not-have finding for THIS situation only. Undefined
+   * hides the "Patient should not have" button.
+   */
+  onAddPathwayShouldNotHave?: (anchor?: HTMLElement) => void;
+  /**
    * The DEMOGRAPHIC leaf (from the main condition list, NOT
    * `pathwayDemographics` above) whose inline age/sex editor should
    * currently render, toggled by re-clicking its row (see
@@ -231,6 +242,8 @@ export default function StepPathwayConditions({
   onEditConfirmedLeaf,
   onRemoveConfirmedLeaf,
   onAddPathwayObservation,
+  shouldNotHaveLeaves = [],
+  onAddPathwayShouldNotHave,
   expandedDemographicNode = null,
   expandedObservationNode = null,
   onSelectObservation,
@@ -348,20 +361,38 @@ export default function StepPathwayConditions({
         />
       )}
 
-      {onAddPathwayObservation && (
-        <Box>
-          <Tooltip title={WIZARD_TOOLTIPS.addLabValueSituation}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<AddRoundedIcon fontSize="small" />}
-              onClick={onAddPathwayObservation}
-              aria-label={STEP_PATHWAY_CONDITIONS.addLabValueAriaLabel}
-            >
-              {STEP_PATHWAY_CONDITIONS.addLabValueLabel}
-            </Button>
-          </Tooltip>
-        </Box>
+      <ShouldNotHaveSection
+        leaves={shouldNotHaveLeaves}
+        onEdit={onEditConfirmedLeaf}
+        onRemove={onRemoveConfirmedLeaf ? (id) => {
+          const node = shouldNotHaveLeaves.find((leaf) => leaf.node_id === id);
+          if (node) onRemoveConfirmedLeaf(node);
+        } : undefined}
+      />
+
+      {(onAddPathwayObservation || onAddPathwayShouldNotHave) && (
+        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
+          {onAddPathwayObservation && (
+            <Tooltip title={WIZARD_TOOLTIPS.addLabValueSituation}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddRoundedIcon fontSize="small" />}
+                onClick={onAddPathwayObservation}
+                aria-label={STEP_PATHWAY_CONDITIONS.addLabValueAriaLabel}
+              >
+                {STEP_PATHWAY_CONDITIONS.addLabValueLabel}
+              </Button>
+            </Tooltip>
+          )}
+          {onAddPathwayShouldNotHave && (
+            <ShouldNotHaveButton
+              ariaLabel={STEP_PATHWAY_CONDITIONS.addShouldNotHaveAriaLabel}
+              tooltip={WIZARD_TOOLTIPS.addShouldNotHaveSituation}
+              onClick={onAddPathwayShouldNotHave}
+            />
+          )}
+        </Stack>
       )}
 
       {onAddPathwayDemographic && onUpdatePathway && (

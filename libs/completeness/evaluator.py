@@ -12,7 +12,7 @@ from functools import partial
 from typing import Any, Callable
 
 from libs.completeness.logic_groups import evaluate_logic_group
-from libs.pipeline.form_section_hits import form_hit_result
+from libs.pipeline.form_section_hits import form_hit_labels, form_hit_result
 from libs.terminology.semantic_tag import normalise_semantic_tag
 
 _ISA_DESCENDANTS_QUERY = (
@@ -131,6 +131,7 @@ def _evaluate_leaf(
     tag_hit = bool(categories & present_semantic_tags)
     missing_tags = bool(categories) and not tag_hit
     form_matched, form_assessable = form_hit_result(group, section_hits)
+    form_labels = form_hit_labels(group, section_hits) if form_matched else []
     matched, outcome = _leaf_outcome(
         required_ids=required_ids,
         categories=categories,
@@ -140,15 +141,17 @@ def _evaluate_leaf(
         form_assessable=form_assessable,
         has_form=_has_form_fields(group),
     )
+    name = str(group.get("name") or "").strip()
+    evidence = ([name] if matched and name else []) or form_labels
     return {
-        "name": str(group.get("name") or ""),
+        "name": name,
         "required": bool(group.get("required", True)),
         "matched": matched,
         "outcome": outcome,
         "matched_concept_ids": id_hits,
         "missing_concept_ids": absent_ids,
         "matched_semantic_category": tag_hit,
-        "matched_member_names": [],
+        "matched_member_names": evidence,
     }
 
 

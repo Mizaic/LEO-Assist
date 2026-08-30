@@ -547,6 +547,41 @@ class TestExtractRecommendationsFromSection:
         for item in structure["items"]:
             assert recs[0]["Text"][item["start"] : item["end"]] == item["text"]
 
+    def test_h6_heading_is_the_recommendation_number_not_the_section_title(self):
+        """NG12 1.5.12-1.5.15 sit under an Endometrial subsection and use
+        ``<h6>``, not ``<h5>``. Falling back to the section title made
+        four sibling recs share number '1.5 Gynaecological cancers' so
+        list-structure backfill painted 1.5.13's situations onto 1.5.12.
+        """
+        html = """
+        <article class="numbered-paragraph" id="ng12-1_5_12">
+          <h6>1.5.12</h6>
+          <p>Refer women aged 55 and over with unexplained
+          postmenopausal bleeding.</p>
+        </article>
+        <article class="numbered-paragraph" id="ng12-1_5_13">
+          <h6>1.5.13</h6>
+          <p>Consider an ultrasound if they have:</p>
+          <ul class="itemizedlist">
+            <li class="listitem"><p>unexplained vaginal discharge, or</p></li>
+            <li class="listitem"><p>visible haematuria</p></li>
+          </ul>
+        </article>
+        """
+        section_json = {
+            "Content": html,
+            "SectionId": "sec-1.5",
+            "Title": "1.5 Gynaecological cancers",
+        }
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        assert [r["Title"] for r in recs] == ["1.5.12", "1.5.13"]
+        assert recs[0]["ListStructure"] is None
+        assert recs[1]["ListStructure"] is not None
+        assert [item["text"] for item in recs[1]["ListStructure"]["items"]] == [
+            "unexplained vaginal discharge",
+            "visible haematuria",
+        ]
+
 
 class TestCollectLeafItems:
     """Unit tests for the _collect_leaf_items helper."""

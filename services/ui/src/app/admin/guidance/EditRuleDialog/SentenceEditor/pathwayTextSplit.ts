@@ -222,6 +222,22 @@ export function splitPathwaysByOrHeuristic(
  * connector without the word "or") means the items belong to the same
  * situation and structure-derived splitting must not fire.
  */
+/** True when every structure item is a real span of `text`. A sibling
+ *  rec's list (NG12 1.5.13 painted onto 1.5.12) fails this and must
+ *  not become situations. */
+function structureItemsAlignWithText(
+  text: string,
+  items: RecommendationStructureItem[],
+): boolean {
+  return items.every((item) => {
+    if (!item.text) return false;
+    if (item.start < 0 || item.end > text.length || item.start >= item.end) {
+      return false;
+    }
+    return text.slice(item.start, item.end) === item.text;
+  });
+}
+
 function connectorReadsAsOr(text: string, prevEnd: number, nextStart: number): boolean {
   const gap = text.slice(prevEnd, nextStart);
   if (/\bor\b/i.test(gap)) return true;
@@ -294,6 +310,7 @@ function splitPathwaysFromStructure(
 ): PathwayTextBoundary[] | null | typeof NOT_A_SITUATION_SPLIT {
   if (!structure || !Array.isArray(structure.items)) return null;
   if (structure.items.length < 2) return null;
+  if (text && !structureItemsAlignWithText(text, structure.items)) return null;
   // A quantifier lead-in ("2 or more of the following unexplained
   // symptoms:", "any of the following:") right before the list is
   // decisive evidence the list is ONE shared AT_LEAST(N) collection of

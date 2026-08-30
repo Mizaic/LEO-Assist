@@ -144,6 +144,26 @@ class TestBackfillGuideline:
         assert kwargs["number"] == "1.2.9"
         assert json.loads(kwargs["list_structure_json"]) == structure
 
+    def test_skips_section_title_that_is_not_a_recommendation_number(self):
+        """A shared section title must not paint one rec's list onto siblings."""
+        session = _make_session_mock({"updated": 4})
+        recs = [
+            {
+                "Title": "1.5 Gynaecological cancers",
+                "ListStructure": {
+                    "lead_text": "Consider an ultrasound if they have:",
+                    "items": [
+                        {"text": "unexplained vaginal discharge", "start": 0, "end": 10}
+                    ],
+                },
+            }
+        ]
+        updated, skipped = backfill.backfill_guideline(
+            session, "NG12", recs, apply=True
+        )
+        assert (updated, skipped) == (0, 1)
+        session.run.assert_not_called()
+
     def test_skips_recs_with_no_list_structure(self):
         session = _make_session_mock({"matched": 1})
         recs = [{"Title": "1.1.1", "ListStructure": None}]

@@ -39,6 +39,7 @@ import {
   flattenPathwayItems,
   orderPathwayNodesByBoundary,
   pathwayConfirmedLeaves,
+  pathwayShouldNotHaveLeaves,
   pathwayGroupingKey,
   pathwayLetterAt,
   pathwayTextWindow,
@@ -47,6 +48,7 @@ import {
 } from "./wizardMapping";
 import { withReifiedWeightedChecklist } from "./weightedChecklist";
 import { useCopyAcrossOffer } from "./useCopyAcrossOffer";
+import { usePendingNotHaveAdd } from "./usePendingNotHaveAdd";
 import type { EditableLogicNode } from "../types";
 import { STEP_PATHWAY_CONDITIONS } from "./copy";
 
@@ -225,6 +227,7 @@ export default function PathwayConditionsStage({
   const boundary = boundaries[pathwayIndex];
   const pathwayKey = pathwayGroupingKey(pathwayNode, pathwayIndex);
   const [, setPendingClusterAdd] = usePendingClusterAdd(tree, onRequestAdd);
+  const { start: startShouldNotHave } = usePendingNotHaveAdd(tree, onRequestAdd);
   // Which DEMOGRAPHIC / OBSERVATION leaf's inline editor (see
   // `StepPathwayConditions`'s `expandedDemographicNode` /
   // `expandedObservationNode` props) is currently open -- those
@@ -319,6 +322,10 @@ export default function PathwayConditionsStage({
 
   function handleAddPathwayObservation() {
     onUpdate({ kind: "add_observation", parentNodeId: pathwayNode.node_id });
+  }
+
+  function handleAddPathwayShouldNotHave(anchor?: HTMLElement) {
+    startShouldNotHave(pathwayNode.node_id, onUpdate, anchor);
   }
 
   function handleEditConfirmedLeaf(node: EditableLogicNode) {
@@ -545,6 +552,8 @@ export default function PathwayConditionsStage({
       onEditConfirmedLeaf={confirmedLeaves.length > 0 ? handleEditConfirmedLeaf : undefined}
       onRemoveConfirmedLeaf={canRemoveConfirmedLeaves ? handleRemoveConfirmedLeaf : undefined}
       onAddPathwayObservation={handleAddPathwayObservation}
+      shouldNotHaveLeaves={pathwayShouldNotHaveLeaves(pathwayNode)}
+      onAddPathwayShouldNotHave={handleAddPathwayShouldNotHave}
       problemIssues={problemIssues}
       onRemoveProblem={handleRemoveProblem}
       expandedDemographicNode={

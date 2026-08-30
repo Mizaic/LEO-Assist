@@ -55,6 +55,7 @@ import type { EditableLogicNode, NodeUpdate } from "../types";
 import PathwayConditionsStage, { resolvePathwayNodes } from "./PathwayConditionsStage";
 import StepPathwaySplit from "./StepPathwaySplit";
 import StepPrerequisites from "./StepPrerequisites";
+import { usePendingNotHaveAdd } from "./usePendingNotHaveAdd";
 import { SPLIT_COUNT_CHANGE_WARNING, WIZARD_CHROME } from "./copy";
 import { buildAgeLabBandTree, type AgeLabBandSpec } from "./ageLabBands";
 import { attachAgeLabBandOr } from "./attachAgeLabBands";
@@ -306,6 +307,7 @@ export default function HighlightWizard({
   tourGotoRequest,
   navGotoRequest,
 }: HighlightWizardProps) {
+  const { start: startShouldNotHave } = usePendingNotHaveAdd(tree, onRequestAdd);
   const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
     startMode === "fresh"
       ? INITIAL_WIZARD_STATE
@@ -511,6 +513,9 @@ export default function HighlightWizard({
           }
           onAddObservation={() =>
             onUpdate({ kind: "add_observation", parentNodeId: tree.node_id })
+          }
+          onAddShouldNotHave={(anchor) =>
+            startShouldNotHave(tree.node_id, onUpdate, anchor)
           }
           onConfirmNoMore={() => dispatch({ type: "CONFIRM_PREREQUISITES" })}
         />
