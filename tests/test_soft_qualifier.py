@@ -51,8 +51,44 @@ def test_first_presentation_contradicted_by_chronic_or_repeat_phrase() -> None:
     assert outcome == "contradicted"
 
 
+def test_medication_repeats_heading_does_not_contradict_first_presentation() -> None:
+    """Form chrome 'Repeats' is not a repeat presentation of discharge."""
+    outcome = resolve_soft_qualifier(
+        _qualifier(
+            "first_presentation",
+            concept_id="271939006",
+            within_days=90,
+            term="Vaginal discharge (finding)",
+        ),
+        {"letter_text": "vaginal discharge- yellowish\n2. Repeats | None |"},
+        NOW,
+    )
+    assert outcome == "confirmed"
+
+
+def test_pathway_recurrent_bleeding_does_not_contradict_discharge() -> None:
+    """PMB pathway advice about recurrent bleeding is not recurrent discharge."""
+    outcome = resolve_soft_qualifier(
+        _qualifier(
+            "first_presentation",
+            concept_id="271939006",
+            within_days=90,
+            term="Vaginal discharge (finding)",
+        ),
+        {
+            "letter_text": (
+                "yellow vaginal discharge. advise patient to return if "
+                "persistent or recurrent bleeding. Consider giving "
+                "patient information sheet"
+            ),
+        },
+        NOW,
+    )
+    assert outcome == "confirmed"
+
+
 def test_first_presentation_contradicted_by_same_code_older_than_three_months() -> None:
-    """DI-DE8B125E: not first time when the same code is on the record older than 90 days."""
+    """DI-DE8B125E: not first time when the same code is older than 90 days."""
     outcome = resolve_soft_qualifier(
         _qualifier("first_presentation", concept_id="271939006", within_days=90),
         {

@@ -21,6 +21,10 @@ from libs.sbar.recall_preflight import (
 )
 from libs.sbar.recall_tools import RecallScope, RecallToolRegistry
 from libs.sbar.prompt_calls import call_recall
+from libs.sbar.situation_headline import (
+    absent_finding_terms,
+    present_finding_terms,
+)
 from libs.sbar.situation_source import (
     ReferralReasonEvidence,
     SituationSourceResult,
@@ -42,6 +46,8 @@ class Gate3Context:
     coverage: CoverageReport | None = None
     recall_exhaustion: RecallExhaustionResult | None = None
     source_accounting: dict[str, Any] = field(default_factory=dict)
+    present_findings: list[str] = field(default_factory=list)
+    absent_findings: list[str] = field(default_factory=list)
 
 
 def manifest_from_runtime(policy_runtime: Any | None) -> dict[str, Any]:
@@ -69,14 +75,16 @@ async def prepare_gate3_context(
         run_id=str(getattr(payload, "run_id", "") or ""),
     )
     extra = dict(getattr(payload, "extra", None) or {})
-    structured = build_structured_situation(
-        referral_request=referral_request,
-        referral_reason=recall_evidence,
-        trigger_scoped_letter=_trigger_scoped_letter(resolved_sources),
-        form_clinical_section=extra.get("form_clinical_section"),
-        form_sections=extra.get("form_sections"),
-        run_id=str(getattr(payload, "run_id", "") or ""),
+    entities = list(extra.get("entities") or [])
+    structured = _structured_from_payload(
+        payload,
+        referral_request,
+        recall_evidence,
+        resolved_sources,
+        extra,
+        entities,
     )
+    _align_referral_reason_artifact(resolved_situation, structured)
 
     coverage = _analyse_coverage(resolved_sources, aggregated, manifest)
     missing_slots = _missing_recall_slots(structured, referral_request)
@@ -98,14 +106,15 @@ async def prepare_gate3_context(
             policy_runtime=policy_runtime,
         )
         if recall_evidence and not structured.referral_reason:
-            structured = build_structured_situation(
-                referral_request=referral_request,
-                referral_reason=recall_evidence,
-                trigger_scoped_letter=_trigger_scoped_letter(resolved_sources),
-                form_clinical_section=extra.get("form_clinical_section"),
-                form_sections=extra.get("form_sections"),
-                run_id=str(getattr(payload, "run_id", "") or ""),
+            structured = _structured_from_payload(
+                payload,
+                referral_request,
+                recall_evidence,
+                resolved_sources,
+                extra,
+                entities,
             )
+            _align_referral_reason_artifact(resolved_situation, structured)
 
     accounting = _build_source_accounting(
         resolved_sources,
@@ -118,6 +127,8 @@ async def prepare_gate3_context(
         coverage=coverage,
         recall_exhaustion=recall_exhaustion,
         source_accounting=accounting,
+        present_findings=present_finding_terms(entities),
+        absent_findings=absent_finding_terms(entities),
     )
 
 
@@ -175,7 +186,44 @@ def situation_extra_context(
         "structured_headline": gate3.structured.headline,
         "source_precedence": list(gate3.structured.source_precedence),
         "structured_priority": gate3.structured.structured_priority,
+        "present_findings": list(gate3.present_findings),
+        "absent_findings": list(gate3.absent_findings),
     }
+
+
+def _align_referral_reason_artifact(
+    resolved_situation: Any, structured: SituationSourceResult
+) -> None:
+    """Stop a specialty-mismatched stored reason leading the Situation LLM."""
+    if structured.source_precedence[:1] not in (
+        ["form_clinical_section"],
+        ["coded_facts"],
+    ):
+        return
+    for art in getattr(resolved_situation, "artifacts", None) or []:
+        if art.get("type") != SituationArtifactType.referral_request.value:
+            continue
+        art["reason"] = structured.headline
+        art["reason_source"] = structured.source_precedence[0]
+
+
+def _structured_from_payload(
+    payload: Any,
+    referral_request: dict[str, Any] | None,
+    recall_evidence: ReferralReasonEvidence | None,
+    resolved_sources: list[ResolvedSource],
+    extra: dict[str, Any],
+    entities: list[dict[str, Any]],
+) -> SituationSourceResult:
+    return build_structured_situation(
+        referral_request=referral_request,
+        referral_reason=recall_evidence,
+        trigger_scoped_letter=_trigger_scoped_letter(resolved_sources),
+        form_clinical_section=extra.get("form_clinical_section"),
+        form_sections=extra.get("form_sections"),
+        coded_facts=entities,
+        run_id=str(getattr(payload, "run_id", "") or ""),
+    )
 
 
 def _referral_request_artifact(resolved_situation: Any) -> dict[str, Any] | None:

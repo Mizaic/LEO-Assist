@@ -11,6 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from libs.sbar.clinic_reason_fit import reason_matches_clinic
+from libs.sbar.situation_headline import headline_from_coded_facts
+
 REASON_RESULT_VERSION = "1.0"
 
 
@@ -41,15 +44,49 @@ def build_structured_situation(
     trigger_scoped_letter: str | None,
     form_clinical_section: str | None = None,
     form_sections: list[Any] | None = None,
+    coded_facts: list[dict[str, Any]] | None = None,
     run_id: str | None = None,
 ) -> SituationSourceResult:
-    """Prefer structured reason, then the taught form clinical section."""
-    precedence: list[str] = []
+    """Prefer a clinic-matching reason, then the taught 2WW form section."""
     rr = referral_request or {}
-    reason = str(rr.get("reason") or "").strip()
     priority = str(rr.get("priority") or "").strip() or None
-    if reason:
-        precedence.append("referral_request.reason")
+    clinic = str(rr.get("clinic_type") or "")
+    matched = _clinic_matching_reason(rr, referral_reason, clinic, run_id)
+    if matched is not None:
+        return matched
+    section = _resolve_form_clinical_section(
+        trigger_scoped_letter, form_clinical_section, form_sections
+    )
+    if section:
+        return SituationSourceResult(
+            headline=section[:400],
+            structured_priority=priority,
+            source_precedence=["form_clinical_section"],
+            letter_extract=section,
+        )
+    coded = headline_from_coded_facts(coded_facts)
+    if coded:
+        return SituationSourceResult(
+            headline=coded,
+            structured_priority=priority,
+            source_precedence=["coded_facts"],
+        )
+    return SituationSourceResult(
+        headline="Referral reason not documented in structured or letter sources.",
+        structured_priority=priority,
+        source_precedence=["missing"],
+    )
+
+
+def _clinic_matching_reason(
+    rr: dict[str, Any],
+    referral_reason: ReferralReasonEvidence | None,
+    clinic: str,
+    run_id: str | None,
+) -> SituationSourceResult | None:
+    priority = str(rr.get("priority") or "").strip() or None
+    reason = str(rr.get("reason") or "").strip()
+    if reason and reason_matches_clinic(reason, clinic):
         evidence = ReferralReasonEvidence(
             reason_text=reason,
             source_type="ReferralRequest",
@@ -59,36 +96,18 @@ def build_structured_situation(
         return SituationSourceResult(
             headline=reason,
             structured_priority=priority,
-            source_precedence=precedence,
+            source_precedence=["referral_request.reason"],
             referral_reason=evidence,
         )
-
-    if referral_reason and referral_reason.reason_text.strip():
-        precedence.append("referral_reason_evidence")
+    recalled = str(getattr(referral_reason, "reason_text", "") or "").strip()
+    if recalled and reason_matches_clinic(recalled, clinic):
         return SituationSourceResult(
-            headline=referral_reason.reason_text.strip(),
+            headline=recalled,
             structured_priority=priority,
-            source_precedence=precedence,
+            source_precedence=["referral_reason_evidence"],
             referral_reason=referral_reason,
         )
-
-    section = _resolve_form_clinical_section(
-        trigger_scoped_letter, form_clinical_section, form_sections
-    )
-    if section:
-        precedence.append("form_clinical_section")
-        return SituationSourceResult(
-            headline=section[:400],
-            structured_priority=priority,
-            source_precedence=precedence,
-            letter_extract=section,
-        )
-
-    return SituationSourceResult(
-        headline="Referral reason not documented in structured or letter sources.",
-        structured_priority=priority,
-        source_precedence=["missing"],
-    )
+    return None
 
 
 def _resolve_form_clinical_section(

@@ -146,6 +146,23 @@ def test_contradicted_first_presentation_without_other_arm_does_not_fire() -> No
     assert _fired(result) == set()
 
 
+def test_form_chrome_repeats_and_recurrent_bleeding_still_fire() -> None:
+    """Medication Repeats and PMB pathway 'recurrent bleeding' must not block 1.5.13."""
+    letter = (
+        "vaginal discharge- yellowish in colour no pv bleeding.\n"
+        "2. Repeats | None |\n"
+        "advise patient to return if persistent or recurrent bleeding. "
+        "Consider giving patient information sheet\n"
+    )
+    result = _evaluator().evaluate_patient(
+        [_DISCHARGE],
+        patient_age=57,
+        patient_sex="female",
+        letter_text=letter,
+    )
+    assert _fired(result) == {"1.5.13"}
+
+
 def test_contradicted_first_presentation_still_fires_with_thrombocytosis() -> None:
     old = datetime.now(timezone.utc) - timedelta(days=200)
     result = _evaluator().evaluate_patient(

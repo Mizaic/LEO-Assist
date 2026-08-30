@@ -73,6 +73,9 @@ def test_situation_prompt_forbids_assumed_2ww_and_apology_with_letter() -> None:
     assert "situation vs background" in flat
     assert "do not retell letter history" in flat
     assert "one headline trigger" in flat
+    assert "absent_findings" in flat
+    assert "unticked" in flat
+    assert "postmenopausal state" in flat
 
 
 def test_resolve_situation_document_reference_truncates() -> None:

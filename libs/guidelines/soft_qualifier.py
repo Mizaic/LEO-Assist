@@ -10,6 +10,7 @@ Atlas:
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
@@ -104,8 +105,43 @@ def _letter_text(patient_facts: dict[str, Any] | None) -> str:
     return str(patient_facts.get("letter_text") or "").lower()
 
 
+def _word_hit(phrase: str, text: str) -> bool:
+    return bool(re.search(rf"\b{re.escape(phrase)}\b", text))
+
+
 def _phrase_hit(kind: str, letter: str) -> bool:
-    return any(phrase in letter for phrase in _PHRASES.get(kind, ()))
+    return any(_word_hit(phrase, letter) for phrase in _PHRASES.get(kind, ()))
+
+
+_TERM_STOP = frozenset({"of", "the", "a", "an", "and", "or", "from"})
+
+
+def _finding_tokens(term: str) -> tuple[str, ...]:
+    cleaned = re.sub(r"\([^)]*\)", "", term or "").lower()
+    return tuple(
+        tok
+        for tok in re.findall(r"[a-z]+", cleaned)
+        if tok not in _TERM_STOP and len(tok) > 2
+    )
+
+
+def _clauses(letter: str) -> list[str]:
+    return [part.strip() for part in re.split(r"[.\n|;]+", letter) if part.strip()]
+
+
+def _repeat_or_chronic_of_finding(letter: str, term: str) -> bool:
+    """True when recurrent/repeat/chronic modifies this finding, not form chrome."""
+    tokens = _finding_tokens(term)
+    if not tokens:
+        return _phrase_hit("repeat_or_chronic", letter)
+    for clause in _clauses(letter):
+        if not any(
+            _word_hit(phrase, clause) for phrase in _PHRASES["repeat_or_chronic"]
+        ):
+            continue
+        if any(token in clause for token in tokens):
+            return True
+    return False
 
 
 def _older_than_window(
@@ -185,7 +221,7 @@ def resolve_soft_qualifier(
         return "confirmed"
     letter = _letter_text(patient_facts)
     if kind == "first_presentation":
-        if _phrase_hit("repeat_or_chronic", letter):
+        if _repeat_or_chronic_of_finding(letter, str(qualifier.get("term") or "")):
             return "contradicted"
         if _older_than_window(qualifier, patient_facts, now):
             return "contradicted"
@@ -212,10 +248,13 @@ def apply_soft_qualifiers(
         raise SoftQualifierError("resolver unavailable") from exc
     criterion = dict(node.get("criterion") or {})
     default_concept = str(criterion.get("snomed_concept_id") or "")
+    default_term = str(criterion.get("preferred_term") or "")
     for raw in criterion.get("soft_qualifiers") or []:
         spec = dict(raw) if isinstance(raw, dict) else {}
         if not spec.get("concept_id"):
             spec["concept_id"] = default_concept
+        if not spec.get("term"):
+            spec["term"] = default_term
         outcome = resolver(spec, patient_facts, now)
         if outcome == "contradicted":
             return False

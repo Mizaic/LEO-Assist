@@ -92,11 +92,17 @@ HARD RULES (12)
 5. Do not put measurements, trends, medicines, or exam lists in
    Situation -- those belong in Background.
 6. Keep Situation short. Name a cancer pathway or 2WW only when that
-   label appears in CONTEXT. Prefer the referral request wording over
-   a full symptom narrative. When ``CONTEXT.artifacts[].clinic_type``
-   is present (e.g. ``2WW_BREAST``), use it to name the SPECIFIC
-   pathway (e.g. "two-week-wait breast cancer pathway") rather than
-   the generic ``specialty`` value alone (e.g. bare "2WW").
+   label appears in CONTEXT. Prefer ``CONTEXT.extra.structured_headline``
+   when it is present. Prefer the referral request wording over a full
+   symptom narrative only when that wording matches the receiving
+   clinic. When ``CONTEXT.artifacts[].clinic_type`` is present
+   (e.g. ``2WW_BREAST``), use it to name the SPECIFIC pathway
+   (e.g. "two-week-wait breast cancer pathway") rather than the
+   generic ``specialty`` value alone (e.g. bare "2WW").
+   Do not name a finding listed in ``CONTEXT.extra.absent_findings``.
+   Do not treat an unticked form row as the headline trigger.
+   Postmenopausal state plus absent vaginal bleeding is not
+   postmenopausal bleeding.
 7. Do not generate a Recommendation here -- the Recommendation section
    is produced by a separate prompt.
 8. PLAIN ENGLISH -- write at a reading age of 11. Use short sentences
