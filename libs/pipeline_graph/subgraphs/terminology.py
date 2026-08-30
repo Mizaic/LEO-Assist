@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -202,16 +203,50 @@ _LOOKUP_STRIP_SUFFIXES = (
     " both solids and liquids",
     " solids and liquids",
     " to solids and liquids",
+    " of uncertain cause",
+    " of unknown cause",
+    " of unclear cause",
 )
 
 
 def _strip_trailing_modifiers(text: str) -> str:
-    """Remove trailing meal-consistency qualifiers that block SNOMED lookup."""
+    """Remove trailing meal or certainty words that block SNOMED lookup."""
     lowered = text.lower()
     for suffix in _LOOKUP_STRIP_SUFFIXES:
         if lowered.endswith(suffix):
             return text[: len(text) - len(suffix)].strip()
     return text
+
+
+_GENERIC_VULVA_FINDING_ID = "248858001"
+_VULVAL_ULCER_ID = "68640004"
+_VULVAL_ULCER_TERM = "Ulceration of vulva (disorder)"
+_ULCERATION_WORD = re.compile(r"\bulceration\b", re.IGNORECASE)
+_VULVA_STEM = re.compile(r"\bvulv", re.IGNORECASE)
+
+
+def _upgrade_generic_vulva_ulcer(entity: dict[str, Any]) -> dict[str, Any]:
+    """Replace generic or missing vulva code when the span says ulceration.
+
+    Soreness or pain alone must not become an ulcer code.
+    """
+    current = str(entity.get("concept_id") or "")
+    if current not in {"", _GENERIC_VULVA_FINDING_ID}:
+        return entity
+    blob = " ".join(
+        (
+            str(entity.get("text") or ""),
+            str(entity.get("lookup_term") or ""),
+        )
+    )
+    if not (_ULCERATION_WORD.search(blob) and _VULVA_STEM.search(blob)):
+        return entity
+    upgraded = dict(entity)
+    upgraded["concept_id"] = _VULVAL_ULCER_ID
+    upgraded["term"] = _VULVAL_ULCER_TERM
+    upgraded["semantic_tag"] = "disorder"
+    upgraded["terminology_unresolved"] = False
+    return upgraded
 
 
 def _resolve_lookup_term(entity: dict[str, Any]) -> str:
@@ -375,7 +410,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             merged = _merge_resolution(entity, results.get(lookup, []), min_score)
             if lookup:
                 merged["lookup_term"] = lookup
-            resolved.append(merged)
+            resolved.append(_upgrade_generic_vulva_ulcer(merged))
         unresolved = [r for r in resolved if r.get("terminology_unresolved")]
         if unresolved:
             warnings.append(

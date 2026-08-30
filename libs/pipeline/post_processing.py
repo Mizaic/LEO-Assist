@@ -6,7 +6,7 @@ Atlas trace:
   DO: DO-728930A1, DO-416BA91D
   VT: VT-88920DAA, VT-29AF2163, VT-2A7C5322, VT-4231B0A0,
       VT-E425D17E, VT-CC118874, VT-7AC15E8B, VT-29880CC8,
-      VT-E6BD0CA9
+      VT-E6BD0CA9, VT-CF7C4261
   Look up via: get_design_control(dc_type="design-input", dc_id="DI-B5C78811")
 
 All layers execute in a fixed order on plain entity dicts (including 2b Referral Routing Guard).  Both the
@@ -18,6 +18,7 @@ post-processing logic, eliminating train/serve skew.
 Layer order
 -----------
 1. Post-Processor Rules   -- DB-driven text/label rewrites
+1b. Coordinated Finding Split -- cut "A or B" / "itch/dryness" spans
 2. Lab-Value Guard        -- suppress disorders inferred from lab results
 2b. Referral Routing Guard -- drop informational 2WW/pathway routing prose
 3. Scope Guard            -- reclassify assertions in safety-netting /
@@ -66,6 +67,7 @@ from typing import Any
 from libs.llm_client.disorder_verifier import DisorderVerdict, verify_disorder
 from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 from libs.ner.context_detector import normalize_situation_lookup
+from libs.ner.coordinated_finding_split import split_coordinated_findings
 
 # Imported directly, never behind a fallback. ConText is the negation
 # guard: without it "No chest pain" is recorded as chest pain present. A
@@ -1679,6 +1681,13 @@ def run_post_processing_with_trace(
         ),
         skip_when=rules is None,
         skip_reason="no rules configured",
+    )
+
+    # Layer 1b: Coordinated Finding Split (DI-B5C78811)
+    _run_layer(
+        "layer_1b",
+        "Coordinated Finding Split",
+        split_coordinated_findings,
     )
 
     # Layer 2: Lab-Value Guard

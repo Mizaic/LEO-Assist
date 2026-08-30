@@ -154,8 +154,11 @@ def test_rewrite_and_cover_attaches_completeness_groups() -> None:
         created_by="test",
         completeness_groups=_TAUGHT_GROUPS,
     )
-    _texts, extra = _rewrite_and_cover(schema, ["Section A\nA1. Yes [X]"])
+    _texts, extra = _rewrite_and_cover(
+        schema, ["Section A\nA1. Yes [X]\nSection B\nAffected side"]
+    )
     assert extra["completeness_groups"] == _TAUGHT_GROUPS
+    assert extra.get("form_layout_matched") is True
     assert extra.get("section_hits")
 
 

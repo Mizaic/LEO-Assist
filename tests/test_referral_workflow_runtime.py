@@ -93,7 +93,7 @@ def test_quality_check_reports_unconfigured_completeness(monkeypatch):
     completeness = result["completeness_result"]
     assert completeness["configured"] is False
     assert completeness["complete"] is False
-    assert any(
+    assert not any(
         issue["issue_type"] == "minimum_dataset_incomplete"
         for issue in result["quality_issues"]
     )

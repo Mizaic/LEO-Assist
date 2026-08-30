@@ -225,6 +225,10 @@ Use the shortest faithful clinical span:
 - Prefer "visual disturbance" over a long eye-symptom sentence when that phrase appears.
 - Prefer "CA125 raised" when the source says "CA125 raised" or "CA125 level is raised";
   do not emit the whole measurement sentence as one entity.
+- Do not emit coordinated findings as one span. Extract each finding separately.
+  "No adnexal mass or free fluid" -> two entities: "no adnexal mass" and
+  "no free fluid". "vaginal itch/dryness" -> "vaginal itch" and "vaginal dryness".
+  Keep PMB as one finding. Do not split measurements or brand products.
 - For FIT checklist tokens, text = exactly the token in the source (-FIT, FIT-, FIT+,
   FIT positive, FIT requested, FIT test) -- not a long paraphrase unless that is
   the only wording present.
