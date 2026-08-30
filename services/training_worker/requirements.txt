@@ -2,6 +2,7 @@ fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 spacy>=3.7.0
 spacy-transformers>=1.3,<1.4
+transformers>=4.41.0,<4.50.0
 # Linux training-worker containers run CPU-only in ACA.
 # Dockerfile.training-worker configures the PyTorch CPU index for this pin.
 torch==2.10.0+cpu; platform_system == "Linux"

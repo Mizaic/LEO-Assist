@@ -23,6 +23,9 @@ aiohttp>=3.9.0
 # Match services/api: ConText pipeline in libs.ner.context_engine (pipeline worker warm-up).
 spacy>=3.8,<4.0
 medspacy==1.3.1
+sentence-transformers>=3.0.0,<4
+transformers>=4.41.0,<4.50.0
+spacy-transformers>=1.3,<1.4
 beautifulsoup4>=4.12
 numpy>=1.26.0,<2.4
 # GuidelineEvaluator / BitmapStore (compliance subgraph in-process import).
