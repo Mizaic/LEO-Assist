@@ -21,13 +21,16 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import { RULE_PRIORITIES, type RulePriority } from "./types";
+import { FIT_POLICY_LABELS } from "./copy";
+import { RULE_PRIORITIES, type InvestigationPolicy, type RulePriority } from "./types";
 
 interface Props {
   priority: RulePriority;
   dueDays: number | null;
   onPriorityChange: (next: RulePriority) => void;
   onDueDaysChange: (next: number | null) => void;
+  investigationPolicy?: InvestigationPolicy | "";
+  onInvestigationPolicyChange?: (next: InvestigationPolicy | "") => void;
 }
 
 export default function PriorityPanel({
@@ -35,6 +38,8 @@ export default function PriorityPanel({
   dueDays,
   onPriorityChange,
   onDueDaysChange,
+  investigationPolicy = "",
+  onInvestigationPolicyChange,
 }: Props) {
   const selectId = "edit-rule-priority";
   const dueDaysId = "edit-rule-due-days";
@@ -125,6 +130,36 @@ export default function PriorityPanel({
           />
         </Box>
       </Stack>
+      <Box sx={{ mt: 2, minWidth: 260, maxWidth: 360 }}>
+        <Typography
+          variant="caption"
+          component="label"
+          htmlFor="edit-rule-fit-policy"
+          sx={{ display: "block", color: "text.secondary", mb: 0.25, ml: 0.5 }}
+        >
+          FIT policy
+        </Typography>
+        <Select
+          id="edit-rule-fit-policy"
+          size="small"
+          fullWidth
+          value={investigationPolicy}
+          onChange={(e) =>
+            onInvestigationPolicyChange?.(
+              String(e.target.value) as InvestigationPolicy | "",
+            )
+          }
+          inputProps={{
+            "aria-label": "Faecal immunochemical test policy for this rule",
+          }}
+        >
+          {FIT_POLICY_LABELS.map((o) => (
+            <MenuItem key={o.value || "none"} value={o.value}>
+              {o.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </Box>
     </Box>
   );
 }

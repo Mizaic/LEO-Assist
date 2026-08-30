@@ -153,6 +153,17 @@ class EvaluateRequest(BaseModel):
     absent / empty payloads fail those leaves CLOSED."""
 
 
+class MissingFitReferral(BaseModel):
+    referral_id: str
+    organization_id: str
+    matched_rules: list[dict] = Field(default_factory=list)
+
+
+class MissingFitListRequest(BaseModel):
+    organization_id: str
+    referrals: list[MissingFitReferral] = Field(default_factory=list)
+
+
 class CompileRequest(BaseModel):
     scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = (
         "global"
@@ -176,6 +187,24 @@ class ActivateRequest(BaseModel):
         "global"
     )
     scope_id: str = "default"
+
+
+@router.post("/guidelines/missing-fit-list")
+def missing_fit_list(
+    req: MissingFitListRequest,
+    _: None = Depends(verify_service_token),
+) -> dict:
+    """List tenant referrals that should have had a FIT and did not."""
+    from libs.guidelines.missing_fit_list import filter_missing_fit_referrals
+
+    org = (req.organization_id or "").strip()
+    if not org:
+        raise HTTPException(status_code=422, detail="organization_id is required")
+    kept = filter_missing_fit_referrals(
+        [row.model_dump() for row in req.referrals],
+        organization_id=org,
+    )
+    return {"organization_id": org, "referrals": kept}
 
 
 @router.post("/guidelines/evaluate")

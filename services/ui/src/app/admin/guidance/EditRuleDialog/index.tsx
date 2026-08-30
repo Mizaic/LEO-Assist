@@ -189,6 +189,8 @@ export interface EditableRule {
   action_due_days?: number | null;
   /** When true this rule fires only if no other rule in the guideline matched. */
   is_default?: boolean;
+  /** Faecal immunochemical test (FIT) policy for ICB lists. */
+  investigation_policy?: "required" | "not_required" | "result_gate" | null;
 }
 
 interface Props {
@@ -211,6 +213,7 @@ interface Props {
     priority?: RulePriority;
     due_days?: number | null;
     is_default?: boolean;
+    investigation_policy?: "required" | "not_required" | "result_gate" | null;
   }) => void;
 }
 
@@ -402,6 +405,9 @@ export default function EditRuleDialog({
   const [actionsDirty, setActionsDirty] = useState(false);
   const [priority, setPriority] = useState<RulePriority>("routine");
   const [dueDays, setDueDays] = useState<number | null>(null);
+  const [investigationPolicy, setInvestigationPolicy] = useState<
+    import("./types").InvestigationPolicy | ""
+  >("");
   const [originalPriority, setOriginalPriority] =
     useState<RulePriority>("routine");
   const [originalDueDays, setOriginalDueDays] = useState<number | null>(null);
@@ -699,6 +705,13 @@ export default function EditRuleDialog({
       initialDueDays != null && Number.isFinite(initialDueDays)
         ? initialDueDays
         : null,
+    );
+    setInvestigationPolicy(
+      rule.investigation_policy === "required" ||
+        rule.investigation_policy === "not_required" ||
+        rule.investigation_policy === "result_gate"
+        ? rule.investigation_policy
+        : "",
     );
     setOriginalPriority(initialPriority);
     setOriginalDueDays(
@@ -1212,6 +1225,7 @@ export default function EditRuleDialog({
       priority,
       due_days: priority === "routine" ? null : dueDays,
       is_default: isDefault,
+      investigation_policy: investigationPolicy || null,
     });
   }
 
@@ -1481,6 +1495,8 @@ export default function EditRuleDialog({
                   dueDays={dueDays}
                   onPriorityChange={handlePriorityChange}
                   onDueDaysChange={handleDueDaysChange}
+                  investigationPolicy={investigationPolicy}
+                  onInvestigationPolicyChange={setInvestigationPolicy}
                   actions={actions}
                   selectedActionIndex={
                     searchTarget.mode === "replace_action"

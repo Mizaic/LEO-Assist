@@ -34,6 +34,10 @@ from libs.guidance_schema.observation_leaf import (
     ObservationLeaf,
     ObservationLeafValidationError,
 )
+from libs.guidelines.soft_qualifier import (
+    INVESTIGATION_POLICIES,
+    SoftQualifierSpec,
+)
 
 # Default IS_A descendant depth applied when a seed asks for descendant
 # expansion but does not override distance_child. Matches the historical
@@ -131,6 +135,9 @@ class LogicCriterion(BaseModel):
     needs_human_review: bool = False
     human_reviewed_at: str | None = None
     human_reviewed_by: str | None = None
+    # Soft guideline words (first presentation, unexplained, ...). Empty
+    # keeps today's compile bitmaps unchanged. Enforcement is the caller.
+    soft_qualifiers: list[SoftQualifierSpec] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _normalise(self) -> "LogicCriterion":
@@ -360,6 +367,21 @@ class RuleUpdates(BaseModel):
     actions: list[RuleAction] | None = None
     priority: str | None = None
     due_days: int | None = Field(default=None, ge=0)
+    # Rule-level faecal immunochemical test (FIT) policy. Echoed at
+    # compile time; unset means no FIT policy.
+    investigation_policy: str | None = None
+
+    @field_validator("investigation_policy")
+    @classmethod
+    def _check_investigation_policy(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        if v not in INVESTIGATION_POLICIES:
+            raise ValueError(
+                f"investigation_policy must be one of "
+                f"{sorted(INVESTIGATION_POLICIES)}; got {v!r}."
+            )
+        return v
 
     @field_validator("priority")
     @classmethod
@@ -604,6 +626,7 @@ CREATE (rule:AppropriatenessRule {
     schemaVersion:               2,
     logicJson:                   $logic_json,
     actionJson:                  coalesce($action_json, pred.actionJson),
+    investigationPolicy:         coalesce($investigation_policy, pred.investigationPolicy),
     verifierJson:                pred.verifierJson,
     rawLogicJson:                pred.rawLogicJson,
     generatedBy:                 'human_edit',
@@ -994,6 +1017,7 @@ def apply_rule_edit(
         strength=new_strength,
         logic_json=logic_json,
         action_json=action_json,
+        investigation_policy=updates.investigation_policy,
         reviewer=reviewer,
         reason=reason,
         event_id=str(uuid.uuid4()),

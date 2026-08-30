@@ -59,6 +59,27 @@ export const GROUP_KIND_SHORT: Record<LogicNodeKind, string> = {
  * a data-entry form. Reviewers who need a non-standard window can
  * type a number directly into the &quot;days&quot; field.
  */
+export const SOFT_QUALIFIER_LABELS: ReadonlyArray<{
+  kind: string;
+  label: string;
+}> = [
+  { kind: "first_presentation", label: "First presentation" },
+  { kind: "repeat_or_chronic", label: "Repeat or long-term" },
+  { kind: "unexplained", label: "Unexplained" },
+  { kind: "unintentional", label: "Unintentional" },
+  { kind: "persistent", label: "Persistent" },
+];
+
+export const FIT_POLICY_LABELS: ReadonlyArray<{
+  value: string;
+  label: string;
+}> = [
+  { value: "", label: "None" },
+  { value: "required", label: "Required" },
+  { value: "not_required", label: "Not required" },
+  { value: "result_gate", label: "Result gate" },
+];
+
 export const RECENCY_LABELS: ReadonlyArray<{
   days: number;
   label: string;

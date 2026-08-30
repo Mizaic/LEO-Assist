@@ -212,6 +212,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
       actions?: Array<Record<string, unknown>>;
       priority?: "immediate" | "very_urgent" | "2ww" | "urgent" | "routine";
       due_days?: number | null;
+      investigation_policy?: "required" | "not_required" | "result_gate" | null;
     }) => {
       if (!editRule) return;
       setEditSaving(true);
@@ -236,6 +237,9 @@ export default function RuleReviewSection({ refreshKey }: Props) {
                         ? null
                         : (payload.due_days ?? null),
                   }
+                : {}),
+              ...(payload.investigation_policy !== undefined
+                ? { investigation_policy: payload.investigation_policy }
                 : {}),
             },
           }),

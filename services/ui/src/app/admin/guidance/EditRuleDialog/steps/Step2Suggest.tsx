@@ -36,7 +36,7 @@ import Typography from "@mui/material/Typography";
 import ActionsPanel from "../ActionsPanel";
 import PriorityPanel from "../PriorityPanel";
 import { STEP_HELPERS, STEP_TITLES } from "../copy";
-import type { RuleAction, RulePriority } from "../types";
+import type { InvestigationPolicy, RuleAction, RulePriority } from "../types";
 
 interface Props {
   name: string;
@@ -45,6 +45,8 @@ interface Props {
   dueDays: number | null;
   onPriorityChange: (next: RulePriority) => void;
   onDueDaysChange: (next: number | null) => void;
+  investigationPolicy?: InvestigationPolicy | "";
+  onInvestigationPolicyChange?: (next: InvestigationPolicy | "") => void;
   actions: RuleAction[];
   selectedActionIndex: number | null;
   onSelectAction: (index: number) => void;
@@ -64,6 +66,8 @@ export default function Step2Suggest({
   dueDays,
   onPriorityChange,
   onDueDaysChange,
+  investigationPolicy,
+  onInvestigationPolicyChange,
   actions,
   selectedActionIndex,
   onSelectAction,
@@ -99,6 +103,8 @@ export default function Step2Suggest({
         dueDays={dueDays}
         onPriorityChange={onPriorityChange}
         onDueDaysChange={onDueDaysChange}
+        investigationPolicy={investigationPolicy}
+        onInvestigationPolicyChange={onInvestigationPolicyChange}
       />
 
       <ActionsPanel

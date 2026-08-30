@@ -467,12 +467,39 @@ def _render_rule_bullet(rule: dict[str, Any]) -> str:
     matched_via_line = _render_matched_via(rule.get("matched_via"))
     if matched_via_line:
         out += f"\n  - **Matched on:** {matched_via_line}"
+    for gap_line in _render_unverified_qualifiers(rule.get("unverified_qualifiers")):
+        out += f"\n  - {gap_line}"
     for action_line in _render_action_lines(rule):
         out += f"\n  - {action_line}"
     guideline_line = _render_guideline_line(rule)
     if guideline_line:
         out += f"\n  - {guideline_line}"
     return out
+
+
+_UNVERIFIED_WORD: dict[str, tuple[str, str]] = {
+    "first_presentation": ("a first presentation of this symptom", "a first episode"),
+    "unexplained": ("this symptom to be unexplained", "unexplained"),
+    "unintentional": ("this change to be unintentional", "unintentional"),
+    "persistent": ("this symptom to be persistent", "persistent"),
+    "repeat_or_chronic": ("this to be a repeat or long-term problem", "repeat or long-term"),
+}
+
+
+def _render_unverified_qualifiers(kinds: list[str] | None) -> list[str]:
+    """Name each unproved guideline word in everyday English (DI-C93802C8)."""
+    lines: list[str] = []
+    for kind in kinds or []:
+        asked, check = _UNVERIFIED_WORD.get(kind, (None, None))
+        if not asked:
+            continue
+        lines.append(
+            f"The guideline also asks for {asked}. We could not confirm "
+            f"that from this letter. We have still offered the scan so a "
+            f"possible cancer is not missed. Please check whether this is "
+            f"{check}."
+        )
+    return lines
 
 
 def _chip_label(entry: dict[str, Any]) -> str:
