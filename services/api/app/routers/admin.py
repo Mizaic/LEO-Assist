@@ -74,12 +74,15 @@ class CreateUserBody(BaseModel):
     name: str
     is_platform_admin: bool = False
     org_ids: list[str] = []
+    group_ids: list[str] = []
 
 
 class PatchUserBody(BaseModel):
     name: Optional[str] = None
     is_platform_admin: Optional[bool] = None
     org_ids: Optional[list[str]] = None
+    group_ids: Optional[list[str]] = None
+    clear_legacy_roles: bool = False
 
 
 class AssignRoleBody(BaseModel):
@@ -559,6 +562,8 @@ async def list_users(
                     "org_ids": r.get("org_ids") or [],
                     "org_names": r.get("org_names") or [],
                     "roles": r.get("roles") or [],
+                    "groups": r.get("groups") or [],
+                    "legacy_roles": [x for x in (r.get("legacy_roles") or []) if x],
                     "last_seen_at": _neo4j_datetime_str(r.get("last_seen_at")),
                     "invited_at": _neo4j_datetime_str(r.get("invited_at")),
                     "active_sessions_count": len(user_sessions),
@@ -605,6 +610,8 @@ async def create_user(
             id=str(uuid.uuid4()),
             org_ids=body.org_ids or [],
         )
+        if body.group_ids:
+            client.run(aq.SET_USER_GROUPS, email=email, group_ids=body.group_ids)
         invalidate_caller_scope_cache(email)
     finally:
         client.close()
@@ -623,7 +630,7 @@ async def patch_user(
     body: PatchUserBody,
     _scope: CallerScope = Depends(require_admin),
 ) -> dict[str, Any]:
-    """Update name, is_platform_admin, orgs."""
+    """Update name, admin flag, orgs, and group memberships."""
     email = email.strip().lower()
     updates = {}
     if body.name is not None:
@@ -642,10 +649,18 @@ async def patch_user(
             updates=updates,
             org_ids=org_ids,
         )
+        _apply_user_group_patch(client, email, body)
         invalidate_caller_scope_cache(email)
         return {"email": email}
     finally:
         client.close()
+
+
+def _apply_user_group_patch(client: Any, email: str, body: PatchUserBody) -> None:
+    if body.group_ids is not None:
+        client.run(aq.SET_USER_GROUPS, email=email, group_ids=body.group_ids)
+    if body.clear_legacy_roles:
+        client.run(aq.CLEAR_LEGACY_USER_ROLES, email=email)
 
 
 @router.delete("/users/{email}")

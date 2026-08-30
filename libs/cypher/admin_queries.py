@@ -1,9 +1,9 @@
 """Cypher queries for admin/tenant management.
 
 Atlas trace:
-  DO: DO-308DD1A6
-  DI: DI-D49BCE55
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-308DD1A6")
+  DO: DO-72F81432
+  DI: DI-96D95459
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-72F81432")
 
 Organisations, practitioners, groups, roles, and system config.
 Identity and RBAC query strings live in hccp_identity_queries.py.
@@ -15,6 +15,7 @@ from libs.cypher.hccp_identity_queries import (  # noqa: F401
     ASSIGN_USER_ROLE,
     BACKFILL_GROUP_SOURCE_LOCAL,
     BIND_ENTRA_GROUP_TO_ROLE,
+    CLEAR_LEGACY_USER_ROLES,
     CREATE_GROUP,
     CREATE_PRACTITIONER,
     DEACTIVATE_PRACTITIONER,
@@ -33,6 +34,7 @@ from libs.cypher.hccp_identity_queries import (  # noqa: F401
     REMOVE_GROUP_MEMBER,
     REMOVE_PRACTITIONER_FROM_ORG,
     REMOVE_USER_ROLE,
+    SET_USER_GROUPS,
     UNBIND_ENTRA_GROUP_ROLE,
     UPDATE_GROUP,
     UPDATE_PRACTITIONER,
@@ -162,6 +164,15 @@ SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_nam
     o.created_at = datetime()
 RETURN o.id AS id
 """
+
+# Startup seed for the Mizaic vendor org. organization_id must be set on
+# create: the patient graph requires that property on :Organization.
+MERGE_MIZAIC_ORGANIZATION = (
+    "MERGE (o:Organization {id: $id}) "
+    "ON CREATE SET o.organization_id = $id, o.name = $name, "
+    "              o.odsCode = '', o.short_name = 'Mizaic' "
+    "ON MATCH SET o.organization_id = coalesce(o.organization_id, $id)"
+)
 
 UPDATE_ORG = """
 MATCH (o)

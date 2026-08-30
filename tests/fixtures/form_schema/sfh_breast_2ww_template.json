@@ -1,0 +1,779 @@
+{
+  "form_name": "Sherwood Forest Hospitals NHS Foundation Trust -- Kings Mill and Newark Hospital Breast Unit Referral Form (2WW)",
+  "sections": [
+    {
+      "section_id": "admin_header",
+      "section_type": "admin",
+      "label": "Breast Unit Referral Form header",
+      "start_pattern": "Breast Unit Referral Form",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "section_a_2ww_symptoms",
+      "section_type": "checkbox_multi",
+      "label": "Section A: Symptoms / Signs suggesting possible breast cancer so meeting criteria for 2 Week Wait referral",
+      "start_pattern": "Section A",
+      "items": [
+        {
+          "pattern": "A1.",
+          "entity_text": "Newly presenting discrete hard breast lump",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A\\.?2",
+          "entity_text": "Discrete breast lump persisting after period or menopause",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A3.",
+          "entity_text": "Nipple ulceration",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A4.",
+          "entity_text": "Unilateral blood stained nipple discharge",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A5.",
+          "entity_text": "Skin nodule of breast",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A6.",
+          "entity_text": "Distortion of breast",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A7.",
+          "entity_text": "Skin tethering of breast",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A8.",
+          "entity_text": "Nipple eczema",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A9.",
+          "entity_text": "Recent nipple retraction",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A10.",
+          "entity_text": "Possible breast cancer recurrence",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": [
+        "finding"
+      ]
+    },
+    {
+      "section_id": "section_b_examination",
+      "section_type": "free_text",
+      "label": "Section B: Examination",
+      "start_pattern": "Section B",
+      "items": [
+        {
+          "pattern": "Affected side",
+          "entity_text": "Breast examination findings",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": "Free text examination"
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "section_c_other",
+      "section_type": "free_text",
+      "label": "Section C: Other information that you consider relevant",
+      "start_pattern": "Section C",
+      "items": [
+        {
+          "pattern": "High risk family history",
+          "entity_text": "Family history relevant to breast referral",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "section_d_investigations",
+      "section_type": "ordered_tests",
+      "label": "Section D: Investigations performed",
+      "start_pattern": "Section D: Investigations",
+      "items": [
+        {
+          "pattern": "FBC",
+          "entity_text": "Complete blood count",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "26604007",
+          "procedure_display": "Complete blood count",
+          "analytes": [
+            {
+              "label": "Hb",
+              "snomed_code": "1022431000000105",
+              "display": "Haemoglobin estimation"
+            },
+            {
+              "label": "WCC",
+              "snomed_code": "1110441000000100",
+              "display": "White blood cell count in blood"
+            },
+            {
+              "label": "Plts",
+              "snomed_code": "1022651000000100",
+              "display": "Platelet count"
+            },
+            {
+              "label": "MCV",
+              "snomed_code": "1022491000000106",
+              "display": "Mean corpuscular volume"
+            },
+            {
+              "label": "Neut",
+              "snomed_code": "1022551000000104",
+              "display": "Neutrophil count"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "UE",
+          "entity_text": "Measurement of urea and electrolytes",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "252167001",
+          "procedure_display": "Measurement of urea and electrolytes",
+          "analytes": [
+            {
+              "label": "Na",
+              "snomed_code": "1000661000000107",
+              "display": "Serum sodium level"
+            },
+            {
+              "label": "K",
+              "snomed_code": "1000651000000109",
+              "display": "Serum potassium level"
+            },
+            {
+              "label": "Urea",
+              "snomed_code": "1000951000000103",
+              "display": "Serum urea level"
+            },
+            {
+              "label": "Creat",
+              "snomed_code": "1000731000000107",
+              "display": "Serum creatinine level"
+            },
+            {
+              "label": "eGFR",
+              "snomed_code": "1011481000000105",
+              "display": "Estimated glomerular filtration rate"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "LFT",
+          "entity_text": "Hepatic function panel",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "26958001",
+          "procedure_display": "Hepatic function panel",
+          "analytes": [
+            {
+              "label": "ALT",
+              "snomed_code": "1018251000000107",
+              "display": "Serum alanine aminotransferase level"
+            },
+            {
+              "label": "Alk Phos",
+              "snomed_code": "1000621000000104",
+              "display": "Serum alkaline phosphatase level"
+            },
+            {
+              "label": "Bili",
+              "snomed_code": "997591000000109",
+              "display": "Serum total bilirubin level"
+            },
+            {
+              "label": "Alb",
+              "snomed_code": "1000821000000103",
+              "display": "Serum albumin level"
+            },
+            {
+              "label": "GGT",
+              "snomed_code": "1000861000000106",
+              "display": "Serum gamma-glutamyl transferase level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Bone",
+          "entity_text": "Bone profile",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "167036008",
+          "procedure_display": "Bone profile",
+          "analytes": [
+            {
+              "label": "Ca",
+              "snomed_code": "1000691000000101",
+              "display": "Serum calcium level"
+            },
+            {
+              "label": "Ca cor",
+              "snomed_code": "",
+              "display": "Corrected serum calcium level"
+            },
+            {
+              "label": "Ca adj",
+              "snomed_code": "935051000000108",
+              "display": "Serum adjusted calcium concentration"
+            },
+            {
+              "label": "Phos",
+              "snomed_code": "1000701000000101",
+              "display": "Serum inorganic phosphate level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "CRP",
+          "entity_text": "Serum C reactive protein level",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "135842001",
+          "procedure_display": "Serum C reactive protein level",
+          "analytes": [
+            {
+              "label": "CRP",
+              "snomed_code": "1001371000000100",
+              "display": "Serum C reactive protein level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "TFTs",
+          "entity_text": "Thyroid panel",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "35650009",
+          "procedure_display": "Thyroid panel",
+          "analytes": [
+            {
+              "label": "TSH",
+              "snomed_code": "1022791000000101",
+              "display": "Serum thyroid stimulating hormone level"
+            },
+            {
+              "label": "Free T4",
+              "snomed_code": "1030801000000101",
+              "display": "Free thyroxine level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Iron",
+          "entity_text": "Iron studies",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "Iron studies",
+          "analytes": [
+            {
+              "label": "Ferritin",
+              "snomed_code": "993381000000106",
+              "display": "Serum ferritin level"
+            },
+            {
+              "label": "Iron Saturation",
+              "snomed_code": "991831000000103",
+              "display": "Transferrin saturation index"
+            },
+            {
+              "label": "TIBC",
+              "snomed_code": "1015451000000101",
+              "display": "Serum total iron binding capacity"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Vitamins",
+          "entity_text": "B12/folate level",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "395144002",
+          "procedure_display": "B12/folate level",
+          "analytes": [
+            {
+              "label": "B12",
+              "snomed_code": "993391000000108",
+              "display": "Serum vitamin B12 level"
+            },
+            {
+              "label": "Folate",
+              "snomed_code": "993411000000108",
+              "display": "Serum folate level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Lipids",
+          "entity_text": "Lipid panel",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "16254007",
+          "procedure_display": "Lipid panel",
+          "analytes": [
+            {
+              "label": "Chol",
+              "snomed_code": "1005671000000105",
+              "display": "Serum cholesterol level"
+            },
+            {
+              "label": "LDL",
+              "snomed_code": "1022191000000100",
+              "display": "Serum low density lipoprotein cholesterol level"
+            },
+            {
+              "label": "HDL",
+              "snomed_code": "1005681000000107",
+              "display": "Serum high density lipoprotein cholesterol level"
+            },
+            {
+              "label": "Chol:HDL ratio",
+              "snomed_code": "1015681000000109",
+              "display": "Serum cholesterol/high density lipoprotein ratio"
+            },
+            {
+              "label": "Tri",
+              "snomed_code": "1005691000000109",
+              "display": "Serum triglycerides level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "HbA1c",
+          "entity_text": "Hemoglobin A1c measurement",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "43396009",
+          "procedure_display": "Hemoglobin A1c measurement",
+          "analytes": [
+            {
+              "label": "HbA1c",
+              "snomed_code": "1003671000000109",
+              "display": "Haemoglobin A1c level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Glucose",
+          "entity_text": "Blood glucose measurement",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "271061004",
+          "procedure_display": "Random blood glucose measurement",
+          "analytes": [
+            {
+              "label": "Glucose",
+              "snomed_code": "1089381000000101",
+              "display": "Random blood glucose level"
+            },
+            {
+              "label": "Fasting",
+              "snomed_code": "997681000000108",
+              "display": "Fasting blood glucose level"
+            }
+          ],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "HbA1c",
+          "entity_text": "Hemoglobin A1c measurement",
+          "semantic_tag": "procedure",
+          "assertion": "present",
+          "procedure_snomed": "43396009",
+          "procedure_display": "Hemoglobin A1c measurement",
+          "analytes": [
+            {
+              "label": "HbA1c",
+              "snomed_code": "1003671000000109",
+              "display": "Haemoglobin A1c level"
+            }
+          ],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "patient_awareness",
+      "section_type": "checkbox_yesno",
+      "label": "Does the patient know?",
+      "start_pattern": "Does the patient know",
+      "items": [
+        {
+          "pattern": "knows or suspects the risk of cancer",
+          "entity_text": "Patient is aware of possible cancer",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "referred on an urgent basis",
+          "entity_text": "Patient aware of urgent referral",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "holiday plans in the next 2 months",
+          "entity_text": "Holiday plans in the next 2 months",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "performance_status",
+      "section_type": "scale",
+      "label": "Performance status",
+      "start_pattern": "(?i)^\\s*\\|\\s*Performance status\\s*\\|",
+      "items": [
+        {
+          "pattern": "0\\s*.\\s*Fully active",
+          "entity_text": "ECOG 0 fully active without restriction",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "1\\s*.\\s*Restricted",
+          "entity_text": "ECOG 1 restricted in strenuous activity",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "2\\s*.\\s*Ambulatory",
+          "entity_text": "ECOG 2 ambulatory but unable to work",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "3\\s*.\\s*Capable of only limited",
+          "entity_text": "ECOG 3 limited selfcare",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "4\\s*.\\s*Completely disabled",
+          "entity_text": "ECOG 4 completely disabled",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "section_d_symptomatic",
+      "section_type": "checkbox_multi",
+      "label": "Section D: Symptoms/signs for urgent or symptomatic referral",
+      "start_pattern": "Section D: Symptoms",
+      "items": [
+        {
+          "pattern": "Breast abscess",
+          "entity_text": "Breast abscess",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Asymmetric nodularity",
+          "entity_text": "Asymmetric breast nodularity",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Recurrent cyst",
+          "entity_text": "Recurrent breast cyst",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Breast lump < 30",
+          "entity_text": "Breast lump under 30 years",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Intractable breast pain",
+          "entity_text": "Intractable breast pain",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Asymmetrical nodularity or thickening",
+          "entity_text": "Asymmetrical nodularity persisting after menstruation",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "fails to respond to antibiotics",
+          "entity_text": "Breast infection not settling",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "unilateral eczematous skin",
+          "entity_text": "Unilateral nipple or areola eczema",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Unilateral, spontaneous nipple discharge",
+          "entity_text": "Unilateral spontaneous nipple discharge",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "mastalgia_guidance",
+      "section_type": "template_noise",
+      "label": "Mastalgia managed in primary care",
+      "start_pattern": "PATIENTS WITH MASTALGIA",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "details_narrative",
+      "section_type": "free_text",
+      "label": "Details",
+      "start_pattern": "Please include duration and site",
+      "items": [
+        {
+          "pattern": "Dear",
+          "entity_text": "Referral narrative",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": "Free text clinical details"
+        }
+      ],
+      "semantic_tags": []
+    }
+  ],
+  "saved_by": "seed_sfh_breast_2ww_template",
+  "status": "active",
+  "organization_id": "RK5",
+  "service_id": "117038",
+  "organization_ods_code": "RK5",
+  "organization_name": "Sherwood Forest Hospitals NHS Foundation Trust",
+  "service_name": "Breast Clinic - Kings Mill Hospital - SFHFT - RK5",
+  "completeness_groups": [
+    {
+      "name": "two_ww_criterion_required",
+      "kind": "at_least_one",
+      "required": true,
+      "min_count": 1,
+      "semantic_categories": [],
+      "concept_ids": [],
+      "members": [
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A1."
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A\\.?2"
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A3."
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A4."
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A5."
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A6."
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A7."
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A8."
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A9."
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A10."
+        }
+      ]
+    },
+    {
+      "name": "examination_present",
+      "kind": "recommended_section",
+      "required": false,
+      "min_count": 1,
+      "semantic_categories": [],
+      "concept_ids": [],
+      "members": [
+        {
+          "section_id": "section_b_examination"
+        }
+      ]
+    }
+  ]
+}

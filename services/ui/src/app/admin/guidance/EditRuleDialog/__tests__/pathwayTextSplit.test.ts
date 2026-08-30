@@ -410,6 +410,47 @@ describe("splitPathways (structure-first)", () => {
     expect(looksLikePathwaySplit(text, null)).toBe(true);
     expect(looksLikePathwaySplit("no split here at all", null)).toBe(false);
   });
+
+  it("ignores a sibling rule's list structure that is not in this quote (NG12 1.5.12)", () => {
+    // 1.5.12 is a single-sentence postmenopausal-bleeding rule. A
+    // backfill keyed on the shared section title painted 1.5.13's
+    // vaginal-discharge / haematuria list onto this rec. Offsets do
+    // not round-trip against 1.5.12's wording -- treat that as no
+    // structure, not as two situations.
+    const text =
+      "1.5.12 Refer women, and trans men and non-binary people with female " +
+      "reproductive organs using a suspected cancer pathway referral for " +
+      "endometrial cancer if they are aged 55 and over with unexplained " +
+      "postmenopausal bleeding that cannot be attributed to hormone " +
+      "replacement therapy (HRT). [2015, amended 2026]";
+    const structure: RecommendationStructure = {
+      lead_text:
+        "Consider an urgent , direct access ultrasound scan to assess for endometrial cancer",
+      items: [
+        {
+          text: "unexplained symptoms of vaginal discharge who:",
+          start: 200,
+          end: 246,
+          children: [
+            { text: "are presenting with these symptoms for the first time", start: 247, end: 300 },
+            { text: "have thrombocytosis", start: 305, end: 324 },
+            { text: "report haematuria", start: 329, end: 346 },
+          ],
+        },
+        {
+          text: "visible haematuria, and:",
+          start: 351,
+          end: 375,
+          children: [
+            { text: "low haemoglobin levels", start: 376, end: 398 },
+            { text: "thrombocytosis", start: 403, end: 417 },
+            { text: "high blood glucose levels. [2015]", start: 422, end: 455 },
+          ],
+        },
+      ],
+    };
+    expect(splitPathways(text, structure)).toBeNull();
+  });
 });
 
 /**

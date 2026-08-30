@@ -36,9 +36,17 @@ from libs.cypher.sbar_assessment_queries import (
     SET_SITUATION,
 )
 
-from .sbar_orchestrator import SBAROrchestrator
+from .sbar_orchestrator import SBAROrchestrator  # noqa: F401 (re-exported for tests)
 
 logger = logging.getLogger(__name__)
+
+
+def _execute_cypher(client: Any, query: str, **params: Any) -> list[dict[str, Any]]:
+    """Run a Cypher query using the client's run() or session().run() API."""
+    if hasattr(client, "run"):
+        return client.run(query, **params)
+    with client.session() as session:
+        return [dict(record) for record in session.run(query, **params)]
 
 
 SET_ASSESSMENT_SCOPE_ROLLUP = """
@@ -100,7 +108,7 @@ class PatientRollupSBAROrchestrator:
             episodes = self._load_episode_assessments(session, req.patient_id)
 
         self._create_draft(client, req, assessment_id)
-        SBAROrchestrator._run_cypher(
+        _execute_cypher(
             client, SET_ASSESSMENT_SCOPE_ROLLUP, assessment_id=assessment_id
         )
 
@@ -108,26 +116,31 @@ class PatientRollupSBAROrchestrator:
         background_md = self._compose_background(episodes)
         assessment_md = self._compose_assessment(episodes)
 
-        SBAROrchestrator._run_cypher(
+        from libs.sbar.section_status import section_status
+
+        _execute_cypher(
             client,
             SET_SITUATION,
             assessment_id=assessment_id,
             situation=situation_md,
+            situation_status=section_status(text=situation_md, error=None),
         )
-        SBAROrchestrator._run_cypher(
+        _execute_cypher(
             client,
             SET_BACKGROUND,
             assessment_id=assessment_id,
             background=background_md,
             background_parts=json.dumps([]),
+            background_status=section_status(text=background_md, error=None),
         )
-        SBAROrchestrator._run_cypher(
+        _execute_cypher(
             client,
             SET_ASSESSMENT_NARRATIVE,
             assessment_id=assessment_id,
             assessment=assessment_md,
             assessment_codes=[],
             assessment_rules=json.dumps([]),
+            assessment_status=section_status(text=assessment_md, error=None),
         )
 
         try:
@@ -139,24 +152,26 @@ class PatientRollupSBAROrchestrator:
                 actions=(),
             )
 
-        SBAROrchestrator._run_cypher(
+        _execute_cypher(
             client,
             SET_RECOMMENDATION,
             assessment_id=assessment_id,
             recommendation=rollup.markdown,
             recommendation_actions=json.dumps(list(rollup.actions)),
+            recommendation_status=section_status(text=rollup.markdown, error=None),
         )
 
         content = self._compose_markdown(
             situation_md, background_md, assessment_md, rollup.markdown
         )
         status = "completed" if episodes else "draft"
-        SBAROrchestrator._run_cypher(
+        _execute_cypher(
             client,
             FINALISE_ASSESSMENT,
             assessment_id=assessment_id,
             content=content,
             status=status,
+            context_integrity_status="passed",
             errors=[],
             stt=None,
             stt_evidence=None,
@@ -198,7 +213,7 @@ class PatientRollupSBAROrchestrator:
     def _create_draft(
         client, req: PatientRollupRequest, assessment_id: str
     ) -> None:
-        SBAROrchestrator._run_cypher(
+        _execute_cypher(
             client,
             CREATE_ASSESSMENT,
             patient_id=req.patient_id,

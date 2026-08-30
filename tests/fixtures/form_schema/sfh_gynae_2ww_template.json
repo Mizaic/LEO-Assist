@@ -69,7 +69,7 @@
       "start_pattern": "Section B",
       "items": [
         {
-          "pattern": "B1. Lesion suspicious of cancer of cervix or vagina on speculum examination",
+          "pattern": "B1.",
           "entity_text": "Lesion suspicious of cervical or vaginal cancer on speculum",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -79,7 +79,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "B2. Lesion suspicious of cancer on clinical examination of the vulva",
+          "pattern": "B2.",
           "entity_text": "Lesion suspicious of vulval cancer on examination",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -89,7 +89,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "B3. Palpable pelvic mass not obvious fibroids",
+          "pattern": "B3.",
           "entity_text": "Palpable pelvic mass (not fibroids)",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -99,7 +99,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "B4. Suspicious pelvic mass on pelvic ultrasound",
+          "pattern": "B4.",
           "entity_text": "Suspicious pelvic mass on ultrasound",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -109,7 +109,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "B5. More than one or a single heavy episode of postmenopausal bleeding (PMB) in woman aged >55 who are NOT on HRT",
+          "pattern": "B5.",
           "entity_text": "Postmenopausal bleeding in woman aged over 55 not on HRT",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -119,7 +119,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "B6. Postcoital bleeding (PCB) age >35 years that persists for more than 4 weeks",
+          "pattern": "B6.",
           "entity_text": "Postcoital bleeding persisting more than 4 weeks, age over 35",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -129,7 +129,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "B7. HRT: Unexpected or prolonged bleeding persisting for more than 4 weeks after STOPPING HRT",
+          "pattern": "B7.",
           "entity_text": "Unexpected bleeding more than 4 weeks after stopping HRT",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -139,7 +139,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "B8. HRT: bleeding persisting AFTER 6 months of HRT use, if on continuous combined HRT",
+          "pattern": "B8.",
           "entity_text": "Bleeding persisting after 6 months of continuous combined HRT",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -149,7 +149,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "B9. Suspicion of ovarian cancer and increased CA125 postmenopausal",
+          "pattern": "B9.",
           "entity_text": "Suspicion of ovarian cancer with raised CA125, postmenopausal",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -749,6 +749,14 @@
           "value_placeholder": ""
         }
       ],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "points_to_remember",
+      "section_type": "template_noise",
+      "label": "Points to remember",
+      "start_pattern": "Points to remember",
+      "items": [],
       "semantic_tags": []
     }
   ],

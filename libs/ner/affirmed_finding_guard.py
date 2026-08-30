@@ -3,7 +3,10 @@
 Form 'No [ ]' and distant dates must not invert 'X noted', 'uses X',
 or 'new X'. True 'no X' / 'denies X' stay absent.
 
-Atlas: DI-0F9542BF / DO-15449C6E / VT-A1919820
+Atlas trace:
+  DO: DO-15449C6E
+  DI: DI-0F9542BF
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-15449C6E")
 """
 
 from __future__ import annotations
@@ -21,6 +24,10 @@ _AFFIRM_RE = re.compile(
 )
 _LOCAL_NEGATION_RE = re.compile(
     r"\b(?:no|denies|denied|without|not)\s+$",
+    re.IGNORECASE,
+)
+_SPAN_NEGATION_RE = re.compile(
+    r"\b(?:no|denies|denied|without|not)\s+(?!\[)",
     re.IGNORECASE,
 )
 _NEW_ONSET_RE = re.compile(r"\bnew(?:\s+onset)?\s+$", re.IGNORECASE)
@@ -52,6 +59,19 @@ def _has_local_negation(text: str, start: int) -> bool:
     return bool(_LOCAL_NEGATION_RE.search(text[:start]))
 
 
+def _finding_window(text: str, start: int, ent: dict[str, Any]) -> str:
+    phrase = _entity_text(ent)
+    window_start = max(0, start - 12)
+    window_end = min(len(text), start + max(len(phrase), 1))
+    return text[window_start:window_end]
+
+
+def _has_negation_near_finding(text: str, start: int, ent: dict[str, Any]) -> bool:
+    if _has_local_negation(text, start):
+        return True
+    return bool(_SPAN_NEGATION_RE.search(_finding_window(text, start, ent)))
+
+
 def _restore_present(ent: dict[str, Any], reason: str, preview: str) -> None:
     ent["assertion"] = "present"
     ent["_assertion_guard"] = reason
@@ -59,7 +79,7 @@ def _restore_present(ent: dict[str, Any], reason: str, preview: str) -> None:
 
 
 def _should_restore(text: str, start: int, ent: dict[str, Any]) -> bool:
-    if _has_local_negation(text, start):
+    if _has_negation_near_finding(text, start, ent):
         return False
     prefix = text[:start]
     if _NEW_ONSET_RE.search(prefix):

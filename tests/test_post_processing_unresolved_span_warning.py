@@ -92,6 +92,18 @@ def test_no_warning_when_every_fact_is_located() -> None:
     assert not warnings, result.get("warnings")
 
 
+def test_unlocatable_fact_is_assertion_unverified_and_degrades() -> None:
+    """An unresolved ConText span must not look like a checked present finding.
+
+    Atlas: DI-0B907354 / VT-24D1E4F6
+    """
+    result = _run([_entity("hepatosplenomegaly with ascites", 0, 30)])
+    entities = result.get("processed_entities") or result.get("entities") or []
+    assert entities
+    assert entities[0]["assertion"] == "assertion_unverified"
+    assert result.get("degraded") is True
+
+
 def test_warning_does_not_erase_earlier_warnings() -> None:
     """Post-processing adds to the run's warnings, it does not replace them."""
     state: dict[str, Any] = {

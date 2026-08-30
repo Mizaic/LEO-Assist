@@ -30,6 +30,10 @@ _SCRIPTS_DIR = Path(__file__).parent.parent.parent.parent.parent / "scripts"
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+from seed_sfh_breast_2ww_template import (  # noqa: E402
+    FINGERPRINT as _SFH_BREAST_FINGERPRINT,
+    build_payload as _build_sfh_breast_payload,
+)
 from seed_sfh_gynae_2ww_template import (  # noqa: E402
     FINGERPRINT as _SFH_GYNAE_FINGERPRINT,
     build_payload as _build_sfh_gynae_payload,
@@ -259,22 +263,21 @@ def seed_defaults(
     """Seed built-in templates. Bind ids come from the fixture file."""
     client = PatientGraphClient()
     try:
-        return _seed_sfh_gynae(client)
+        return _seed_builtin_templates(client)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         client.close()
 
 
-def _seed_sfh_gynae(client: Any) -> dict[str, Any]:
-    """Create the SFH Gynae 2WW schema, or rebind live Organization/Service ids."""
-    payload = _build_sfh_gynae_payload()
+def _seed_one_template(client: Any, fingerprint: str, payload: dict[str, Any]) -> str:
+    """Create or rebind one built-in form schema. Returns the action name."""
     raw_sections = normalize_sections_for_request(payload["sections"])
     sections = build_sections_from_request(raw_sections)
-    action = rebind_form_schema_ids(
+    return rebind_form_schema_ids(
         client,
         FormSchemaWrite(
-            fingerprint=_SFH_GYNAE_FINGERPRINT,
+            fingerprint=fingerprint,
             form_name=payload["form_name"],
             sections=sections,
             created_by=payload.get("saved_by") or "seed-defaults",
@@ -287,12 +290,22 @@ def _seed_sfh_gynae(client: Any) -> dict[str, Any]:
             completeness_groups=payload.get("completeness_groups") or [],
         ),
     )
-    empty: list[str] = []
-    return {
-        "seeded": [_SFH_GYNAE_FINGERPRINT] if action == "seeded" else empty,
-        "skipped": [_SFH_GYNAE_FINGERPRINT] if action == "skipped" else empty,
-        "updated": [_SFH_GYNAE_FINGERPRINT] if action == "updated" else empty,
-    }
+
+
+def _seed_builtin_templates(client: Any) -> dict[str, Any]:
+    """Create built-in SFH templates, or rebind live Organization/Service ids."""
+    jobs = (
+        (_SFH_GYNAE_FINGERPRINT, _build_sfh_gynae_payload()),
+        (_SFH_BREAST_FINGERPRINT, _build_sfh_breast_payload()),
+    )
+    seeded: list[str] = []
+    skipped: list[str] = []
+    updated: list[str] = []
+    buckets = {"seeded": seeded, "skipped": skipped, "updated": updated}
+    for fingerprint, payload in jobs:
+        action = _seed_one_template(client, fingerprint, payload)
+        buckets[action].append(fingerprint)
+    return {"seeded": seeded, "skipped": skipped, "updated": updated}
 
 
 @router.get("/{fingerprint}")

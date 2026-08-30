@@ -157,8 +157,7 @@ def test_normalise_with_schema_uses_chunk_map() -> None:
     ]
     schema = _make_schema(CANCER_SITE_SECTION, CRITERIA_SECTION)
     result = normalise_with_schema(schema, chunks, chunk_section_map)
-    assert "Cervical cancer suspected" in result
-    # B1 No checked -- entity text should NOT appear
+    assert "Cervical cancer suspected" not in result
     assert "Suspicious lesion on cervix" not in result
 
 
@@ -170,7 +169,8 @@ def test_normalise_with_schema_fallback_when_map_absent() -> None:
     ]
     schema = _make_schema(CANCER_SITE_SECTION)
     result = normalise_with_schema(schema, chunks, chunk_section_map=None)
-    assert "Cervical cancer suspected" in result
+    assert "Cervical cancer suspected" not in result
+    assert "Cervix [X]" in result or "Cervix" in result
 
 
 def test_normalise_with_schema_fallback_when_map_empty() -> None:
@@ -178,7 +178,7 @@ def test_normalise_with_schema_fallback_when_map_empty() -> None:
     chunks = ["Section A: Cancer type\nCervix [X]"]
     schema = _make_schema(CANCER_SITE_SECTION)
     result = normalise_with_schema(schema, chunks, chunk_section_map=[])
-    assert "Cervical cancer suspected" in result
+    assert "Cervical cancer suspected" not in result
 
 
 def test_normalise_with_schema_unmapped_chunk_passes_through() -> None:
@@ -191,7 +191,7 @@ def test_normalise_with_schema_unmapped_chunk_passes_through() -> None:
     schema = _make_schema(CANCER_SITE_SECTION)
     result = normalise_with_schema(schema, chunks, chunk_section_map)
     assert "HEADER TEXT" in result
-    assert "Cervical cancer suspected" in result
+    assert "Cervical cancer suspected" not in result
 
 
 FREE_TEXT_SECTION = FormSection(

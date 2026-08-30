@@ -79,3 +79,28 @@ def test_and_joined_structure_collapses_to_single():
     shells = build_situation_skeleton(text, structure)
     assert len(shells) == 1
     assert shells[0].source == "single"
+
+
+def test_foreign_list_structure_is_not_a_situation_split():
+    """NG12 1.5.12 must not inherit 1.5.13's vaginal-discharge list."""
+    text = (
+        "1.5.12 Refer women, and trans men and non-binary people with female "
+        "reproductive organs using a suspected cancer pathway referral for "
+        "endometrial cancer if they are aged 55 and over with unexplained "
+        "postmenopausal bleeding that cannot be attributed to hormone "
+        "replacement therapy (HRT). [2015, amended 2026]"
+    )
+    structure = {
+        "lead_text": "Consider an urgent ultrasound scan",
+        "items": [
+            {
+                "text": "unexplained symptoms of vaginal discharge who:",
+                "start": 200,
+                "end": 246,
+            },
+            {"text": "visible haematuria, and:", "start": 351, "end": 375},
+        ],
+    }
+    shells = build_situation_skeleton(text, structure)
+    assert len(shells) == 1
+    assert "vaginal discharge" not in shells[0].text

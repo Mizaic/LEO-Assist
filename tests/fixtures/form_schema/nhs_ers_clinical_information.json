@@ -1,0 +1,161 @@
+{
+  "form_name": "NHS e-RS Clinical Information",
+  "fingerprint": "nhs-ers-clinical-information-v1",
+  "organization_id": "",
+  "service_id": "",
+  "sections": [
+    {
+      "section_id": "admin_header",
+      "section_type": "template_noise",
+      "label": "Clinical Information Summary header",
+      "start_pattern": "(?i)clinical information summary",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "ubrn_information",
+      "section_type": "template_noise",
+      "label": "UBRN Information",
+      "start_pattern": "(?i)^\\s*ubrn information\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "patient_information",
+      "section_type": "template_noise",
+      "label": "Patient Information",
+      "start_pattern": "(?i)^\\s*patient information\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "attachments",
+      "section_type": "admin",
+      "label": "Attachments",
+      "start_pattern": "(?i)^\\s*attachments\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "risk_to_others",
+      "section_type": "free_text",
+      "label": "Risk to others",
+      "start_pattern": "(?i)^\\s*risk to others\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "reason_for_referral",
+      "section_type": "free_text",
+      "label": "Reason for referral",
+      "start_pattern": "(?i)^\\s*reason for referral\\s*$",
+      "items": [],
+      "semantic_tags": ["finding"]
+    },
+    {
+      "section_id": "expectation_of_referral",
+      "section_type": "free_text",
+      "label": "Expectation of referral",
+      "start_pattern": "(?i)^\\s*expectation of referral\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "medication",
+      "section_type": "free_text",
+      "label": "Medication and medical devices",
+      "start_pattern": "(?i)^\\s*medication and medical devices\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "past_medical_history",
+      "section_type": "free_text",
+      "label": "Past medical history",
+      "start_pattern": "(?i)^\\s*past medical history\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "allergies",
+      "section_type": "free_text",
+      "label": "Allergies and adverse reaction",
+      "start_pattern": "(?i)^\\s*allergies and adverse reaction\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "findings",
+      "section_type": "free_text",
+      "label": "Findings",
+      "start_pattern": "(?i)^\\s*findings\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "family_history",
+      "section_type": "free_text",
+      "label": "Family history",
+      "start_pattern": "(?i)^\\s*family history\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "social_context",
+      "section_type": "free_text",
+      "label": "Social context",
+      "start_pattern": "(?i)^\\s*social context\\s*$",
+      "items": [],
+      "semantic_tags": []
+    },
+    {
+      "section_id": "service_provider_activity",
+      "section_type": "admin",
+      "label": "Service Provider Activity",
+      "start_pattern": "(?i)service provider activity",
+      "items": [],
+      "semantic_tags": []
+    }
+  ],
+  "completeness_groups": [
+    {
+      "name": "reason_for_referral_required",
+      "kind": "required_section",
+      "required": true,
+      "min_count": 1,
+      "semantic_categories": [],
+      "concept_ids": [],
+      "members": [
+        {
+          "section_id": "reason_for_referral"
+        }
+      ]
+    },
+    {
+      "name": "findings_or_bloods_present",
+      "kind": "recommended_section",
+      "required": false,
+      "min_count": 1,
+      "semantic_categories": [],
+      "concept_ids": [],
+      "members": [
+        {
+          "section_id": "findings"
+        }
+      ]
+    },
+    {
+      "name": "medication_present",
+      "kind": "recommended_section",
+      "required": false,
+      "min_count": 1,
+      "semantic_categories": [],
+      "concept_ids": [],
+      "members": [
+        {
+          "section_id": "medication"
+        }
+      ]
+    }
+  ]
+}

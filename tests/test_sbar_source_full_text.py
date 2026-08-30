@@ -16,8 +16,11 @@ _build_part_summary). The two ends are covered by
 tests/sbar/test_background_partitioner.py and tests/test_sdk_auth.py.
 
 Atlas trace:
-  DI: DI-85C95E53, DI-A898556B
-  Risk mitigated: R-4965BCD2
+  DI: DI-E738DAB8
+  DO: DO-2E67B5F5
+  VT: VT-AAE47FB0
+  Risk: R-7643C7F1
+  UI host (related): DI-A898556B
 """
 
 from __future__ import annotations

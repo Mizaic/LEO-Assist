@@ -306,7 +306,10 @@ async def _publish_completion(
 
 
 def _with_metrics(
-    result: DurableStepResult, started: float, loaded: dict[str, Any]
+    result: DurableStepResult,
+    started: float,
+    loaded: dict[str, Any],
+    llm_usage: dict[str, Any] | None = None,
 ) -> DurableStepResult:
     metrics = dict(result.metrics)
     metrics.update(
@@ -317,6 +320,8 @@ def _with_metrics(
             ),
         }
     )
+    if llm_usage:
+        metrics["llm_usage"] = llm_usage
     return DurableStepResult(
         status=result.status,
         output=result.output,
@@ -1065,8 +1070,15 @@ class DurableStepRunner:
                 ),
             )
         )
+        from libs.llm_client.usage_recorder import LLMUsageRecorder
+
+        llm_usage: dict[str, Any] | None = None
         try:
-            result = await _execute_action(action, loaded)
+            with LLMUsageRecorder() as _step_recorder:
+                result = await _execute_action(action, loaded)
+            step_usage = _step_recorder.to_audit_dict()
+            if _step_recorder.usage.llm_calls:
+                llm_usage = step_usage
         except Exception as exc:
             logger.exception(
                 "DurableStepRunner action failed: action_id=%s run_id=%s",
@@ -1080,7 +1092,7 @@ class DurableStepRunner:
                 await heartbeat
             except asyncio.CancelledError:
                 pass
-        result = _with_metrics(result, ctx.started, loaded)
+        result = _with_metrics(result, ctx.started, loaded, llm_usage=llm_usage)
         outgoing = _build_outgoing_edges(all_actions)
         next_ids = _resolve_next_action_ids(action, result, outgoing)
         if result.status == "paused":

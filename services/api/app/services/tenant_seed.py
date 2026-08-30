@@ -1,9 +1,9 @@
 """Guardrailed startup seeding for tenant defaults.
 
 Atlas trace:
-  DO: DO-92F92EFB
-  DI: DI-88C1715A
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+  DO: DO-72F81432
+  DI: DI-96D95459
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-72F81432")
 
 Runs on every startup but each section is idempotent via MERGE / guarded counts.
 
@@ -22,7 +22,7 @@ import logging
 import os
 import uuid
 
-from libs.cypher.admin_queries import UPSERT_SYSTEM_CONFIG
+from libs.cypher.admin_queries import MERGE_MIZAIC_ORGANIZATION, UPSERT_SYSTEM_CONFIG
 from libs.cypher.entra_group_queries import (
     ENSURE_ROLE_IDS,
     ENSURE_USER_LABELS,
@@ -679,8 +679,7 @@ def _seed_system_config(client: PatientGraphClient) -> None:
 def _seed_mizaic_org_and_group(client: PatientGraphClient) -> None:
     """MERGE the Mizaic vendor organization and Platform Admins group."""
     client.run(
-        "MERGE (o:Organization {id: $id})"
-        " ON CREATE SET o.name = $name, o.odsCode = '', o.short_name = 'Mizaic'",
+        MERGE_MIZAIC_ORGANIZATION,
         id=MIZAIC_ORG_ID,
         name=MIZAIC_ORG_NAME,
     )

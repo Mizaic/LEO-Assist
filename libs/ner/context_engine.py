@@ -401,6 +401,7 @@ def apply_context_detection_to_dicts(
                 assertion = ent_assertion.get(span.start, "present")
                 if assertion != "present":
                     entities[item_idx]["assertion"] = assertion
+                    entities[item_idx]["_assertion_source"] = "context"
                     trigger = ent_trigger.get(span.start)
                     if trigger is not None:
                         entities[item_idx].update(trigger)

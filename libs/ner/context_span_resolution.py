@@ -89,6 +89,7 @@ def resolve_context_spans(
         found = find_entity_text(lowered, text, cursors)
         if found is None:
             entity[UNRESOLVED_KEY] = True
+            entity["assertion"] = "assertion_unverified"
             unresolved += 1
             continue
         resolved.append((idx, found[0], found[1]))

@@ -8,7 +8,7 @@
  *
  * Per the highlight-to-build wizard plan's `step-prerequisites` todo.
  *
- * Atlas trace: DI-42246DA7 / DO-F8C56339
+ * Atlas trace: DI-42246DA7, DI-0F0B27D3 / DO-F8C56339
  */
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
@@ -17,6 +17,7 @@ import StepPrerequisites, {
   collectPrerequisiteLeaves,
   prerequisiteLabel,
 } from "../HighlightWizard/StepPrerequisites";
+import { collectShouldNotHaveLeaves } from "../HighlightWizard/shouldNotHave";
 import { assignNodeIds, type LogicNodeSeed } from "../treeOps";
 import type { EditableLogicNode } from "../types";
 
@@ -101,6 +102,20 @@ describe("StepPrerequisites: pure helpers", () => {
     } as unknown as LogicNodeSeed);
     const leaves = collectPrerequisiteLeaves([group]);
     expect(leaves.map((l) => l.kind)).toEqual(["DEMOGRAPHIC", "CONCEPT"]);
+  });
+
+  it("collectPrerequisiteLeaves does not treat NOT-group findings as must-have", () => {
+    const mustHave = makeConceptLeaf("Weight loss", "89362005");
+    const excluded = makeConceptLeaf("Hormone replacement therapy", "266717002");
+    const notGroup = assignNodeIds({
+      kind: "NOT",
+      children: [excluded],
+    } as unknown as LogicNodeSeed);
+    const leaves = collectPrerequisiteLeaves([mustHave, notGroup]);
+    expect(leaves.map((l) => l.node_id)).toEqual([mustHave.node_id]);
+    expect(collectShouldNotHaveLeaves([mustHave, notGroup]).map((l) => l.node_id)).toEqual(
+      [excluded.node_id],
+    );
   });
 
   it("prerequisiteLabel describes a DEMOGRAPHIC age leaf in plain English", () => {
@@ -625,6 +640,79 @@ describe("StepPrerequisites: adding a global lab-value prerequisite", () => {
     expect(
       screen.getByRole("button", { name: /add a lab value or reading that always applies/i }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("StepPrerequisites: Patient should not have", () => {
+  it("hides the Patient should not have button when onAddShouldNotHave is not provided", () => {
+    render(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[]}
+        onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
+        onUpdate={jest.fn()}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", {
+        name: /add a finding that must not be present for this rule to match/i,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("calls onAddShouldNotHave when Patient should not have is clicked", async () => {
+    const user = userEvent.setup();
+    const onAddShouldNotHave = jest.fn();
+    render(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[]}
+        onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
+        onUpdate={jest.fn()}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+        onAddShouldNotHave={onAddShouldNotHave}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /add a finding that must not be present for this rule to match/i,
+      }),
+    );
+
+    expect(onAddShouldNotHave).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists a NOT-group finding as something the patient must not have", () => {
+    const excluded = makeConceptLeaf("Hormone replacement therapy", "266717002");
+    const notGroup = assignNodeIds({
+      kind: "NOT",
+      children: [excluded],
+    } as unknown as LogicNodeSeed);
+    render(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[notGroup]}
+        onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
+        onUpdate={jest.fn()}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+        onAddShouldNotHave={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("should-not-have-section")).toBeInTheDocument();
+    expect(
+      screen.getByText(/patient must not have hormone replacement therapy/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^Patient has hormone replacement therapy$/i)).not.toBeInTheDocument();
   });
 });
 

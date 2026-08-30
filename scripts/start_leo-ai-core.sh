@@ -178,7 +178,9 @@ else
 fi
 
 if [[ -n "${AZURE_KEYVAULT_URL:-}" ]]; then
-  echo "  [kv]   Key Vault: ${AZURE_KEYVAULT_URL}"
+  echo "  [kv]   Key Vault in this shell: ${AZURE_KEYVAULT_URL}"
+  echo "  [kv]   Unsetting it in service windows so they use secrets/.env.secrets"
+  unset AZURE_KEYVAULT_URL
 else
   echo "  [kv]   AZURE_KEYVAULT_URL not set - KV secret loading disabled."
 fi
@@ -310,6 +312,10 @@ start_service_window() {
     printf 'export LEO_REPO_ROOT=%q\n' "$REPO_ROOT"
     printf '# shellcheck disable=SC1091\n'
     printf 'source %q\n' "${SCRIPT_DIR}/lib/load_leo_dev_env.sh"
+    # Local start uses secrets/.env.secrets. A shell-level Atlas vault
+    # URL would force Key Vault and abort when those LEO secrets are
+    # not in that vault.
+    printf 'unset AZURE_KEYVAULT_URL\n'
     if [[ -n "${TERMINOLOGY_API_URLS:-}" ]]; then
       printf 'export TERMINOLOGY_API_URLS=%q\n' "$TERMINOLOGY_API_URLS"
     fi

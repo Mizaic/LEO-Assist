@@ -121,6 +121,38 @@ describe("HighlightWizard: Step 1 (prerequisites)", () => {
     await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.noMore, "i") }));
     expect(onStepChange).toHaveBeenCalledWith("pathway-split");
   });
+
+  it("creates a NOT group and opens concept search from Patient should not have", async () => {
+    const user = userEvent.setup();
+    const onUpdate = jest.fn();
+    const onRequestAdd = jest.fn();
+    const tree: EditableLogicNode = { node_id: "root", kind: "AND", children: [ageLeaf()] };
+    render(
+      <HighlightWizard
+        tree={tree}
+        recommendationText={TEXT}
+        selectedNodeId={null}
+        onSelectNode={jest.fn()}
+        onUpdate={onUpdate}
+        onRequestAdd={onRequestAdd}
+        onEditConcept={jest.fn()}
+        startMode="fresh"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /add a finding that must not be present for this rule to match/i,
+      }),
+    );
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      kind: "add_group",
+      parentNodeId: "root",
+      groupKind: "NOT",
+    });
+    expect(onRequestAdd).not.toHaveBeenCalled();
+  });
 });
 
 /** A tree whose OR already has the same 2 pathways the ", or "

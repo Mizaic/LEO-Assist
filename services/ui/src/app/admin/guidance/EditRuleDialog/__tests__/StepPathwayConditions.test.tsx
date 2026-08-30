@@ -775,3 +775,74 @@ describe("StepPathwayConditions: adding a per-situation lab-value condition", ()
     expect(onAddPathwayObservation).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("StepPathwayConditions: Patient should not have", () => {
+  it("hides the Patient should not have button when onAddPathwayShouldNotHave is not provided", () => {
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={2}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", {
+        name: /add a finding that must not be present for this situation/i,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("calls onAddPathwayShouldNotHave when Patient should not have is clicked", async () => {
+    const user = userEvent.setup();
+    const onAddPathwayShouldNotHave = jest.fn();
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={2}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onAddPathwayShouldNotHave={onAddPathwayShouldNotHave}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /add a finding that must not be present for this situation/i,
+      }),
+    );
+
+    expect(onAddPathwayShouldNotHave).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists a NOT-group finding as something the patient must not have", () => {
+    const excluded: EditableLogicNode = {
+      node_id: "hrt",
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "266717002", preferred_term: "HRT" },
+    };
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={1}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        shouldNotHaveLeaves={[excluded]}
+        onEditConfirmedLeaf={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("should-not-have-section")).toBeInTheDocument();
+    expect(screen.getByText(/patient must not have hrt/i)).toBeInTheDocument();
+  });
+});

@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from libs.sbar.form_assessability import missing_referral_reason
+
 SPOA_DISPOSITIONS: tuple[str, ...] = (
     "discussion_with_primary_care",
     "straight_to_test",
@@ -19,6 +21,7 @@ SPOA_DISPOSITIONS: tuple[str, ...] = (
     "refer_to_alternative_service",
     "other_spoa",
     "next_internal_spoa",
+    "further_information_required",
 )
 
 _DISPOSITION_LABELS: dict[str, str] = {
@@ -29,6 +32,7 @@ _DISPOSITION_LABELS: dict[str, str] = {
     "refer_to_alternative_service": "Refer to alternative service",
     "other_spoa": "Other SPoA",
     "next_internal_spoa": "Next internal SPoA",
+    "further_information_required": "Further Information Required",
 }
 
 _TIME_CRITICAL = {"immediate", "very_urgent", "2ww", "urgent"}
@@ -185,8 +189,21 @@ def derive_spoa_disposition(
     alternative_rules: list[dict[str, Any]],
     source_node_type: str | None = None,
     healthcare_service_spoa_id: str | None = None,
+    reason_context: dict[str, Any] | None = None,
 ) -> tuple[str | None, str | None]:
     """Return advisory disposition code and plain-English evidence string."""
+    ctx = reason_context
+    if ctx is not None and missing_referral_reason(
+        referral_reason=ctx.get("referral_reason"),
+        completeness=ctx.get("completeness_result"),
+        section_hits=ctx.get("section_hits"),
+        entities=ctx.get("entities"),
+        form_clinical_section=ctx.get("form_clinical_section"),
+    ):
+        return (
+            "further_information_required",
+            "No reason for referral was found, so guideline rules were not applied.",
+        )
     if primary_rules:
         best = _best_rule(primary_rules) or primary_rules[0]
         if str(source_node_type or "") == "CommunicationRequest":

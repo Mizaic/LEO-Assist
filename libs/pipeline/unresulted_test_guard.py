@@ -53,7 +53,9 @@ TEST_LABELS = frozenset(
 )
 
 #: Assertions that claim the test was actually performed.
-_CLAIMS_PERFORMED = frozenset({"present", "historical", ""})
+#: Historical procedures in a past-history table are kept -- they are not
+#: a blank blood-panel row claiming the test was done today.
+_CLAIMS_PERFORMED = frozenset({"present", ""})
 
 SUPPRESSED_REASON = (
     "The row this was read from does not show a result, so the letter does "

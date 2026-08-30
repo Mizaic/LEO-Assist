@@ -80,10 +80,11 @@ def test_seed_defaults_seeds_when_absent() -> None:
 
     assert resp.status_code == 200
     body = resp.json()
-    assert body["seeded"] == ["sfh-gynae-2ww-v1"]
+    assert "sfh-gynae-2ww-v1" in body["seeded"]
+    assert "sfh-breast-2ww-v1" in body["seeded"]
     assert body["skipped"] == []
     assert body["updated"] == []
-    mock_rebind.assert_called_once()
+    assert mock_rebind.call_count == 2
 
 
 def test_seed_defaults_skips_when_live_ids_already_bound() -> None:
@@ -109,9 +110,10 @@ def test_seed_defaults_skips_when_live_ids_already_bound() -> None:
     assert resp.status_code == 200
     body = resp.json()
     assert body["seeded"] == []
-    assert body["skipped"] == ["sfh-gynae-2ww-v1"]
+    assert "sfh-gynae-2ww-v1" in body["skipped"]
+    assert "sfh-breast-2ww-v1" in body["skipped"]
     assert body["updated"] == []
-    mock_rebind.assert_called_once()
+    assert mock_rebind.call_count == 2
 
 
 def test_seed_defaults_rebinds_slug_ids_to_live_nodes() -> None:
@@ -135,8 +137,9 @@ def test_seed_defaults_rebinds_slug_ids_to_live_nodes() -> None:
     body = resp.json()
     assert body["seeded"] == []
     assert body["skipped"] == []
-    assert body["updated"] == ["sfh-gynae-2ww-v1"]
-    write = mock_rebind.call_args.args[1]
+    assert "sfh-gynae-2ww-v1" in body["updated"]
+    assert "sfh-breast-2ww-v1" in body["updated"]
+    write = mock_rebind.call_args_list[0].args[1]
     fixture = json.loads(
         (
             Path(__file__).parent / "fixtures/form_schema/sfh_gynae_2ww_template.json"

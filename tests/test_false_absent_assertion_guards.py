@@ -153,6 +153,37 @@ def test_ac4_background_of_gord_false_absent_restored() -> None:
     assert obesity["assertion"] == "present"
 
 
+def test_pmh_guard_leaves_no_known_family_history_absent() -> None:
+    """'no known family history of' is a denial, not a positive PMH list.
+
+    Atlas: DI-0B907354 / VT-24D1E4F6
+    """
+    ent = {
+        "assertion": "absent",
+        "text": "breast cancer",
+        "evidence": "breast cancer",
+        "evidence_sentence": "no known family history of breast cancer",
+    }
+    fix_pmh_list_false_absent([ent])
+    assert ent["assertion"] == "absent"
+    assert "_assertion_guard" not in ent
+
+
+def test_pmh_guard_honours_context_family_settlement() -> None:
+    """When ConText already settled family, the PMH restore must not flip it.
+
+    Atlas: DI-0B907354 / VT-24D1E4F6
+    """
+    ent = {
+        "assertion": "family",
+        "_assertion_source": "context",
+        "text": "breast cancer",
+        "evidence_sentence": "no known family history of breast cancer",
+    }
+    apply_false_absent_assertion_guards([ent])
+    assert ent["assertion"] == "family"
+
+
 def test_pmh_guard_leaves_no_history_of_absent() -> None:
     sentence = "He has no history of GORD or peptic ulcer disease."
     ent = {

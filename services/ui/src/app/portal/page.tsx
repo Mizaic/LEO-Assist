@@ -3,8 +3,10 @@
  *
  * Atlas trace:
  *   DO: DO-21936FDD
+ *   DO: DO-6F6771E5
  *   DI: DI-09DF0A10
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-21936FDD")
+ *   DI: DI-14809BB8
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-6F6771E5")
  */
 "use client";
 
@@ -25,7 +27,9 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import LanOutlinedIcon from "@mui/icons-material/LanOutlined";
 import AuthConfig from "@/components/tenant/AuthConfig";
+import ApiHostManagement from "@/components/tenant/ApiHostManagement";
 import EntraIntegration from "@/components/tenant/EntraIntegration";
 import OrgManagement from "@/components/tenant/OrgManagement";
 import OrgDrawer from "@/components/tenant/OrgDrawer";
@@ -107,6 +111,14 @@ const ALL_TABS = [
     label: "Entra integration",
     icon: <CloudOutlinedIcon fontSize="small" />,
     desc: "Connect LEO to Microsoft Entra so you can browse your tenant's users and security groups, and bind groups to LEO roles.",
+    adminOnly: true,
+    orgAdminOnly: false,
+  },
+  {
+    value: "api-hosts",
+    label: "API hosts",
+    icon: <LanOutlinedIcon fontSize="small" />,
+    desc: "Register embedding apps that may request widget tokens. Only platform administrators can do this.",
     adminOnly: true,
     orgAdminOnly: false,
   },
@@ -255,6 +267,7 @@ export default function PortalPage() {
       {activeTab === "users" && <UserManagement />}
       {activeTab === "auth" && <AuthConfig />}
       {activeTab === "entra" && <EntraIntegration />}
+      {activeTab === "api-hosts" && <ApiHostManagement />}
       {activeTab === "subscription" && (
         <SubscriptionPanel orgId={currentOrg?.id ?? session?.organizations?.[0]?.id} />
       )}

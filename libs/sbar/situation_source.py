@@ -39,9 +39,11 @@ def build_structured_situation(
     referral_request: dict[str, Any] | None,
     referral_reason: ReferralReasonEvidence | None,
     trigger_scoped_letter: str | None,
+    form_clinical_section: str | None = None,
+    form_sections: list[Any] | None = None,
     run_id: str | None = None,
 ) -> SituationSourceResult:
-    """Prefer ReferralRequest/eRS reason; fallback to trigger-scoped evidence."""
+    """Prefer structured reason, then the taught form clinical section."""
     precedence: list[str] = []
     rr = referral_request or {}
     reason = str(rr.get("reason") or "").strip()
@@ -70,14 +72,16 @@ def build_structured_situation(
             referral_reason=referral_reason,
         )
 
-    letter = str(trigger_scoped_letter or "").strip()
-    if letter:
-        precedence.append("trigger_scoped_letter_extract")
+    section = _resolve_form_clinical_section(
+        trigger_scoped_letter, form_clinical_section, form_sections
+    )
+    if section:
+        precedence.append("form_clinical_section")
         return SituationSourceResult(
-            headline=letter[:400],
+            headline=section[:400],
             structured_priority=priority,
             source_precedence=precedence,
-            letter_extract=letter,
+            letter_extract=section,
         )
 
     return SituationSourceResult(
@@ -85,6 +89,23 @@ def build_structured_situation(
         structured_priority=priority,
         source_precedence=["missing"],
     )
+
+
+def _resolve_form_clinical_section(
+    letter: str | None,
+    form_clinical_section: str | None,
+    form_sections: list[Any] | None,
+) -> str:
+    from libs.pipeline.document_role import clinical_letter_text
+    from libs.sbar.referral_reason_match import extract_form_clinical_section
+
+    explicit = str(form_clinical_section or "").strip()
+    if explicit:
+        return explicit
+    clinical = clinical_letter_text(str(letter or "")).strip()
+    if not clinical or not form_sections:
+        return ""
+    return str(extract_form_clinical_section(clinical, form_sections) or "").strip()
 
 
 def reason_evidence_to_dict(evidence: ReferralReasonEvidence) -> dict[str, Any]:

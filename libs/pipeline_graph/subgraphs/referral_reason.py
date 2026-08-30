@@ -32,11 +32,14 @@ logger = logging.getLogger(__name__)
 _REASON_PATTERNS = [
     "the reason i am concerned this patient has cancer is",
     "the reason for referral is",
-    "reason for referral:",
-    "referral information:",
-    "referral criteria and clinical information:",
-    "clinical information:",
+    "reason for referral",
+    "reason for request",
+    "referral information",
+    "referral criteria and clinical information",
+    "clinical information",
     "reasons for request",
+    "i am referring this patient because",
+    "reason i am referring",
 ]
 
 
@@ -45,6 +48,7 @@ class ReferralReasonState(TypedDict, total=False):
     chunk_ids: list[str]
     patient_id: str
     run_id: str
+    dry_run: bool
     referral_reason: str
     referral_reason_skipped: bool
     errors: list[str]
@@ -65,7 +69,13 @@ def _extract_reason(state: ReferralReasonState) -> dict[str, Any]:
 
     try:
         return asyncio.run(
-            _async_extract_reason(referral_id, chunk_ids, patient_id, run_id)
+            _async_extract_reason(
+                referral_id,
+                chunk_ids,
+                patient_id,
+                run_id,
+                dry_run=bool(state.get("dry_run")),
+            )
         )
     except Exception as exc:
         logger.warning("referral_reason extraction failed: %s", exc)
@@ -80,6 +90,7 @@ async def _async_extract_reason(
     chunk_ids: list[str],
     patient_id: str,
     run_id: str,
+    dry_run: bool = False,
 ) -> dict[str, Any]:
     from libs.cypher.chunk_queries import GET_REASON_CHUNKS_BY_IDS, SET_REFERRAL_REASON
     from libs.llm_client.json_helper import JSONInvocationOptions, invoke_llm_json
@@ -129,6 +140,10 @@ async def _async_extract_reason(
             referral_id,
         )
         return {"referral_reason_skipped": True}
+
+    if dry_run:
+        logger.info("dry_run=True - skipping referral reason write")
+        return {"referral_reason": reason}
 
     write_client = PatientGraphClient()
     try:

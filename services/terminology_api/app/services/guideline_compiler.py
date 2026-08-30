@@ -1132,6 +1132,7 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                         rule_data,
                         groups,
                         policy=policy,
+                        session=session,
                     )
                 )
             else:
@@ -1726,7 +1727,10 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
         return out
 
     def _build_compiled_actions(
-        self, rule_data: dict[str, Any], policy: CompilePolicy
+        self,
+        rule_data: dict[str, Any],
+        policy: CompilePolicy,
+        session=None,
     ) -> list[dict[str, Any]]:
         """Build the compiled ``actions`` list for one rule.
 
@@ -1756,21 +1760,58 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                         rule_data.get("rule_id"),
                     )
                 continue
-            actions.append(self._compiled_action_item(item, str(concept_id)))
+            actions.append(self._compiled_action_item(item, str(concept_id), session=session))
         return actions
 
     @staticmethod
-    def _compiled_action_item(item: dict[str, Any], concept_id: str) -> dict[str, Any]:
-        """Build one compiled action, including already-done evidence ids."""
+    def _snomed_related_dict(concept_id: str, session) -> dict[str, Any] | None:
+        """Return SNOMED ontology neighbours for concept_id in investigation_family format.
+
+        Returns the raw Neo4j row dict (keys: has_components, interpreted_by_findings,
+        etc.) so it can be passed directly to evidence_ids_for_action(related=...).
+        Returns None on any failure so callers degrade gracefully.
+        """
+        from services.terminology_api.app.queries.terminology import RELATED_CONCEPTS_QUERY
+
+        try:
+            rows = list(session.run(RELATED_CONCEPTS_QUERY, concept_id=concept_id))
+            if not rows:
+                return None
+            row = rows[0]
+            return dict(row) if not isinstance(row, dict) else row
+        except Exception:
+            logger.warning(
+                "_snomed_related_dict: lookup failed for concept %s", concept_id, exc_info=True
+            )
+            return None
+
+    @staticmethod
+    def _compiled_action_item(
+        item: dict[str, Any], concept_id: str, session=None
+    ) -> dict[str, Any]:
+        """Build one compiled action, including already-done evidence ids.
+
+        When a Neo4j session is supplied the evidence ids are enriched with
+        SNOMED ontology neighbours (HAS_COMPONENT observables and
+        INTERPRETED_BY findings) so the already-done check fires even when
+        the patient has a result *finding* rather than the procedure code.
+        """
         from libs.guidelines.investigation_family import evidence_ids_for_action
 
+        related = (
+            GuidelineCompiler._snomed_related_dict(concept_id, session)
+            if session is not None
+            else None
+        )
         return {
             "concept_id": concept_id,
             "name": item.get("name"),
             "strength": item.get("strength") or "unspecified",
             "priority": item.get("priority") or "routine",
             "due_days": item.get("due_days"),
-            "already_done_evidence_ids": sorted(evidence_ids_for_action(concept_id)),
+            "already_done_evidence_ids": sorted(
+                evidence_ids_for_action(concept_id, related=related)
+            ),
         }
 
     def _compile_schema_v2_rule(
@@ -1807,7 +1848,7 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
             )
             return None
 
-        actions = self._build_compiled_actions(rule_data, policy)
+        actions = self._build_compiled_actions(rule_data, policy, session=session)
 
         return {
             "rule_id": rule_data["rule_id"],
@@ -1834,6 +1875,7 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
         groups: list[dict],
         *,
         policy: CompilePolicy,
+        session=None,
     ) -> dict:
         """Build the compiled rule dict for a single rule.
 
@@ -1846,7 +1888,7 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
             ``action`` (back-compat shim), and ``applies_to`` fields
             consumed by the evaluator.
         """
-        actions = self._build_compiled_actions(rule_data, policy)
+        actions = self._build_compiled_actions(rule_data, policy, session=session)
 
         return {
             "rule_id": rule_data["rule_id"],

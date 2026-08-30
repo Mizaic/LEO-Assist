@@ -50,6 +50,19 @@ def looks_like_table_thresholds(text: str | None) -> bool:
     return bool(text and _TABLE_MARKER_RE.search(text))
 
 
+def _structure_items_align_with_text(text: str, items: list[dict[str, Any]]) -> bool:
+    """True when every item span is a real substring of `text`."""
+    for item in items:
+        item_text = str(item.get("text") or "")
+        start = int(item.get("start") or 0)
+        end = int(item.get("end") or 0)
+        if not item_text or end > len(text) or start >= end:
+            return False
+        if text[start:end] != item_text:
+            return False
+    return True
+
+
 def _connector_reads_as_or(text: str, prev_end: int, next_start: int) -> bool:
     gap = text[prev_end:next_start]
     if re.search(r"\bor\b", gap, re.IGNORECASE):
@@ -115,6 +128,8 @@ def split_from_structure(
         return None
     items = structure["items"]
     if len(items) < 2:
+        return None
+    if text and not _structure_items_align_with_text(text, items):
         return None
     lead = str(structure.get("lead_text") or "")
     if _AT_LEAST_MARKER_RE.search(lead):

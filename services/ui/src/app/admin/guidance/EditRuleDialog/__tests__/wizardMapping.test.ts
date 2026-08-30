@@ -22,6 +22,7 @@ import {
   materializePathways,
   orderPathwayNodesByBoundary,
   pathwayConfirmedLeaves,
+  pathwayShouldNotHaveLeaves,
   pathwayGroupingKey,
   pathwayLetterAt,
   pathwaySummaryText,
@@ -69,6 +70,21 @@ describe("leafDisplayTerm / pathwaySummaryText", () => {
     expect(pathwaySummaryText(pw)).toContain("weight loss");
   });
 
+  it("lists NOT-group findings as must-not-have, not as must-have", () => {
+    const hrt: EditableLogicNode = {
+      node_id: "hrt",
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "3", preferred_term: "HRT" },
+    };
+    const pw = pathwayNode([
+      weightLossLeaf(),
+      { node_id: "not-1", kind: "NOT", children: [hrt] },
+    ]);
+    const summary = pathwaySummaryText(pw);
+    expect(summary.toLowerCase()).toContain("weight loss");
+    expect(summary.toLowerCase()).toContain("must not have hrt");
+  });
+
   it("falls back to a placeholder for an empty pathway", () => {
     expect(pathwaySummaryText(pathwayNode([]))).toBe("(no conditions yet)");
   });
@@ -104,6 +120,20 @@ describe("pathwayConfirmedLeaves", () => {
 
   it("returns an empty list for a pathway with no leaves yet", () => {
     expect(pathwayConfirmedLeaves(pathwayNode([]))).toEqual([]);
+  });
+
+  it("excludes findings inside a NOT group -- those are must-not-have", () => {
+    const hrt: EditableLogicNode = {
+      node_id: "hrt",
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "3", preferred_term: "HRT" },
+    };
+    const pw = pathwayNode([
+      weightLossLeaf(),
+      { node_id: "not-1", kind: "NOT", children: [hrt] },
+    ]);
+    expect(pathwayConfirmedLeaves(pw).map((n) => n.node_id)).toEqual(["wl"]);
+    expect(pathwayShouldNotHaveLeaves(pw).map((n) => n.node_id)).toEqual(["hrt"]);
   });
 });
 

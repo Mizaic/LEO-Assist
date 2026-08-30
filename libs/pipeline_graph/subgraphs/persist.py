@@ -61,6 +61,7 @@ class PersistState(TypedDict, total=False):
     chunk_id_by_sentence_id: dict[str, str]
     warnings: list[str]
     errors: list[str]
+    dry_run: bool
 
 
 def _get_patient_graph_client():

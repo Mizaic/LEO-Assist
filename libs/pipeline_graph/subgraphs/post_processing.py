@@ -166,6 +166,7 @@ def run_post_process(state: PostProcessingState) -> dict[str, Any]:
     for warning in _unresolved_span_warnings(processed):
         if warning not in warnings:
             warnings.append(warning)
+    unresolved = any(e.get(UNRESOLVED_KEY) for e in processed)
 
     return {
         "entities": processed,
@@ -173,7 +174,7 @@ def run_post_process(state: PostProcessingState) -> dict[str, Any]:
         "post_processing_trace": layer_trace,
         "errors": errors,
         "warnings": warnings,
-        "degraded": False,
+        "degraded": bool(state.get("degraded")) or unresolved,
     }
 
 

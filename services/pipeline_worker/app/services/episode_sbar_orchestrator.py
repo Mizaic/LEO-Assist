@@ -42,7 +42,8 @@ from libs.sbar.events import (
     SBARSituationInput,
 )
 
-from .sbar_orchestrator import SBARResult, SBAROrchestrator
+from .patient_rollup_sbar_orchestrator import _execute_cypher
+from .sbar_orchestrator import SBARResult, SBAROrchestrator  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ class EpisodeSBAROrchestrator:
     @staticmethod
     def _link_episode(client, assessment_id: str, episode_id: str) -> None:
         try:
-            SBAROrchestrator._run_cypher(
+            _execute_cypher(
                 client,
                 LINK_ASSESSMENT_TO_EPISODE,
                 assessment_id=assessment_id,
@@ -172,7 +173,7 @@ class EpisodeSBAROrchestrator:
             worst = max(flags, key=lambda f: severity_rank.get(f.severity, 0))
             severity_max = worst.severity
         try:
-            SBAROrchestrator._run_cypher(
+            _execute_cypher(
                 client,
                 SET_ASSESSMENT_COHERENCE_FLAGS,
                 assessment_id=assessment_id,

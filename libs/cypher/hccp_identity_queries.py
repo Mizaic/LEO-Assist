@@ -19,17 +19,26 @@ MATCH (pr:User)
 WHERE (pr.deactivated IS NULL OR pr.deactivated = false)
 OPTIONAL MATCH (pr)-[:WORKS_AT]->(o)
 WITH pr, collect(DISTINCT o.id) AS org_ids, collect(DISTINCT o.name) AS org_names
-OPTIONAL MATCH (pr)-[:IS_MEMBER_OF]->(g:Group)-[:HAS_ROLE]->(role:Role)
+OPTIONAL MATCH (pr)-[:IS_MEMBER_OF]->(g:Group)
+OPTIONAL MATCH (g)-[:HAS_ROLE]->(role:Role)
+OPTIONAL MATCH (pr)-[:HAS_ROLE]->(legacy:Role)
 WITH pr, org_ids, org_names,
-     collect(DISTINCT {
+     collect(DISTINCT CASE WHEN g IS NULL THEN NULL
+       ELSE {id: g.id, name: g.name} END) AS raw_groups,
+     collect(DISTINCT CASE WHEN role IS NULL THEN NULL
+       ELSE {
          role: coalesce(role.id, role.name),
          org_id: coalesce(g.org_id, '')
-     }) AS raw_roles
-WITH pr, org_ids, org_names, [x IN raw_roles WHERE x.role IS NOT NULL] AS roles
+       } END) AS raw_roles,
+     collect(DISTINCT coalesce(legacy.id, legacy.name)) AS raw_legacy
+WITH pr, org_ids, org_names,
+     [x IN raw_groups WHERE x IS NOT NULL] AS groups,
+     [x IN raw_roles WHERE x IS NOT NULL] AS roles,
+     [x IN raw_legacy WHERE x IS NOT NULL] AS legacy_roles
 RETURN pr.id AS id, pr.email AS email, pr.name AS name,
        pr.is_platform_admin AS is_platform_admin,
        pr.last_seen_at AS last_seen_at, pr.invited_at AS invited_at,
-       org_ids, org_names, roles
+       org_ids, org_names, roles, groups, legacy_roles
 ORDER BY pr.email
 """
 
@@ -39,17 +48,26 @@ WHERE (pr.deactivated IS NULL OR pr.deactivated = false)
 OPTIONAL MATCH (pr)-[:WORKS_AT]->(o)
 WITH pr, collect(DISTINCT o.id) AS org_ids, collect(DISTINCT o.name) AS org_names
 WHERE any(oid IN org_ids WHERE oid IN $scope_org_ids)
-OPTIONAL MATCH (pr)-[:IS_MEMBER_OF]->(g:Group)-[:HAS_ROLE]->(role:Role)
+OPTIONAL MATCH (pr)-[:IS_MEMBER_OF]->(g:Group)
+OPTIONAL MATCH (g)-[:HAS_ROLE]->(role:Role)
+OPTIONAL MATCH (pr)-[:HAS_ROLE]->(legacy:Role)
 WITH pr, org_ids, org_names,
-     collect(DISTINCT {
+     collect(DISTINCT CASE WHEN g IS NULL THEN NULL
+       ELSE {id: g.id, name: g.name} END) AS raw_groups,
+     collect(DISTINCT CASE WHEN role IS NULL THEN NULL
+       ELSE {
          role: coalesce(role.id, role.name),
          org_id: coalesce(g.org_id, '')
-     }) AS raw_roles
-WITH pr, org_ids, org_names, [x IN raw_roles WHERE x.role IS NOT NULL] AS roles
+       } END) AS raw_roles,
+     collect(DISTINCT coalesce(legacy.id, legacy.name)) AS raw_legacy
+WITH pr, org_ids, org_names,
+     [x IN raw_groups WHERE x IS NOT NULL] AS groups,
+     [x IN raw_roles WHERE x IS NOT NULL] AS roles,
+     [x IN raw_legacy WHERE x IS NOT NULL] AS legacy_roles
 RETURN pr.id AS id, pr.email AS email, pr.name AS name,
        pr.is_platform_admin AS is_platform_admin,
        pr.last_seen_at AS last_seen_at, pr.invited_at AS invited_at,
-       org_ids, org_names, roles
+       org_ids, org_names, roles, groups, legacy_roles
 ORDER BY pr.email
 """
 
@@ -107,17 +125,27 @@ LIST_ORG_PRACTITIONERS = """
 MATCH (pr:User)-[:WORKS_AT]->(o)
 WHERE o.id = $org_id
   AND (pr.deactivated IS NULL OR pr.deactivated = false)
-OPTIONAL MATCH (pr)-[:IS_MEMBER_OF]->(g:Group)-[:HAS_ROLE]->(role:Role)
+OPTIONAL MATCH (pr)-[:IS_MEMBER_OF]->(g:Group)
+OPTIONAL MATCH (g)-[:HAS_ROLE]->(role:Role)
 WHERE coalesce(g.org_id, '') IN [$org_id, '']
-WITH pr, collect(DISTINCT {
+OPTIONAL MATCH (pr)-[:HAS_ROLE]->(legacy:Role)
+WITH pr,
+     collect(DISTINCT CASE WHEN g IS NULL THEN NULL
+       ELSE {id: g.id, name: g.name} END) AS raw_groups,
+     collect(DISTINCT CASE WHEN role IS NULL THEN NULL
+       ELSE {
          role: coalesce(role.id, role.name),
          org_id: coalesce(g.org_id, '')
-     }) AS raw_roles
-WITH pr, [x IN raw_roles WHERE x.role IS NOT NULL] AS roles
+       } END) AS raw_roles,
+     collect(DISTINCT coalesce(legacy.id, legacy.name)) AS raw_legacy
+WITH pr,
+     [x IN raw_groups WHERE x IS NOT NULL] AS groups,
+     [x IN raw_roles WHERE x IS NOT NULL] AS roles,
+     [x IN raw_legacy WHERE x IS NOT NULL] AS legacy_roles
 RETURN pr.id AS id, pr.email AS email, pr.name AS name,
        pr.is_platform_admin AS is_platform_admin,
        pr.last_seen_at AS last_seen_at, pr.invited_at AS invited_at,
-       roles
+       roles, groups, legacy_roles
 ORDER BY pr.email
 """
 
@@ -133,6 +161,26 @@ MATCH (pr:User {email: $email})-[w:WORKS_AT]->(o)
 WHERE o.id = $org_id
 DELETE w
 RETURN pr.email AS email
+"""
+
+SET_USER_GROUPS = """
+MATCH (u:User {email: $email})
+OPTIONAL MATCH (u)-[m:IS_MEMBER_OF]->(:Group)
+DELETE m
+WITH DISTINCT u
+WITH u, CASE WHEN size($group_ids) = 0 THEN [null] ELSE $group_ids END AS gids
+UNWIND gids AS gid
+OPTIONAL MATCH (g:Group {id: gid})
+FOREACH (_ IN CASE WHEN g IS NOT NULL THEN [1] ELSE [] END |
+  MERGE (u)-[:IS_MEMBER_OF]->(g)
+)
+RETURN u.email AS email
+"""
+
+CLEAR_LEGACY_USER_ROLES = """
+MATCH (u:User {email: $email})-[r:HAS_ROLE]->(:Role)
+DELETE r
+RETURN count(r) AS removed
 """
 
 DEACTIVATE_PRACTITIONER = """

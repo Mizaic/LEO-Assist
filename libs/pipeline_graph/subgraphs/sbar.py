@@ -51,7 +51,13 @@ class SBARSubgraphState(TypedDict, total=False):
     healthcare_service_specialty: str
     healthcare_service_spoa_id: str
     healthcare_service_missing: bool
+    form_schema_fingerprint: str
+    form_clinical_section: str
+    form_sections: list[dict[str, Any]]
     completeness_result: dict[str, Any]
+    entities: list[dict[str, Any]]
+    section_hits: list[dict[str, Any]]
+    dry_run: bool
     sbar_assessment_id: str
     sbar_status: str
     sbar_sections: dict[str, Any]
@@ -61,33 +67,41 @@ class SBARSubgraphState(TypedDict, total=False):
     warnings: list[str]
 
 
-_AUDIT_BLOCKER_TOKENS = (
-    "execution_manifest_missing",
-    "execution_manifest_incomplete",
-    "prompt_provenance_missing",
-    "prompt_hash_missing:",
-    "model_provenance_missing",
-    "source_accounting_missing",
-    "source_accounting_invalid",
-    "audit_link_missing",
-)
-
-
 def _partition_pipeline_messages(
     messages: list[str],
 ) -> tuple[list[str], list[str]]:
-    """Split orchestrator messages into hard errors vs audit/provenance warnings."""
+    """Keep audit blockers as errors so a failed check cannot look clean."""
     errors: list[str] = []
     warnings: list[str] = []
     for raw in messages:
         msg = str(raw or "").strip()
         if not msg:
             continue
-        if msg.startswith("audit:") or any(tok in msg for tok in _AUDIT_BLOCKER_TOKENS):
-            warnings.append(msg)
-        else:
-            errors.append(msg)
+        errors.append(msg)
     return errors, warnings
+
+
+def _form_sections_from_state(state: SBARSubgraphState) -> list[dict[str, Any]]:
+    existing = list(state.get("form_sections") or [])
+    if existing:
+        return existing
+    fingerprint = str(state.get("form_schema_fingerprint") or "").strip()
+    if not fingerprint:
+        return []
+    from libs.pipeline.form_schema_store import get_cached_schema
+
+    schema = get_cached_schema(fingerprint)
+    if schema is None:
+        return []
+    return [
+        {
+            "section_id": section.section_id,
+            "section_type": section.section_type,
+            "label": section.label,
+            "start_pattern": section.start_pattern,
+        }
+        for section in schema.sections
+    ]
 
 
 def _assessment_id(run_id: str, encounter_id: str) -> str:
@@ -186,6 +200,8 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
             "chunk_ids": list(state.get("chunk_ids") or []),
             "referral_id": referral_id,
             "referral_reason": str(state.get("referral_reason") or "").strip(),
+            "entities": list(state.get("entities") or []),
+            "section_hits": list(state.get("section_hits") or []),
             "completeness_result": state.get("completeness_result"),
             "compliance_result": state.get("compliance_result"),
             "source_node_type": str(state.get("source_node_type") or "ReferralRequest"),
@@ -194,15 +210,22 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
             "healthcare_service_specialty": state.get("healthcare_service_specialty"),
             "healthcare_service_spoa_id": state.get("healthcare_service_spoa_id"),
             "healthcare_service_missing": state.get("healthcare_service_missing"),
+            "form_clinical_section": state.get("form_clinical_section"),
+            "form_sections": _form_sections_from_state(state),
         },
     )
     result = await SBAROrchestrator(
         policy_runtime=_runtime_from_state(state),
+        dry_run=bool(state.get("dry_run")),
     ).run(payload)
 
     completeness_result = state.get("completeness_result")
     if completeness_result:
-        _persist_completeness(assessment_id, completeness_result)
+        _persist_completeness(
+            assessment_id,
+            completeness_result,
+            dry_run=bool(state.get("dry_run")),
+        )
 
     pipeline_errors, pipeline_warnings = _partition_pipeline_messages(
         list(result.errors or [])
@@ -244,8 +267,13 @@ def _count_completeness_failures(completeness_result: dict[str, Any]) -> int:
 
 
 def _persist_completeness(
-    assessment_id: str, completeness_result: dict[str, Any]
+    assessment_id: str,
+    completeness_result: dict[str, Any],
+    dry_run: bool = False,
 ) -> None:
+    if dry_run:
+        logger.info("dry_run=True - skipping completeness persist")
+        return
     try:
         from libs.cypher.sbar_assessment_queries import SET_ASSESSMENT_COMPLETENESS
         from libs.neo4j_client.client import PatientGraphClient

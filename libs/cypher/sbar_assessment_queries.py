@@ -117,7 +117,7 @@ ORDER BY a.created_at DESC
 SET_SITUATION = """
 MATCH (a:Assessment {id: $assessment_id})
 SET a.situation        = $situation,
-    a.situation_status = 'completed',
+    a.situation_status = $situation_status,
     a.updated_at       = datetime()
 RETURN a.id AS id
 """
@@ -126,7 +126,7 @@ SET_BACKGROUND = """
 MATCH (a:Assessment {id: $assessment_id})
 SET a.background        = $background,
     a.background_parts  = $background_parts,
-    a.background_status = 'completed',
+    a.background_status = $background_status,
     a.updated_at        = datetime()
 RETURN a.id AS id
 """
@@ -141,7 +141,7 @@ RETURN a.id AS id
 SET_ASSESSMENT_NARRATIVE = """
 MATCH (a:Assessment {id: $assessment_id})
 SET a.assessment        = $assessment,
-    a.assessment_status = 'completed',
+    a.assessment_status = $assessment_status,
     a.assessment_codes  = $assessment_codes,
     a.assessment_rules  = $assessment_rules,
     a.updated_at        = datetime()
@@ -152,7 +152,7 @@ SET_RECOMMENDATION = """
 MATCH (a:Assessment {id: $assessment_id})
 SET a.recommendation         = $recommendation,
     a.recommendation_actions = $recommendation_actions,
-    a.recommendation_status  = 'completed',
+    a.recommendation_status  = $recommendation_status,
     a.updated_at             = datetime()
 RETURN a.id AS id
 """
@@ -164,6 +164,7 @@ FINALISE_ASSESSMENT = """
 MATCH (a:Assessment {id: $assessment_id})
 SET a.content                       = $content,
     a.status                        = $status,
+    a.context_integrity_status      = $context_integrity_status,
     a.errors                        = $errors,
     a.stt                           = $stt,
     a.stt_evidence                  = $stt_evidence,

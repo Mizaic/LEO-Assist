@@ -83,6 +83,7 @@ def test_text_absent_from_the_document_is_flagged_not_asserted() -> None:
         "an entity that cannot be located must be flagged so the run can "
         "degrade rather than silently trusting the model's assertion"
     )
+    assert ent["assertion"] == "assertion_unverified"
 
 
 def test_a_present_finding_stays_present() -> None:

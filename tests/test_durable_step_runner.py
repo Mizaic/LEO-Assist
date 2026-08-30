@@ -740,3 +740,100 @@ async def test_run_step_stale_lease_without_recovery_raises_defer():
             await DurableStepRunner.run_step(body, bus=mock_bus)
 
     mock_graph.invoke.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_run_step_records_llm_usage_in_metrics():
+    """LLM tokens from extraction subgraph must appear in metrics_json.
+
+    DI: DI-36F80B95  (durable step runner - extraction token audit)
+    """
+    from libs.llm_client.token_tracker import track_llm_usage_sync
+
+    current_action = _Action(
+        action_id="act-ref-extract",
+        subgraph_id="extraction",
+    )
+
+    def fake_invoke(state):
+        track_llm_usage_sync(
+            agent_task="v3_pipeline_extractor",
+            model_name="gpt-5-mini",
+            model_provider="azure",
+            model_tier="small",
+            input_tokens=8000,
+            output_tokens=600,
+            cache_read_input_tokens=0,
+            cache_creation_input_tokens=0,
+            reasoning_tokens=0,
+            latency_ms=1200,
+            success=True,
+            error_message="",
+        )
+        return {"entities": [{"id": "e1"}]}
+
+    mock_bus = AsyncMock()
+    mock_graph = MagicMock()
+    mock_graph.invoke = MagicMock(side_effect=fake_invoke)
+
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-ref-extract",
+        "step_id": "act-ref-extract",
+        "plan_definition_id": "pd-referral-assessment",
+        "run_id": "run-llm-usage-001",
+        "patient_id": "p-llm-001",
+    }
+
+    captured_metrics: dict = {}
+
+    def capture_complete(request, result, **kwargs):
+        captured_metrics.update(result.metrics)
+        return StageCompleteResult(outcome="committed")
+
+    store_mock = MagicMock(
+        ensure_schema=MagicMock(),
+        upsert_run=MagicMock(),
+        claim_stage=MagicMock(return_value=StageClaimResult(outcome="claimed")),
+        complete_stage=MagicMock(side_effect=capture_complete),
+        load_pending_outbox=MagicMock(return_value=[]),
+        has_pending_outbox=MagicMock(return_value=False),
+        mark_outbox_sent=MagicMock(),
+        mark_next_published=MagicMock(),
+    )
+
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(current_action),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=MagicMock(close=MagicMock()),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=store_mock,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.dispatch_stage_outbox",
+            new_callable=AsyncMock,
+            return_value=0,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "p-llm-001", "entities": []},
+        ),
+        patch(
+            "libs.pipeline_graph.registry.get_registry",
+            return_value=MagicMock(build=MagicMock(return_value=mock_graph)),
+        ),
+    ):
+        await DurableStepRunner.run_step(body, bus=mock_bus)
+
+    assert "llm_usage" in captured_metrics, "llm_usage key missing from stage metrics"
+    usage = captured_metrics["llm_usage"]
+    assert usage["input_tokens"] == 8000
+    assert usage["output_tokens"] == 600
+    assert usage["llm_calls"] == 1
+    assert usage["cost_usd"] > 0, "cost_usd should be positive for azure/small"

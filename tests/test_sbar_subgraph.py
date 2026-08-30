@@ -62,7 +62,7 @@ def test_assessment_id_is_deterministic():
     assert len(id1) == 32
 
 
-def test_partition_pipeline_messages_moves_audit_blockers_to_warnings() -> None:
+def test_partition_pipeline_messages_keeps_audit_blockers_as_errors() -> None:
     from libs.pipeline_graph.subgraphs.sbar import _partition_pipeline_messages
 
     errors, warnings = _partition_pipeline_messages(
@@ -73,5 +73,6 @@ def test_partition_pipeline_messages_moves_audit_blockers_to_warnings() -> None:
             "prompt_hash_missing:situation",
         ]
     )
-    assert errors == ["situation:LLM timeout"]
-    assert len(warnings) == 3
+    assert "situation:LLM timeout" in errors
+    assert any("audit_link_missing" in item for item in errors)
+    assert warnings == []

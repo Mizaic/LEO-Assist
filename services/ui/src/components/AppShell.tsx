@@ -190,6 +190,13 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
     activePrefix: ["/admin/encounters", "/care/encounters", "/care/pathways", "/pathways"],
     adminOnly: true,
   },
+  {
+    label: "Workflows",
+    path: "/admin/workflows",
+    icon: <AccountTreeOutlinedIcon />,
+    activePrefix: ["/admin/workflows"],
+    adminOnly: true,
+  },
   { label: "Users", path: "/admin/users", icon: <PeopleOutlineIcon /> },
   { label: "Portal", path: "/admin/portal", icon: <AdminPanelSettingsOutlinedIcon /> },
   { label: "Support", path: "/admin/support", icon: <SupportAgentOutlinedIcon /> },

@@ -41,6 +41,9 @@ class QualityCheckState(TypedDict, total=False):
     quality_issues: list[dict[str, Any]]
     quality_report: dict[str, Any]
     errors: list[str]
+    section_hits: list[dict[str, Any]]
+    completeness_groups: list[dict[str, Any]]
+    degraded: bool
 
 
 def _valueset_id(subdomain: str) -> str:
@@ -58,6 +61,31 @@ def _coerce_schema(value: Any) -> list[dict[str, Any]]:
     return [item for item in parsed if isinstance(item, dict)]
 
 
+def _group_is_assessable(group: dict[str, Any]) -> bool:
+    if group.get("concept_ids") or group.get("semantic_categories"):
+        return True
+    if str(group.get("section_id") or "").strip():
+        return True
+    if str(group.get("item_pattern") or "").strip():
+        return True
+    return any(
+        isinstance(member, dict) and _group_is_assessable(member)
+        for member in group.get("members") or []
+    )
+
+
+def _schema_is_assessable(schema: list[dict[str, Any]]) -> bool:
+    return any(_group_is_assessable(group) for group in schema)
+
+
+def _pick_assessable_schema(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    candidates = [_coerce_schema(row.get("completeness_schema")) for row in rows]
+    for schema in candidates:
+        if _schema_is_assessable(schema):
+            return schema
+    return candidates[0] if candidates else []
+
+
 def _load_completeness_schema(domain: str, subdomain: str) -> list[dict[str, Any]]:
     # AuditDomain and ValueSet nodes are written by ensure_service_completeness_domain
     # using PatientGraphClient. We must read from the same graph.
@@ -65,15 +93,31 @@ def _load_completeness_schema(domain: str, subdomain: str) -> list[dict[str, Any
     try:
         rows = client.run(
             "MATCH (d:AuditDomain {id: $domain})-[:HAS_SUBDOMAIN]->(v:ValueSet) "
-            "WHERE v.id = $vs_id OR v.name = $subdomain "
-            "RETURN v.completeness_schema AS completeness_schema",
+            "WHERE v.id = $vs_id OR v.id = $legacy_vs_id OR v.name = $subdomain "
+            "RETURN v.id AS id, v.completeness_schema AS completeness_schema",
             domain=domain,
             subdomain=subdomain,
-            vs_id=_valueset_id(subdomain),
+            vs_id=f"{domain}-{subdomain}",
+            legacy_vs_id=_valueset_id(subdomain),
         )
     finally:
         client.close()
-    return _coerce_schema((rows or [{}])[0].get("completeness_schema"))
+    return _pick_assessable_schema(rows or [])
+
+
+def _resolve_completeness_schema(state: QualityCheckState) -> list[dict[str, Any]]:
+    form_groups = [
+        group
+        for group in (state.get("completeness_groups") or [])
+        if isinstance(group, dict)
+    ]
+    if _schema_is_assessable(form_groups):
+        return form_groups
+    domain = str(state.get("completeness_domain") or "").strip()
+    subdomain = str(state.get("completeness_subdomain") or "").strip()
+    if not domain or not subdomain:
+        return []
+    return _load_completeness_schema(domain, subdomain)
 
 
 def _all_required_concept_ids(schema: list[dict[str, Any]]) -> set[int]:
@@ -104,7 +148,7 @@ def _run_completeness_check(state: QualityCheckState) -> dict[str, Any] | None:
     subdomain = str(state.get("completeness_subdomain") or "").strip()
     if not domain or not subdomain:
         return None
-    schema = _load_completeness_schema(domain, subdomain)
+    schema = _resolve_completeness_schema(state)
     if not schema:
         return {
             "domain": domain,
@@ -121,6 +165,7 @@ def _run_completeness_check(state: QualityCheckState) -> dict[str, Any] | None:
         present_concept_ids=concept_ids_from_entities(entities),
         present_semantic_tags=semantic_tags_from_entities(entities),
         isa_expansion=_load_isa_expansion(required_ids),
+        section_hits=list(state.get("section_hits") or []),
     )
     return {**result, "domain": domain, "subdomain": subdomain, "configured": True}
 
@@ -201,6 +246,8 @@ def run_quality_checks(state: QualityCheckState) -> dict[str, Any]:
     if completeness:
         result["completeness_result"] = completeness
         result["quality_report"]["completeness"] = completeness
+        if completeness.get("degraded"):
+            result["degraded"] = True
     return result
 
 

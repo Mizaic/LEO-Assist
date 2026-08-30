@@ -39,9 +39,18 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
+
+_REC_NUMBER_RE = re.compile(r"^\d+(?:\.\d+)+$")
+
+
+def _is_recommendation_number(title: str) -> bool:
+    """True for '1.5.12', false for a section title like '1.5 Gynaecological'."""
+    return bool(_REC_NUMBER_RE.match((title or "").strip()))
+
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT))
@@ -110,7 +119,7 @@ def backfill_guideline(
     for rec in recs:
         structure = rec.get("ListStructure")
         number = rec.get("Title", "")
-        if not structure or not number:
+        if not structure or not number or not _is_recommendation_number(number):
             skipped += 1
             continue
 

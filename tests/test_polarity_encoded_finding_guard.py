@@ -166,7 +166,7 @@ def test_terminology_subgraph_calls_polarity_guard():
     # Verify call order after fix_double_negated_situations
     idx_double = src.find("fix_double_negated_situations(resolved)")
     idx_polarity = src.find("fix_polarity_encoded_findings(resolved)")
-    idx_false_absent = src.find("apply_false_absent_assertion_guards(resolved)")
+    idx_false_absent = src.find("apply_false_absent_assertion_guards(resolved")
     assert (
         idx_polarity > idx_double
     ), "fix_polarity_encoded_findings must be called after fix_double_negated_situations"

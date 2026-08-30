@@ -25,12 +25,17 @@ Service Bus environment variables are removed from this process before a
 bus is built, so a job naming a production patient cannot reach a shared
 queue. The script refuses to run if either variable survives.
 
-This writes to whichever graph NEO4J_URI points at. It is not a dry run.
+Without --dry-run this writes to whichever graph NEO4J_URI points at.
+
+--dry-run loads existing :Chunk nodes only (no pull, convert, or re-chunk)
+and runs the plan in memory. Persist, SBAR, assessments, referral reason,
+HITL, and staging writes are skipped. A local quality report is dumped.
 
 Usage
 -----
     python scripts/run_referral_inprocess.py --referral-id 000481914514
     python scripts/run_referral_inprocess.py --referral-id X --reset
+    python scripts/run_referral_inprocess.py --referral-id X --dry-run
 """
 
 from __future__ import annotations
@@ -193,7 +198,7 @@ async def _drive(client: Any, referral_id: str, reset: bool, timeout_s: int) -> 
     return 0
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--referral-id", required=True)
     parser.add_argument(
@@ -201,22 +206,71 @@ def main() -> int:
         action="store_true",
         help="Clear prior facts and draft assessments before running.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Run the plan in memory. Load existing chunks only. No writeback.",
+    )
+    parser.add_argument(
+        "--report-dir",
+        default="tmp/referral-quality-dry-run",
+        help="Directory for dry-run quality JSON reports.",
+    )
     parser.add_argument("--timeout", type=int, default=900)
-    args = parser.parse_args()
+    return parser
+
+
+async def _drive_dry_run(
+    client: Any, referral_id: str, report_dir: str, timeout_s: int
+) -> int:
+    """Load existing chunks and run the plan with dry_run=True."""
+    from libs.referral_quality.inprocess_dry_run import run_dry_pipeline
+    from pathlib import Path
+
+    outcome = await run_dry_pipeline(
+        client,
+        referral_id,
+        report_dir=Path(report_dir),
+        timeout_s=timeout_s,
+    )
+    print(f"chunks        : {outcome['chunk_count']}")
+    print(f"final status  : {outcome['status']}")
+    print(f"report        : {outcome['report_path']}")
+    if outcome["status"] == "skipped":
+        return 2
+    if outcome["status"] not in ("completed", "degraded"):
+        return 1
+    return 0
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    if args.dry_run and args.reset:
+        raise SystemExit("Refusing --reset with --dry-run: reset writes to Neo4j.")
 
     _load_env()
     removed = _force_local_bus()
+    mode = (
+        "dry-run (no writeback, existing chunks only)"
+        if args.dry_run
+        else ("in-process referral run (no Service Bus, no separate worker)")
+    )
     print("=" * 68)
-    print("in-process referral run (no Service Bus, no separate worker)")
+    print(mode)
     print("=" * 68)
     print(f"neo4j         : {os.getenv('NEO4J_URI')}")
     print(f"bus           : in-memory (unset {removed or 'nothing'})")
     print(f"referral      : {args.referral_id}")
+    print(f"dry_run       : {args.dry_run}")
 
     from libs.neo4j_client.client import PatientGraphClient
 
     client = PatientGraphClient()
     try:
+        if args.dry_run:
+            return asyncio.run(
+                _drive_dry_run(client, args.referral_id, args.report_dir, args.timeout)
+            )
         return asyncio.run(_drive(client, args.referral_id, args.reset, args.timeout))
     finally:
         client.close()

@@ -70,5 +70,92 @@ def test_evaluate_compliance_returns_structured_payload(mock_dual: MagicMock) ->
         "healthcare_service_missing": False,
         "is_compliant": False,
     }
-    payload = evaluate_compliance({"patient_id": "p1", "entities": []})
+    payload = evaluate_compliance(
+        {
+            "patient_id": "p1",
+            "entities": [],
+            "referral_reason": "Suspected breast lump",
+        }
+    )
     assert payload["compliance_result"]["alternatives"]["matched_rules"]
+
+
+@patch("libs.pipeline_graph.subgraphs.compliance._evaluate_dual_compliance")
+def test_unscored_form_with_extracted_reason_still_evaluates_guidelines(
+    mock_dual: MagicMock,
+) -> None:
+    mock_dual.return_value = {
+        "matched_rules": [],
+        "primary": {"supported": False, "matched_rules": []},
+        "alternatives": {"matched_rules": []},
+        "is_compliant": False,
+    }
+    evaluate_compliance(
+        {
+            "patient_id": "p1",
+            "referral_reason": "Right breast pain after implant rupture",
+            "entities": [
+                {
+                    "concept_id": "29857009",
+                    "assertion": "present",
+                    "label": "finding",
+                    "text": "right-sided breast pain",
+                }
+            ],
+            "completeness_result": {
+                "complete": False,
+                "degraded": True,
+                "missing_groups": [
+                    {
+                        "name": "two_ww_criterion_required",
+                        "required": True,
+                        "outcome": "not_assessable",
+                    }
+                ],
+            },
+        }
+    )
+    mock_dual.assert_called_once()
+
+
+@patch("libs.pipeline_graph.subgraphs.compliance._evaluate_dual_compliance")
+def test_few_shot_finding_is_enough_reason_to_evaluate(
+    mock_dual: MagicMock,
+) -> None:
+    mock_dual.return_value = {
+        "matched_rules": [],
+        "primary": {"supported": False, "matched_rules": []},
+        "alternatives": {"matched_rules": []},
+        "is_compliant": False,
+    }
+    evaluate_compliance(
+        {
+            "patient_id": "p1",
+            "referral_reason": "",
+            "entities": [
+                {
+                    "assertion": "present",
+                    "label": "finding",
+                    "text": "right-sided breast pain",
+                }
+            ],
+        }
+    )
+    mock_dual.assert_called_once()
+
+
+@patch("libs.pipeline_graph.subgraphs.compliance._evaluate_dual_compliance")
+def test_missing_reason_does_not_fire_guideline_rules(mock_dual: MagicMock) -> None:
+    payload = evaluate_compliance(
+        {
+            "patient_id": "p1",
+            "referral_reason": "",
+            "entities": [],
+            "section_hits": [],
+        }
+    )
+    mock_dual.assert_not_called()
+    result = payload["compliance_result"]
+    assert result["matched_rules"] == []
+    assert result["primary"]["supported"] is False
+    assert result["missing_referral_reason"] is True

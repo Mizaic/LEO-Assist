@@ -177,6 +177,7 @@ def test_prepend_spoa_disposition_without_llm_body() -> None:
 # access referrals are GP-arranged; no RTT clock; GP retains responsibility.
 # They must NOT route to straight_to_test (which starts an RTT clock).
 
+
 def test_direct_access_ultrasound_maps_to_discussion_with_primary_care() -> None:
     """NG12 'urgent, direct access ultrasound scan' (ovarian, testicular, etc.)
     must route to discussion_with_primary_care, not straight_to_test."""
@@ -245,7 +246,9 @@ def test_direct_access_in_recommendation_verbatim_maps_to_discussion() -> None:
     assert code == "discussion_with_primary_care"
 
 
-def test_consultant_arranged_ultrasound_without_direct_access_stays_straight_to_test() -> None:
+def test_consultant_arranged_ultrasound_without_direct_access_stays_straight_to_test() -> (
+    None
+):
     """A consultant-arranged ultrasound as part of an STT pathway (no 'direct access'
     phrase) must continue to map to straight_to_test."""
     code, _ = derive_spoa_disposition(
@@ -259,3 +262,50 @@ def test_consultant_arranged_ultrasound_without_direct_access_stays_straight_to_
         alternative_rules=[],
     )
     assert code == "straight_to_test"
+
+
+def _not_assessable_completeness() -> dict:
+    return {
+        "complete": False,
+        "degraded": True,
+        "missing_groups": [
+            {
+                "name": "two_ww_criterion_required",
+                "required": True,
+                "outcome": "not_assessable",
+            }
+        ],
+    }
+
+
+def test_unscored_form_with_reason_still_uses_guideline_disposition() -> None:
+    code, _ = derive_spoa_disposition(
+        primary_rules=[_rule("1.3.1", action_name="Mammogram")],
+        alternative_rules=[],
+        reason_context={
+            "completeness_result": _not_assessable_completeness(),
+            "referral_reason": "Painful left breast lump for two weeks",
+        },
+    )
+    assert code == "straight_to_test"
+
+
+def test_missing_reason_maps_to_further_information_required() -> None:
+    code, evidence = derive_spoa_disposition(
+        primary_rules=[_rule("1.1.2", action_name="Plain X-ray of chest")],
+        alternative_rules=[],
+        reason_context={
+            "completeness_result": _not_assessable_completeness(),
+            "referral_reason": "",
+            "entities": [],
+        },
+    )
+    assert code == "further_information_required"
+    assert "reason" in (evidence or "").lower()
+
+
+def test_further_information_required_label_is_plain_english() -> None:
+    assert (
+        disposition_label("further_information_required")
+        == "Further Information Required"
+    )

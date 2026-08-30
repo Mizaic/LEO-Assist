@@ -1,0 +1,23 @@
+{
+  "organization_id": "RK5",
+  "service_id": "117038",
+  "form_version": "demo-v1",
+  "form_schema_path": "form_schema.json",
+  "letter_path": "letter.md",
+  "expected_facts": [
+    {
+      "text": "Newly presenting discrete hard breast lump",
+      "assertion": "present",
+      "evidence_text": "A1. Newly presenting discrete hard breast lump"
+    }
+  ],
+  "completeness": {
+    "assessable": true,
+    "complete": true
+  },
+  "fired_rules": [],
+  "sbar": {
+    "headline_must_contain": ["lump"],
+    "headline_must_not_contain": ["NHS Confidential", "high BMI"]
+  }
+}

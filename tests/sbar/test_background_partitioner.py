@@ -151,6 +151,97 @@ def test_partitioner_splits_one_oversize_record_across_slices() -> None:
             assert "part_in_record" in p.user_message
 
 
+def test_partitioner_not_blocked_when_all_codes_exceed_budget() -> None:
+    # Regression: a patient with 19 sources and 76 coded facts used to
+    # produce too_many_parts because all codes were duplicated into every
+    # partition's fixed overhead, making the overhead (72k tokens) exceed
+    # the entire budget (60k). The fix is to calculate packing overhead
+    # without codes and filter codes per partition.
+    #
+    # Topology mirrors the real patient 000481858468:
+    #   19 sources (3 empty, 16 with varying text sizes, 2 near the cap)
+    #   76 aggregated ResolvedCode objects (one code per source pair)
+    from libs.sbar.source_resolver import ResolvedCode
+
+    # 3 empty sources (e.g. un-chunked DocumentReferences)
+    empty = [
+        ResolvedSource(source_label="DocumentReference", source_id=f"dr-{i}", text=None, codes=[], metadata={})
+        for i in range(3)
+    ]
+    # 14 small-medium sources
+    mid = [
+        ResolvedSource(source_label="Chunk", source_id=f"chunk-{i}", text="x" * (200 + i * 100), codes=[], metadata={})
+        for i in range(14)
+    ]
+    # 2 large sources near the per-source cap
+    large = [
+        ResolvedSource(source_label="Chunk", source_id="chunk-large-a", text="x" * 38778, codes=[], metadata={}),
+        ResolvedSource(source_label="Chunk", source_id="chunk-large-b", text="x" * 7660, codes=[], metadata={}),
+    ]
+    sources = empty + mid + large
+
+    # 76 codes with realistic evidence text (~1000 chars per sentence),
+    # which matches the real patient where codes block = 259k chars =
+    # ~72k tokens -- well above the 60k budget ceiling.
+    long_evidence = "x" * 1000  # matches real ~1007-char evidence_sentence
+    codes = [
+        ResolvedCode(
+            concept_id=f"1234{i:04d}000",
+            term=f"Clinical finding {i}",
+            semantic_tag="finding",
+            assertion="present",
+            evidence=f"Clinical evidence snippet {i}",
+            evidence_sentence=long_evidence,
+            source_id=f"chunk-{i % 14}",
+            source_label="Chunk",
+        )
+        for i in range(76)
+    ]
+
+    parts, report = partition_background_sources(
+        sources,
+        codes,
+        referring_specialty="gynaecology",
+        max_input_tokens=60000,
+    )
+
+    assert report.too_many_parts is False, (
+        f"Partitioner refused 19 sources + 76 codes at 60k token budget. "
+        f"The codes overhead should not block packing (total_records={report.total_records})"
+    )
+    assert len(parts) >= 1
+    # Every source_id must appear in at least one partition.
+    seen = {d.source_id for p in parts for d in p.descriptors}
+    all_ids = {s.source_id for s in sources}
+    assert seen == all_ids, f"Missing from partitions: {all_ids - seen}"
+
+
+def test_partitioner_accepts_17_large_sources_with_default_max_parts() -> None:
+    # Regression: a complex referral with 17 resolved sources each near
+    # the per-source char cap (a multi-comorbidity patient with dense lab
+    # results) must not be refused. The old default ceiling of 8 parts
+    # was too low; 12 is the new minimum ceiling.
+    #
+    # At 60k input tokens and 4000-char cap each source serialises to
+    # ~1111 tokens. 17 sources = ~18900 tokens. With the 4000-token
+    # system reserve that leaves ~56k per part budget; at 2 sources per
+    # part that requires ~9 parts -- over the old limit of 8.
+    sources = [_make_source(i, text_len=4000) for i in range(17)]
+    parts, report = partition_background_sources(
+        sources,
+        [],
+        referring_specialty="gynaecology",
+        max_input_tokens=12000,  # tight budget forces multi-part packing
+    )
+    assert report.too_many_parts is False, (
+        f"Expected 17 large sources to fit within the default max_parts "
+        f"ceiling but partitioner refused (total_records={report.total_records})"
+    )
+    assert len(parts) >= 1
+    seen = {d.source_id for p in parts for d in p.descriptors}
+    assert seen == {f"enc-{i}" for i in range(17)}
+
+
 def test_partitioner_refuses_when_too_many_parts_needed() -> None:
     # 50 large sources with a tiny budget would need many more than
     # max_parts partitions. The partitioner must refuse cleanly so

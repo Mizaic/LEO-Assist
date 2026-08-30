@@ -29,6 +29,7 @@ import { findPathwaySplit } from "../pathwayDetection";
 import { freshNodeId, mintPathwayKey } from "../treeOps";
 import { conceptText, demographicToText, observationToText } from "../treeToSentence";
 import type { EditableLogicNode, LogicNodeKind, NodeUpdate } from "../types";
+import { collectShouldNotHaveLeaves } from "./shouldNotHave";
 import {
   cleanPathwayText,
   looksLikeWithAnd,
@@ -140,6 +141,7 @@ export function pathwayGroupingKey(
 function collectLeaves(node: EditableLogicNode): EditableLogicNode[] {
   const leaves: EditableLogicNode[] = [];
   const walk = (n: EditableLogicNode): void => {
+    if (n.kind === "NOT") return;
     if (LEAF_KINDS.has(n.kind)) {
       leaves.push(n);
       return;
@@ -165,9 +167,14 @@ export function leafDisplayTerm(node: EditableLogicNode): string {
 /** Comma-joined summary of a pathway's own leaves, for Step 3's
  *  "Already confirmed: A: ..." rows once a pathway is done. */
 export function pathwaySummaryText(pathwayNode: EditableLogicNode): string {
-  const terms = collectLeaves(pathwayNode)
+  const mustHave = collectLeaves(pathwayNode)
     .map(leafDisplayTerm)
     .filter((t) => t.length > 0);
+  const mustNot = collectShouldNotHaveLeaves([pathwayNode])
+    .map(leafDisplayTerm)
+    .filter((t) => t.length > 0)
+    .map((t) => `must not have ${t}`);
+  const terms = [...mustHave, ...mustNot];
   return terms.length > 0 ? terms.join(", ") : "(no conditions yet)";
 }
 
@@ -189,6 +196,13 @@ export function pathwayConfirmedLeaves(
   pathwayNode: EditableLogicNode,
 ): EditableLogicNode[] {
   return collectLeaves(pathwayNode).filter((n) => n.kind !== "DEMOGRAPHIC");
+}
+
+/** Findings inside a direct or nested NOT group on this pathway. */
+export function pathwayShouldNotHaveLeaves(
+  pathwayNode: EditableLogicNode,
+): EditableLogicNode[] {
+  return collectShouldNotHaveLeaves([pathwayNode]);
 }
 
 /** The "Already confirmed" list for Step 3: every pathway strictly

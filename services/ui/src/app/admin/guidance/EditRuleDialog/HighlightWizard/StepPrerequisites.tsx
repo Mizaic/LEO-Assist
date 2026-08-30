@@ -26,35 +26,29 @@
 import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
-import DemographicRow from "../LogicTreeEditor/DemographicRow";
-import ObservationRow from "../LogicTreeEditor/ObservationRow";
 import HighlightableRecommendationText, {
   type HighlightSpan,
   type TextSelectionResult,
 } from "../SentenceEditor/HighlightableRecommendationText";
-import type { TextMatchRange } from "../SentenceEditor/recommendationTextMatch";
 import { findAllValidationErrors } from "../treeOps";
 import {
   conceptConditionClause,
-  conceptSeedLabels,
   demographicToText,
   observationToText,
 } from "../treeToSentence";
 import type { EditableLogicNode, NodeUpdate } from "../types";
-import CapturedConceptChips from "./CapturedConceptChips";
 import { STEP_PREREQUISITES, WIZARD_TOOLTIPS } from "./copy";
 import { leafTextMatches } from "./leafTextMatch";
 import type { PathwayDemographicField } from "./PathwayDemographicsPanel";
+import PrerequisiteRow, { type PrerequisiteRowData } from "./PrerequisiteRow";
 import ProblemNodeRow from "./ProblemNodeRow";
+import { collectShouldNotHaveLeaves } from "./shouldNotHave";
+import { ShouldNotHaveButton, ShouldNotHaveSection } from "./ShouldNotHaveSection";
 
 const PREREQUISITE_LEAF_KINDS = new Set([
   "CONCEPT",
@@ -78,6 +72,7 @@ export function collectPrerequisiteLeaves(
 ): EditableLogicNode[] {
   const leaves: EditableLogicNode[] = [];
   const walk = (n: EditableLogicNode): void => {
+    if (n.kind === "NOT") return;
     if (PREREQUISITE_LEAF_KINDS.has(n.kind)) {
       leaves.push(n);
       return;
@@ -111,12 +106,6 @@ export function prerequisiteLabel(node: EditableLogicNode): string {
     return capitalize(`Patient ${conceptConditionClause(node)}`);
   }
   return "An unfilled patient detail";
-}
-
-interface PrerequisiteRowData {
-  node: EditableLogicNode;
-  label: string;
-  matches: TextMatchRange[];
 }
 
 export interface StepPrerequisitesProps {
@@ -169,6 +158,12 @@ export interface StepPrerequisitesProps {
    * group in the tree -- undefined hides the "Add lab value" button.
    */
   onAddObservation?: () => void;
+  /**
+   * Adds a must-not-have finding that applies no matter which
+   * situation matches -- opens concept search into a NOT group.
+   * Undefined hides the "Patient should not have" button.
+   */
+  onAddShouldNotHave?: (anchor?: HTMLElement) => void;
   /** "No, nothing else always applies" -- lets the wizard move on
    *  without opening any add flow. */
   onConfirmNoMore?: () => void;
@@ -184,6 +179,7 @@ export default function StepPrerequisites({
   onAddFromSelection,
   onAddDemographic,
   onAddObservation,
+  onAddShouldNotHave,
   onConfirmNoMore,
 }: StepPrerequisitesProps) {
   const [questionDismissed, setQuestionDismissed] = useState(false);
@@ -196,6 +192,11 @@ export default function StepPrerequisites({
       matches: leafTextMatches(recommendationText, node),
     }));
   }, [prerequisites, recommendationText]);
+
+  const notHaveLeaves = useMemo(
+    () => collectShouldNotHaveLeaves(prerequisites),
+    [prerequisites],
+  );
 
   // Empty/invalid GROUP nodes (e.g. an "any of" group the reviewer
   // started but never filled in) have no leaf of their own, so
@@ -232,7 +233,7 @@ export default function StepPrerequisites({
   // actively picking a new fact -- it must never strand them. Once the
   // captured set changes (a new prerequisite lands, or one is removed),
   // ask again rather than leaving them with no way to proceed.
-  const rowCount = rows.length;
+  const rowCount = rows.length + notHaveLeaves.length;
   useEffect(() => {
     setQuestionDismissed(false);
   }, [rowCount]);
@@ -272,6 +273,12 @@ export default function StepPrerequisites({
           {STEP_PREREQUISITES.noTextFallback}
         </Typography>
       )}
+
+      <ShouldNotHaveSection
+        leaves={notHaveLeaves}
+        onEdit={(node) => onEditConcept(node.node_id)}
+        onRemove={onRemove}
+      />
 
       {(rows.length > 0 || problemIssues.length > 0) && (
         <Box>
@@ -358,6 +365,13 @@ export default function StepPrerequisites({
                 </Button>
               </Tooltip>
             )}
+            {onAddShouldNotHave && (
+              <ShouldNotHaveButton
+                ariaLabel={STEP_PREREQUISITES.shouldNotHaveAriaLabel}
+                tooltip={WIZARD_TOOLTIPS.addShouldNotHaveAlways}
+                onClick={onAddShouldNotHave}
+              />
+            )}
             {recommendationText && (
               <Tooltip title={WIZARD_TOOLTIPS.highlightMore}>
                 <Button
@@ -373,126 +387,5 @@ export default function StepPrerequisites({
         </Box>
       )}
     </Stack>
-  );
-}
-
-function PrerequisiteRow({
-  row,
-  onEdit,
-  onEditConcept,
-  onUpdate,
-  onRemove,
-}: {
-  row: PrerequisiteRowData;
-  onEdit: (nodeId: string, anchor?: HTMLElement | null) => void;
-  onEditConcept: (nodeId: string) => void;
-  onUpdate: (update: NodeUpdate) => void;
-  onRemove: (nodeId: string) => void;
-}) {
-  const isDemographic = row.node.kind === "DEMOGRAPHIC";
-  const isObservation = row.node.kind === "OBSERVATION";
-  // DEMOGRAPHIC / OBSERVATION rows expand inline editors (age/sex or
-  // operator/value/unit) rather than opening a popover elsewhere --
-  // see the `onEditConcept`/`onUpdate` doc comments above. The
-  // ObservationRow chip still calls `onEdit` to swap the observable.
-  const isInlineEditable = isDemographic || isObservation;
-  const [expanded, setExpanded] = useState(false);
-  const hasAnchor = row.matches.length > 0;
-  const seedLabels = row.node.kind === "CONCEPT" ? conceptSeedLabels(row.node) : [];
-
-  function handleEdit(anchor: HTMLElement) {
-    if (row.node.kind === "CONCEPT") {
-      onEditConcept(row.node.node_id);
-      return;
-    }
-    if (isInlineEditable) {
-      setExpanded((prev) => !prev);
-      return;
-    }
-    onEdit(row.node.node_id, anchor);
-  }
-
-  const editLabel = isInlineEditable
-    ? expanded
-      ? STEP_PREREQUISITES.doneEditingLabel
-      : STEP_PREREQUISITES.editLabel
-    : hasAnchor
-      ? STEP_PREREQUISITES.editLabel
-      : STEP_PREREQUISITES.placeManuallyLabel;
-  const editTip = isInlineEditable
-    ? expanded
-      ? WIZARD_TOOLTIPS.doneEditing
-      : WIZARD_TOOLTIPS.editCaptured
-    : hasAnchor
-      ? WIZARD_TOOLTIPS.editCaptured
-      : WIZARD_TOOLTIPS.placeManually;
-
-  return (
-    <Box
-      data-testid={`prerequisite-row-${row.node.node_id}`}
-      data-has-anchor={hasAnchor}
-      data-node-id={row.node.node_id}
-      data-wizard-jump-target="true"
-      sx={{
-        p: 1,
-        borderRadius: 1,
-        bgcolor: "background.paper",
-        border: "1px solid",
-        borderColor: "divider",
-      }}
-    >
-      <Stack direction="row" alignItems="center" spacing={1}>
-        {hasAnchor ? (
-          <CheckCircleIcon fontSize="small" color="success" />
-        ) : (
-          <InfoOutlinedIcon fontSize="small" color="action" />
-        )}
-        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          {seedLabels.length > 1 ? (
-            <CapturedConceptChips terms={seedLabels} />
-          ) : (
-            <Typography variant="body2">{row.label}</Typography>
-          )}
-          {!hasAnchor && (
-            <Typography variant="caption" color="text.secondary" display="block">
-              {STEP_PREREQUISITES.noAnchorHint}
-            </Typography>
-          )}
-        </Box>
-        <Tooltip title={editTip}>
-          <Button size="small" onClick={(e) => handleEdit(e.currentTarget)}>
-            {editLabel}
-          </Button>
-        </Tooltip>
-        <Tooltip title={WIZARD_TOOLTIPS.removePrerequisite}>
-          <Button
-            size="small"
-            color="error"
-            startIcon={<DeleteOutlineIcon fontSize="small" />}
-            onClick={() => onRemove(row.node.node_id)}
-          >
-            {STEP_PREREQUISITES.removeLabel}
-          </Button>
-        </Tooltip>
-      </Stack>
-      {isDemographic && (
-        <Collapse in={expanded} unmountOnExit>
-          <Box sx={{ mt: 1, pl: 4 }}>
-            <DemographicRow node={row.node} onUpdate={onUpdate} />
-          </Box>
-        </Collapse>
-      )}
-      {isObservation && (
-        <Collapse in={expanded} unmountOnExit>
-          <Box sx={{ mt: 1, pl: 4 }}>
-            <ObservationRow
-              node={row.node}
-              onUpdate={onUpdate}
-              onSelect={(nodeId, anchor) => onEdit(nodeId, anchor)}
-            />
-          </Box>
-        </Collapse>
-      )}
-    </Box>
   );
 }

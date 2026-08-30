@@ -314,6 +314,7 @@ data/training/manual-gold-seed-*.yaml
 
 # Pipeline run results / reports that quote real records
 results/
+output/chunks/
 reports/lab_triple_backfill_*.json
 
 # Investigation dumps (per-patient JSON, audit DBs, investigation notes)

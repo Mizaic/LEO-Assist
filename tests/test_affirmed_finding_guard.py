@@ -68,6 +68,23 @@ def test_no_chest_pain_stays_absent() -> None:
     assert ent["assertion"] == "absent"
 
 
+def test_no_bleeding_noted_stays_absent_when_span_starts_at_zero() -> None:
+    """Negation anywhere in the span must block restore, not only a prefix.
+
+    Atlas: DI-0B907354 / VT-24D1E4F6
+    """
+    text = "no bleeding noted"
+    ent = {
+        "text": "bleeding noted",
+        "start": 0,
+        "end": len("bleeding noted"),
+        "assertion": "absent",
+        "evidence_sentence": text,
+    }
+    fix_locally_affirmed_assertions([ent])
+    assert ent["assertion"] == "absent"
+
+
 def test_discharge_observed_restored_after_context() -> None:
     reload_nlp()
     text = "Cognitive Impairment - Yes [ ] No [X] " "Mild vaginal discharge observed."
