@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 def test_sbar_subgraph_compiles():
     from libs.pipeline_graph.subgraphs.sbar import build_sbar_subgraph
@@ -60,6 +58,60 @@ def test_assessment_id_is_deterministic():
     assert id1 == id2
     assert id1 != id3
     assert len(id1) == 32
+
+
+def test_sbar_loads_pinned_manifest_from_pipeline_run() -> None:
+    """Durable flow pins the manifest on PipelineRun, not the subgraph TypedDict.
+
+    Production minus pub/sub still admits the run with a full execution
+    manifest. SBAR must load that pin when state omits it, or audit
+    fail-closed marks a finished letter as failed.
+    """
+    from libs.pipeline_graph.subgraphs.sbar import _resolve_sbar_policy_runtime
+    from libs.sbar.policy_runtime import build_runtime
+    from libs.workflow.execution_manifest import build_execution_manifest
+    from libs.workflow.plan_manifest import PlanManifest
+    from libs.workflow.referral_policy import DEFAULT_REFERRAL_POLICY
+
+    manifest = build_execution_manifest(
+        PlanManifest(
+            plan_id="pd-referral-assessment",
+            version_id=1,
+            version_node_id="ver-1",
+            policy_version="v6",
+            workflow_mode="durable_pubsub",
+            actions=(),
+            referral_policy=dict(DEFAULT_REFERRAL_POLICY),
+        ),
+        prompt_hashes={
+            "situation": "h1",
+            "background": "h2",
+            "recommendation": "h3",
+            "recall": "h4",
+        },
+        model_config={
+            "key": "azure:small",
+            "provider": "azure",
+            "tier": "small",
+            "modelId": "gpt-5-mini",
+        },
+    )
+
+    with patch(
+        "libs.sbar.policy_runtime.load_execution_manifest",
+        return_value=manifest,
+    ), patch("libs.neo4j_client.client.PatientGraphClient") as client_cls:
+        client_cls.return_value = MagicMock()
+        runtime = _resolve_sbar_policy_runtime({"run_id": "run-prod-1"})
+
+    assert runtime is not None
+    assert runtime.execution_manifest["plan_version_id"] == "ver-1"
+    assert runtime.model_key == "azure:small"
+    expected = build_runtime(manifest)
+    assert (
+        runtime.execution_manifest["prompts"]
+        == expected.execution_manifest["prompts"]
+    )
 
 
 def test_partition_pipeline_messages_keeps_audit_blockers_as_errors() -> None:

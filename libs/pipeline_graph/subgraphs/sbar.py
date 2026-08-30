@@ -58,6 +58,8 @@ class SBARSubgraphState(TypedDict, total=False):
     entities: list[dict[str, Any]]
     section_hits: list[dict[str, Any]]
     dry_run: bool
+    execution_manifest: dict[str, Any]
+    execution_manifest_json: str
     sbar_assessment_id: str
     sbar_status: str
     sbar_sections: dict[str, Any]
@@ -215,7 +217,7 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
         },
     )
     result = await SBAROrchestrator(
-        policy_runtime=_runtime_from_state(state),
+        policy_runtime=_resolve_sbar_policy_runtime(state),
         dry_run=bool(state.get("dry_run")),
     ).run(payload)
 
@@ -259,6 +261,38 @@ def _runtime_from_state(state: SBARSubgraphState) -> Any | None:
     from libs.sbar.policy_runtime import runtime_from_state
 
     return runtime_from_state(dict(state))
+
+
+def _resolve_sbar_policy_runtime(state: SBARSubgraphState) -> Any | None:
+    """Use state first, then the PipelineRun pin (production durable path)."""
+    runtime = _runtime_from_state(state)
+    if runtime is not None:
+        return runtime
+    run_id = str(state.get("run_id") or "").strip()
+    if not run_id:
+        return None
+    try:
+        from libs.neo4j_client.client import PatientGraphClient
+        from libs.sbar.policy_runtime import (
+            build_runtime,
+            load_execution_manifest,
+        )
+
+        client = PatientGraphClient()
+        try:
+            manifest = load_execution_manifest(client, run_id)
+        finally:
+            client.close()
+    except Exception:
+        logger.debug(
+            "execution_manifest unavailable for run %s",
+            run_id,
+            exc_info=True,
+        )
+        return None
+    if not manifest:
+        return None
+    return build_runtime(manifest)
 
 
 def _count_completeness_failures(completeness_result: dict[str, Any]) -> int:
