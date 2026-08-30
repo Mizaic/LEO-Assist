@@ -174,3 +174,14 @@ WITH s, s.schema_id AS schema_id
 DETACH DELETE s
 RETURN schema_id
 """
+
+RELEASE_SIBLING_FORM_SCHEMAS = """
+MATCH (s:FormSchema)
+WHERE s.status = 'active'
+  AND s.organization_id = $organization_id
+  AND s.service_id = $service_id
+  AND s.fingerprint <> $fingerprint
+SET s.status = 'draft',
+    s.updated_at = datetime()
+RETURN s.fingerprint AS fingerprint
+"""

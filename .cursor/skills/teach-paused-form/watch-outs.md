@@ -21,7 +21,9 @@ Do not invent Section A boxes that are not on that letter.
 
 ## Printed codes drift
 
-The same row may print `A2` or `A.2`. Use `A\.?2`.
+The same row may print `A2` or `A.2`. Add **two** items with the same
+entity text. Do not use a regex that is not on the page (`A\.?2`).
+`seed_checkbox_entities` looks up the pattern as a literal span.
 A short pattern `0` matches the ECOG heading. Use `0` plus "Fully active".
 
 ## Packed boxes

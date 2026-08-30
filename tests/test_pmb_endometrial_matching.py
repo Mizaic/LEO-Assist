@@ -15,6 +15,7 @@ from pyroaring import BitMap
 
 from libs.guidelines.pmb_endometrial import (
     HEAVY_PV_BLEED_ID,
+    MENOPAUSE_PRESENT_ID,
     PMB_CONCEPT_ID,
     POSTMENOPAUSAL_STATE_ID,
     PV_BLEEDING_ID,
@@ -29,9 +30,10 @@ from services.terminology_api.app.services.guideline_evaluator import (
 
 _PMB = PMB_CONCEPT_ID
 _STATE = POSTMENOPAUSAL_STATE_ID
+_MENO = MENOPAUSE_PRESENT_ID
 _BLEED = PV_BLEEDING_ID
 _HEAVY = HEAVY_PV_BLEED_ID
-_INT = {_PMB: 1, _STATE: 2, _BLEED: 3, _HEAVY: 4}
+_INT = {_PMB: 1, _STATE: 2, _BLEED: 3, _HEAVY: 4, _MENO: 5}
 
 
 def _concept_leaf(bitmap_id: str, concept_id: str, term: str) -> dict:
@@ -77,11 +79,21 @@ def _compiled_pmb_rule(rule_id: str, age_op: str, age_value: float) -> dict:
                         {
                             "kind": "AND",
                             "children": [
-                                _concept_leaf(
-                                    "bm_state",
-                                    _STATE,
-                                    "Postmenopausal state",
-                                ),
+                                {
+                                    "kind": "OR",
+                                    "children": [
+                                        _concept_leaf(
+                                            "bm_state",
+                                            _STATE,
+                                            "Postmenopausal state",
+                                        ),
+                                        _concept_leaf(
+                                            "bm_meno",
+                                            _MENO,
+                                            "Menopause present",
+                                        ),
+                                    ],
+                                },
                                 {
                                     "kind": "OR",
                                     "children": [
@@ -118,24 +130,19 @@ def _evaluator() -> GuidelineEvaluator:
     store.get_current_ruleset.return_value = ruleset
     store.get_ruleset.return_value = ruleset
     store.get_int_id.side_effect = lambda cid: _INT.get(cid)
-    store.get_bitmap.side_effect = lambda bid: {
+    bitmaps = {
         "bm_pmb": BitMap([1]),
         "bm_state": BitMap([2]),
         "bm_bleed": BitMap([3]),
         "bm_heavy": BitMap([4]),
-    }.get(bid)
+        "bm_meno": BitMap([5]),
+    }
+    store.get_bitmap.side_effect = lambda bid: bitmaps.get(bid)
     store.get_int_ids_bulk.side_effect = lambda cids: {
         cid: _INT[cid] for cid in cids if cid in _INT
     }
     store.get_bitmaps_bulk.side_effect = lambda bids: {
-        bid: bm
-        for bid, bm in {
-            "bm_pmb": BitMap([1]),
-            "bm_state": BitMap([2]),
-            "bm_bleed": BitMap([3]),
-            "bm_heavy": BitMap([4]),
-        }.items()
-        if bid in bids
+        bid: bm for bid, bm in bitmaps.items() if bid in bids
     }
     return GuidelineEvaluator(store=store)
 
@@ -165,13 +172,13 @@ def test_1_5_12_tree_is_single_code_or_split_pair() -> None:
     tree = build_pmb_1_5_12_logic()
     assert tree.kind == "AND"
     ids = validate_logic_tree(tree)
-    assert {_PMB, _STATE, _BLEED, _HEAVY} <= set(ids)
+    assert {_PMB, _STATE, _MENO, _BLEED, _HEAVY} <= set(ids)
     or_arm = _or_arm(tree)
     assert len(or_arm.children or []) == 2
     singles = [c for c in or_arm.children or [] if c.kind == "CONCEPT"]
     pairs = [c for c in or_arm.children or [] if c.kind == "AND"]
     assert [c.criterion.snomed_concept_id for c in singles] == [_PMB]
-    assert _concept_ids(pairs[0]) == {_STATE, _BLEED, _HEAVY}
+    assert _concept_ids(pairs[0]) == {_STATE, _MENO, _BLEED, _HEAVY}
 
 
 def test_1_5_14_tree_keeps_under_55_and_female() -> None:
@@ -237,6 +244,16 @@ def test_single_pmb_code_still_fires_both_age_bands() -> None:
     )
     assert _fired(older) == {"1.5.12"}
     assert _fired(younger) == {"1.5.14"}
+
+
+def test_1_5_14_fires_on_menopause_present_plus_heavy_pv_bleed() -> None:
+    result = _evaluator().evaluate_patient(
+        [_MENO, _HEAVY],
+        patient_age=49,
+        patient_sex="female",
+        letter_text="menopause then heavy vaginal bleeding",
+    )
+    assert _fired(result) == {"1.5.14"}
 
 
 def test_1_5_14_fires_on_state_plus_heavy_pv_bleed() -> None:

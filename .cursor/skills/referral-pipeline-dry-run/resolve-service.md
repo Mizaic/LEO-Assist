@@ -1,6 +1,14 @@
 # Resolve organisation and :Service
 
-Use `user-neo4j-mcp` `read-cypher`. If that MCP fails, stop.
+MCP graphs (do not mix):
+
+- Dev: `user-leo-neo4j` / `user-user-leo-neo4j`
+  (`run_cypher_knowledge` for `:Service`, `run_cypher_patient`
+  for referrals and DocRefs)
+- Prod: `user-neo4j-mcp` (`read-cypher`)
+
+Live RC9 / BedsFT service lookup uses **prod**. Say which graph
+each result came from. If the chosen MCP fails, stop.
 
 Do not hard-code a service catalogue. Names and RC branding drift.
 

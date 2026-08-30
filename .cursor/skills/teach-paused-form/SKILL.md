@@ -103,7 +103,10 @@ If red, patch the schema JSON:
 - add or fix `start_pattern` (heading on the letter)
 - set `section_type` (`checkbox_multi`, `checkbox_yesno`, `scale`,
   `free_text`, `admin`, `template_noise`, `ordered_tests`, `observable`)
-- fix `pattern` so `A2` and `A.2` both match (`A\.?2`)
+- set `pattern` to the **printed** token (`A1.`, `A.2`). Seeding looks
+  up that string in the letter. A regex such as `A\.?2` can rewrite
+  the line and still fail to seed. If the form prints both `A2` and
+  `A.2`, add two rows with the same `entity_text`
 - write `entity_text` as a clinical sentence, not `A1`
 - mark "Points to remember", mastalgia advice, NICE boxes as
   `template_noise`

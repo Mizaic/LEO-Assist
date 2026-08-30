@@ -210,12 +210,26 @@ def _process_checkbox_line(line: str, section: FormSection) -> list[str]:
     return [_seal(line)]
 
 
+def _two_column_tick_answer(line: str) -> str | None:
+    """Read a Yes/No table that prints only ``| [X] | [ ] |``."""
+    boxes = [_box_is_checked(match) for match in _TICK_BOX_RE.finditer(line)]
+    if len(boxes) != 2:
+        return None
+    if boxes[0] and not boxes[1]:
+        return "yes"
+    if boxes[1] and not boxes[0]:
+        return "no"
+    return None
+
+
 def _yes_no_answer(line: str) -> str | None:
     """Return "yes", "no", or None for a Yes / No row.
 
     Reads both box orders, so "[X] Yes [ ] No" answers Yes just like
-    "Yes [X] No [ ]". Returns None when the row has no single clear
-    answer, so an unanswered or contradictory row is never read as Yes.
+    "Yes [X] No [ ]". A two-column tick table without the words is
+    Yes when the first box is ticked. Returns None when the row has
+    no single clear answer, so an unanswered or contradictory row is
+    never read as Yes.
     """
     checked: set[str] = set()
     found = False
@@ -227,7 +241,9 @@ def _yes_no_answer(line: str) -> str | None:
         box = (match.group(2) if match.group(1) else match.group(3)) or ""
         if _BOX_CHECKED_RE.match(box.strip()):
             checked.add(word)
-    if not found or len(checked) != 1:
+    if not found:
+        return _two_column_tick_answer(line)
+    if len(checked) != 1:
         return None
     return checked.pop()
 

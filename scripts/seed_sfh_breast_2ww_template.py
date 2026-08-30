@@ -64,11 +64,15 @@ def build_section_a() -> dict:
         items=[
             _item(
                 "A1.",
-                "Newly presenting discrete hard breast lump",
+                "Newly presenting discrete hard lump",
             ),
             _item(
-                r"A\.?2",
-                "Discrete breast lump persisting after period or menopause",
+                "A2.",
+                "discrete lump that persists post period",
+            ),
+            _item(
+                "A.2",
+                "discrete lump that persists post period",
             ),
             _item("A3.", "Nipple ulceration"),
             _item("A4.", "Unilateral blood stained nipple discharge"),
@@ -181,18 +185,27 @@ def build_awareness() -> dict:
 
 
 def build_ecog() -> dict:
-    """ECOG performance status printed on one line."""
+    """Long ECOG row with the box before the score."""
     return _section(
         section_id="performance_status",
         section_type="scale",
         label="Performance status",
         start_pattern=r"(?i)^\s*\|\s*Performance status\s*\|",
         items=[
-            _item(r"0\s*.\s*Fully active", "ECOG 0 fully active without restriction"),
-            _item(r"1\s*.\s*Restricted", "ECOG 1 restricted in strenuous activity"),
-            _item(r"2\s*.\s*Ambulatory", "ECOG 2 ambulatory but unable to work"),
-            _item(r"3\s*.\s*Capable of only limited", "ECOG 3 limited selfcare"),
-            _item(r"4\s*.\s*Completely disabled", "ECOG 4 completely disabled"),
+            _item("Fully active", "ECOG 0 fully active without restriction"),
+            _item(
+                "Restricted in physically strenuous",
+                "ECOG 1 restricted in strenuous activity",
+            ),
+            _item(
+                "Ambulatory and capable of all selfcare",
+                "ECOG 2 ambulatory but unable to work",
+            ),
+            _item(
+                "confined to bed or chair more than 50%",
+                "ECOG 3 limited selfcare",
+            ),
+            _item("Totally confined to bed or chair", "ECOG 4 completely disabled"),
         ],
     )
 
@@ -264,6 +277,35 @@ def build_admin() -> dict:
     )
 
 
+def _section_a_members() -> list:
+    boxes = [
+        {"section_id": "section_a_2ww_symptoms", "item_pattern": pattern}
+        for pattern in (
+            "A1.",
+            "A2.",
+            "A.2",
+            "A3.",
+            "A4.",
+            "A5.",
+            "A6.",
+            "A7.",
+            "A8.",
+            "A9.",
+            "A10.",
+        )
+    ]
+    boxes.append(
+        {
+            "name": "Breast lump",
+            "kind": "optional",
+            "required": False,
+            "semantic_categories": [],
+            "concept_ids": [89164003],
+        }
+    )
+    return boxes
+
+
 def build_completeness_groups() -> list:
     return [
         {
@@ -273,18 +315,7 @@ def build_completeness_groups() -> list:
             "min_count": 1,
             "semantic_categories": [],
             "concept_ids": [],
-            "members": [
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": "A1."},
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": r"A\.?2"},
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": "A3."},
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": "A4."},
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": "A5."},
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": "A6."},
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": "A7."},
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": "A8."},
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": "A9."},
-                {"section_id": "section_a_2ww_symptoms", "item_pattern": "A10."},
-            ],
+            "members": _section_a_members(),
         },
         {
             "name": "examination_present",

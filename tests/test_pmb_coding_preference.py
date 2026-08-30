@@ -1,9 +1,10 @@
-"""PMB phrases must resolve to 76742009, not split codes.
+"""PMB phrases stay one finding. Post-process must not invent 76742009.
 
 Scan and letter text uses PMB, postmenopausal bleeding, or bleeding
-after the menopause. Extraction must keep that as one finding.
+after the menopause. Split codes match on the published pair tree.
+Part phrases are SurfaceForms. Salvage is gone.
 
-Atlas: DI-00DFB149, DO-ABE2AE61, VT-E053BB7C.
+Atlas: DI-00DFB149, DI-8BAC9BB3, DO-ABE2AE61, VT-E053BB7C.
 """
 
 from __future__ import annotations
@@ -70,44 +71,7 @@ def _postmeno_state_entity() -> dict:
     }
 
 
-def test_salvage_adds_pmb_when_menopause_and_heavy_pv_bleed() -> None:
-    from libs.pipeline.pmb_salvage import salvage_pmb
-
-    letter = "Menopause and amenorrhoea for 3 years. Heavy vaginal bleeding."
-    out = salvage_pmb(letter, [_heavy_bleed_entity()])
-    assert "76742009" in _concept_ids(out)
-
-
-def test_salvage_adds_pmb_when_hrt_and_has_been_bleeding() -> None:
-    from libs.pipeline.pmb_salvage import salvage_pmb
-
-    letter = (
-        "On HRT. Pelvic scan: the patient has been bleeding for the last 24 hours."
-    )
-    out = salvage_pmb(letter, [_postmeno_state_entity()])
-    assert "76742009" in _concept_ids(out)
-
-
-def test_salvage_adds_pmb_when_hrt_stop_and_worsening_bleed() -> None:
-    from libs.pipeline.pmb_salvage import salvage_pmb
-
-    letter = (
-        "Bleeding has now settled since stopping HRT. "
-        "Scan: worsening bleeding. Fibroid uterus."
-    )
-    out = salvage_pmb(letter, [{"text": "fibroid", "label": "finding"}])
-    assert "76742009" in _concept_ids(out)
-
-
-def test_salvage_does_not_invent_bleed_from_no_pvb() -> None:
-    from libs.pipeline.pmb_salvage import salvage_pmb
-
-    letter = "Postmenopausal. No PVB. No vaginal bleeding."
-    out = salvage_pmb(letter, [_postmeno_state_entity()])
-    assert "76742009" not in _concept_ids(out)
-
-
-def test_post_process_wires_pmb_salvage_layer() -> None:
+def test_post_process_does_not_invent_pmb_from_parts() -> None:
     from libs.pipeline.post_processing import run_post_processing_with_trace
 
     letter = "Menopause and amenorrhoea for 3 years. Heavy vaginal bleeding."
@@ -115,5 +79,25 @@ def test_post_process_wires_pmb_salvage_layer() -> None:
         letter, [_heavy_bleed_entity()], enable_disorder_gate=False
     )
     names = {row.get("name") for row in trace}
-    assert "PMB Salvage" in names
-    assert "76742009" in _concept_ids(entities)
+    assert "PMB Salvage" not in names
+    assert "76742009" not in _concept_ids(entities)
+
+
+def test_post_process_does_not_invent_pmb_from_hrt_and_bleed_words() -> None:
+    from libs.pipeline.post_processing import run_post_processing_with_trace
+
+    letter = "On HRT. Pelvic scan: the patient has been bleeding for the last 24 hours."
+    entities, _trace = run_post_processing_with_trace(
+        letter, [_postmeno_state_entity()], enable_disorder_gate=False
+    )
+    assert "76742009" not in _concept_ids(entities)
+
+
+def test_post_process_does_not_invent_pmb_from_no_pvb() -> None:
+    from libs.pipeline.post_processing import run_post_processing_with_trace
+
+    letter = "Postmenopausal. No PVB. No vaginal bleeding."
+    entities, _trace = run_post_processing_with_trace(
+        letter, [_postmeno_state_entity()], enable_disorder_gate=False
+    )
+    assert "76742009" not in _concept_ids(entities)

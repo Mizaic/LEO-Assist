@@ -1,8 +1,7 @@
-"""NG12 endometrial PMB match: single code or split pair.
+"""Apply helper for the NG12 1.5.12 / 1.5.14 PMB pair tree.
 
-1.5.12 and 1.5.14 require postmenopausal bleeding. Coders sometimes
-emit 76498008 plus 289530006 instead of 76742009. Both shapes match.
-Unexplained stays soft.
+Builds a LogicNode for apply_rule_edit. Evaluate must not import this.
+Live match shape lives on AppropriatenessRule.logicJson.
 
 Atlas: UN-5F3BF083, DI-8BAC9BB3, DO-ABE2AE61, VT-E053BB7C.
 """
@@ -18,11 +17,13 @@ from services.api.app.services.guidance_rule_edit import (
 
 PMB_CONCEPT_ID = "76742009"
 POSTMENOPAUSAL_STATE_ID = "76498008"
+MENOPAUSE_PRESENT_ID = "289903006"
 PV_BLEEDING_ID = "289530006"
 HEAVY_PV_BLEED_ID = "315224006"
 
 _PMB_TERM = "Postmenopausal bleeding (finding)"
 _STATE_TERM = "Postmenopausal state (finding)"
+_MENO_TERM = "Menopause present (finding)"
 _BLEED_TERM = "Bleeding from vagina (finding)"
 _HEAVY_TERM = "Heavy vaginal bleeding (finding)"
 _SOURCE = "unexplained post-menopausal bleeding"
@@ -68,6 +69,16 @@ def _bleed_or() -> LogicNode:
     )
 
 
+def _state_or() -> LogicNode:
+    return LogicNode(
+        kind="OR",
+        children=[
+            _concept(POSTMENOPAUSAL_STATE_ID, _STATE_TERM),
+            _concept(MENOPAUSE_PRESENT_ID, _MENO_TERM),
+        ],
+    )
+
+
 def _pmb_or_pair() -> LogicNode:
     return LogicNode(
         kind="OR",
@@ -75,10 +86,7 @@ def _pmb_or_pair() -> LogicNode:
             _concept(PMB_CONCEPT_ID, _PMB_TERM, source=_SOURCE),
             LogicNode(
                 kind="AND",
-                children=[
-                    _concept(POSTMENOPAUSAL_STATE_ID, _STATE_TERM),
-                    _bleed_or(),
-                ],
+                children=[_state_or(), _bleed_or()],
             ),
         ],
     )

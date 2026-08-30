@@ -17,7 +17,7 @@
       "items": [
         {
           "pattern": "A1.",
-          "entity_text": "Newly presenting discrete hard breast lump",
+          "entity_text": "Newly presenting discrete hard lump",
           "semantic_tag": "finding",
           "assertion": "present",
           "procedure_snomed": "",
@@ -26,8 +26,18 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "A\\.?2",
-          "entity_text": "Discrete breast lump persisting after period or menopause",
+          "pattern": "A2.",
+          "entity_text": "discrete lump that persists post period",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "A.2",
+          "entity_text": "discrete lump that persists post period",
           "semantic_tag": "finding",
           "assertion": "present",
           "procedure_snomed": "",
@@ -525,7 +535,7 @@
       "start_pattern": "(?i)^\\s*\\|\\s*Performance status\\s*\\|",
       "items": [
         {
-          "pattern": "0\\s*.\\s*Fully active",
+          "pattern": "Fully active",
           "entity_text": "ECOG 0 fully active without restriction",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -535,7 +545,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "1\\s*.\\s*Restricted",
+          "pattern": "Restricted in physically strenuous",
           "entity_text": "ECOG 1 restricted in strenuous activity",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -545,7 +555,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "2\\s*.\\s*Ambulatory",
+          "pattern": "Ambulatory and capable of all selfcare",
           "entity_text": "ECOG 2 ambulatory but unable to work",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -555,7 +565,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "3\\s*.\\s*Capable of only limited",
+          "pattern": "confined to bed or chair more than 50%",
           "entity_text": "ECOG 3 limited selfcare",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -565,7 +575,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "4\\s*.\\s*Completely disabled",
+          "pattern": "Totally confined to bed or chair",
           "entity_text": "ECOG 4 completely disabled",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -726,7 +736,11 @@
         },
         {
           "section_id": "section_a_2ww_symptoms",
-          "item_pattern": "A\\.?2"
+          "item_pattern": "A2."
+        },
+        {
+          "section_id": "section_a_2ww_symptoms",
+          "item_pattern": "A.2"
         },
         {
           "section_id": "section_a_2ww_symptoms",
@@ -759,6 +773,15 @@
         {
           "section_id": "section_a_2ww_symptoms",
           "item_pattern": "A10."
+        },
+        {
+          "name": "Breast lump",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            89164003
+          ]
         }
       ]
     },

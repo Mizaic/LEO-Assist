@@ -27,6 +27,28 @@ def test_is_suspected_cancer_context_for_assessment_phrase() -> None:
     )
 
 
+def test_enrich_does_not_rewrite_taught_checkbox_breast_pain() -> None:
+    """A taught pain tick is a finding. 2WW chrome must not recode it."""
+    encounter = (
+        "Refer under the suspected cancer pathway for "
+        "Intractable breast pain not responding to NSAID [X]"
+    )
+    start = encounter.find("Intractable breast pain")
+    entity = {
+        "text": "Intractable breast pain",
+        "lookup_term": "Intractable breast pain",
+        "label": "finding",
+        "semantic_tag": "finding",
+        "start": start,
+        "end": start + len("Intractable breast pain"),
+        "__source": "form_schema_checkbox",
+    }
+    enrich_suspected_cancer_lookup(entity, encounter)
+    assert entity["lookup_term"] == "Intractable breast pain"
+    assert entity["label"] == "finding"
+    assert entity.get("_suspected_cancer_guard") is None
+
+
 def test_enrich_lookup_sets_upper_gi_suspected() -> None:
     entity = {
         "label": "situation",

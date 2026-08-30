@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from libs.ner.form_checkbox_normalizer import NON_EXTRACTABLE_MARKER
 from libs.pipeline.blood_panel_presets import blood_panel_preset_payload
+from libs.pipeline.form_checkbox_seed import seed_checkbox_entities
 from libs.pipeline.form_schema_normalizer import (
     FormSchema,
     FormSchemaItem,
@@ -87,8 +88,12 @@ def test_box_before_yes_is_read_as_a_yes_answer() -> None:
         "| Is the patient aware that they have been referred on an urgent "
         "basis? | [X] Yes [ ] No |\n"
     )
-    result = apply_schema_to_text(text, _schema(AWARENESS_SECTION))
-    assert "Patient aware of urgent cancer referral" in result
+    schema = _schema(AWARENESS_SECTION)
+    result = apply_schema_to_text(text, schema)
+    assert NON_EXTRACTABLE_MARKER in result
+    seeded = seed_checkbox_entities(text, schema)
+    lookups = {str(row.get("lookup_term") or "") for row in seeded}
+    assert "Patient aware of urgent cancer referral" in lookups
 
 
 def test_box_before_no_is_not_read_as_a_yes_answer() -> None:
@@ -108,8 +113,24 @@ def test_word_before_box_still_works() -> None:
         "| Is the patient aware that they have been referred on an urgent "
         "basis? | Yes [X] No [ ] |\n"
     )
-    result = apply_schema_to_text(text, _schema(AWARENESS_SECTION))
-    assert "Patient aware of urgent cancer referral" in result
+    schema = _schema(AWARENESS_SECTION)
+    result = apply_schema_to_text(text, schema)
+    assert NON_EXTRACTABLE_MARKER in result
+    seeded = seed_checkbox_entities(text, schema)
+    lookups = {str(row.get("lookup_term") or "") for row in seeded}
+    assert "Patient aware of urgent cancer referral" in lookups
+
+
+def test_two_column_tick_table_without_yes_no_words() -> None:
+    text = (
+        "Does the patient know?\n"
+        "| Is the patient aware that they have been referred on an urgent "
+        "basis? | [X] | [ ] |\n"
+    )
+    schema = _schema(AWARENESS_SECTION)
+    seeded = seed_checkbox_entities(text, schema)
+    lookups = {str(row.get("lookup_term") or "") for row in seeded}
+    assert "Patient aware of urgent cancer referral" in lookups
 
 
 def test_no_answered_before_the_box_is_not_a_yes() -> None:

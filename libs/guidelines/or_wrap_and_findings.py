@@ -1,8 +1,7 @@
-"""Wrap AND-of-findings as AND(sex, OR(findings)) for NICE OR wording.
+"""Apply helper: wrap AND-of-findings as AND(sex, OR(findings)).
 
-Used when a NICE row says lump OR ulceration OR bleeding but the
-extracted tree ANDs those findings. Sex stays a hard AND sibling.
-Seeds and source_row_text are copied through unchanged.
+Builds a tree for apply_rule_edit. Evaluate must not import this.
+Live match shape lives on AppropriatenessRule.logicJson.
 
 Atlas:
   UN-5F3BF083

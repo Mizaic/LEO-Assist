@@ -881,7 +881,10 @@ def _enrich_with_blood_panel_entities(
         merge_blood_panel_entities,
     )
     from libs.pipeline.document_quality import form_fingerprint
-    from libs.pipeline.form_checkbox_seed import seed_checkbox_entities
+    from libs.pipeline.form_checkbox_seed import (
+        merge_checkbox_seed_entities,
+        seed_checkbox_entities,
+    )
     from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
     from libs.pipeline.form_schema_store import get_cached_schema, resolve_form_schema
 
@@ -908,10 +911,12 @@ def _enrich_with_blood_panel_entities(
     seeded: list[dict[str, Any]] = []
     if schema is not None:
         seeded = seed_ordered_tests_entities(encounter_text, schema)
-        seeded.extend(seed_checkbox_entities(encounter_text, schema))
+        boxes = seed_checkbox_entities(encounter_text, schema)
         merged = merge_blood_panel_entities(merged, seeded)
+        merged = merge_checkbox_seed_entities(merged, boxes)
+        seeded = seeded + boxes
 
-    if len(merged) > len(result.get("entities") or []):
+    if panel or seeded:
         route = str(result.get("extraction_route") or "")
         tags: list[str] = []
         if panel:

@@ -242,6 +242,31 @@ def test_disorder_gate_suppresses_informational() -> None:
 # ── Scope Guard (Layer 3) ──
 
 
+def test_scope_guard_keeps_taught_checkbox_tick() -> None:
+    """A taught tick is a patient fact even when the row quotes guidance."""
+    encounter = (
+        "Intractable breast pain not responding to initial conservative "
+        "measures - see best practice guidance. If you develop chest pain, "
+        "call 999"
+    )
+    start = encounter.find("Intractable breast pain")
+    entities = [
+        {
+            "text": "Intractable breast pain",
+            "label": "finding",
+            "start": start,
+            "end": start + len("Intractable breast pain"),
+            "assertion": "present",
+            "__source": "form_schema_checkbox",
+        }
+    ]
+    with patch("libs.pipeline.post_processing.apply_context_detection_to_dicts"):
+        result = run_post_processing(encounter, entities)
+    assert len(result) == 1
+    assert result[0]["text"] == "Intractable breast pain"
+    assert result[0]["assertion"] == "present"
+
+
 def test_scope_guard_suppresses_safety_netting() -> None:
     """Safety-netting entities are REMOVED, not reclassified to hypothetical."""
     entities = [

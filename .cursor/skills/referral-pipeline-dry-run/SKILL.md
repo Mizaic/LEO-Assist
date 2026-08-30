@@ -19,7 +19,11 @@ Reuse the scripts. Do not invent a second runner.
 - Never `--reset`. Never `clean_run_facts.py`. Never seed production.
 - Never Azure Service Bus. The in-process runner unsets those env vars.
 - Confirm `NEO4J_URI` before any graph read. Print it. If MCP fails, stop.
-- Patient data: `user-neo4j-mcp` first. Do not guess UBRNs or service ids.
+- MCP graphs: `user-leo-neo4j` and `user-user-leo-neo4j` are **dev**.
+  `user-neo4j-mcp` is **prod**. Say which graph you are on. Do not
+  mix them. Do not guess UBRNs or service ids.
+- Match the MCP to the job: live RC9 / BedsFT review uses prod
+  (`user-neo4j-mcp`). Local or seeded work uses dev.
 - Do not start a pull until one `:Service.id` (or an explicit UBRN list)
   is confirmed.
 - Fail-closed: a safety-layer error is `degraded`, not a successful no.

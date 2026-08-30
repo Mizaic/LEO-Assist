@@ -16,6 +16,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from libs.lab_results.pipeline import enrich_lab_result_findings
+from libs.pipeline.form_checkbox_seed import is_taught_checkbox
 from libs.ner.suspected_cancer_guard import (
     dedupe_suspected_malignancy_conflicts,
     enrich_suspected_cancer_lookups,
@@ -317,6 +318,9 @@ def _dedup_by_concept_id(entities: list[dict[str, Any]]) -> list[dict[str, Any]]
     seen: dict[str, dict[str, Any]] = {}
     kept: list[dict[str, Any]] = []
     for ent in entities:
+        if is_taught_checkbox(ent):
+            kept.append(ent)
+            continue
         concept_id = str(ent.get("concept_id") or "").strip()
         if not concept_id or ent.get("terminology_unresolved"):
             kept.append(ent)

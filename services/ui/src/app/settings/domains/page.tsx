@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-CFA1ED55
+ *   DO: DO-CFA1ED55, DO-9C9CB1D8
  *   Also implements: DO-DA9FD5E8
- *   DI: DI-340279C1, DI-6424B6FC
+ *   DI: DI-340279C1, DI-6424B6FC, DI-10667413
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CFA1ED55")
  */
 "use client";
@@ -40,6 +40,7 @@ import {
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DomainCard from "./_components/DomainCard";
 import { DomainFormDialogs } from "./_components/DomainFormDialogs";
+import TenantCompletenessList from "./_components/TenantCompletenessList";
 import { DOMAINS_PAGE_SX } from "./_components/domainConstants";
 import { useDomainsList, type DomainsList } from "./_components/useDomainsList";
 
@@ -160,6 +161,9 @@ function DomainsBody({ page }: { page: DomainsList }) {
   if (page.loading) {
     return <SkeletonList rows={3} itemHeight={168} gap={16} data-testid="domains-skeleton" />;
   }
+  if (page.sourceFilter === "tenant") {
+    return <TenantCompletenessBody page={page} />;
+  }
   if (page.domains.length === 0) {
     return (
       <EmptyState
@@ -175,14 +179,31 @@ function DomainsBody({ page }: { page: DomainsList }) {
   return <DomainsGrid page={page} />;
 }
 
+function TenantCompletenessBody({ page }: { page: DomainsList }) {
+  if (page.tenantDomains.length === 0) {
+    return (
+      <EmptyState
+        icon={<FolderOpenOutlinedIcon />}
+        title="No completeness domains yet"
+        body="Save a taught form with an organisation and service to create one."
+      />
+    );
+  }
+  return <TenantCompletenessList domains={page.filteredTenant} />;
+}
+
 function emptyTitle(filter: string, isAdmin: boolean): string {
   if (filter === "nice") return "No NICE areas yet";
+  if (filter === "tenant") return "No completeness domains yet";
   if (isAdmin) return "No areas yet";
   return "No areas match this filter";
 }
 
 function emptyBody(filter: string, isAdmin: boolean): string {
   if (filter === "nice") return "Run a guideline sync to add them.";
+  if (filter === "tenant") {
+    return "Save a taught form with an organisation and service to create one.";
+  }
   if (isAdmin) return "Create one to get started.";
   return "Try a different source filter.";
 }

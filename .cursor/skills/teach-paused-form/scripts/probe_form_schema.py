@@ -22,7 +22,11 @@ if str(ROOT) not in sys.path:
 
 from libs.ner.form_checkbox_normalizer import NON_EXTRACTABLE_MARKER
 from libs.pipeline.form_checkbox_seed import seed_checkbox_entities
-from libs.pipeline.form_schema_normalizer import FormSchema, apply_schema_to_text
+from libs.pipeline.form_schema_normalizer import (
+    FormSchema,
+    _yes_no_answer,
+    apply_schema_to_text,
+)
 from libs.pipeline.form_schema_request import build_sections_from_request
 
 _TICKED_LINE = re.compile(r"\[(?:X|x|\*|YES|yes)\]|\((?:X|x)\)")
@@ -78,6 +82,15 @@ def unmatched_ticks(letter: str, seeded_labels: set[str]) -> list[str]:
         if not _TICKED_LINE.search(line):
             continue
         if _GUIDANCE.search(line):
+            continue
+        # A ticked No on a Yes/No row is not a present clinical fact.
+        if _yes_no_answer(line) == "no":
+            continue
+        # Table Yes/No columns without the words: empty then ticked is No.
+        if re.search(r"\[\s*\]\s*\|\s*\[(?:X|x|\*)\]", line):
+            continue
+        # Stray tick pair with no clinical label.
+        if re.match(r"^\|\s*\[(?:X|x|\*)\]\s*\|\s*\[\s*\]\s*\|", line.strip()):
             continue
         text = line.strip()
         if any(label.lower() in text.lower() for label in seeded_labels):

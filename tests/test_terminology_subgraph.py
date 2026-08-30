@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from libs.pipeline_graph.subgraphs.terminology import _merge_resolution, _resolve_terms
+from libs.pipeline_graph.subgraphs.terminology import (
+    _dedup_by_concept_id,
+    _merge_resolution,
+    _resolve_terms,
+)
 from libs.terminology.client import ResolvedTerm, TerminologyClient
 
 
@@ -252,6 +256,51 @@ def test_resolve_terms_logs_terminology_low_confidence_for_unresolved() -> None:
         err.startswith("terminology_low_confidence:")
         for err in result.get("warnings") or []
     )
+
+
+def test_dedup_keeps_taught_checkbox_when_concept_collides() -> None:
+    """Exam lump and the taught A1 tick can share 89164003. Keep both."""
+    kept = _dedup_by_concept_id(
+        [
+            {
+                "text": "a small deep palpable lump",
+                "concept_id": "89164003",
+                "score": 0.99,
+                "label": "finding",
+            },
+            {
+                "text": "Newly presenting discrete hard lump",
+                "concept_id": "89164003",
+                "score": 0.50,
+                "label": "finding",
+                "__source": "form_schema_checkbox",
+            },
+        ]
+    )
+    texts = {str(row.get("text") or "") for row in kept}
+    assert "a small deep palpable lump" in texts
+    assert "Newly presenting discrete hard lump" in texts
+
+
+def test_dedup_still_collapses_non_taught_same_concept() -> None:
+    kept = _dedup_by_concept_id(
+        [
+            {
+                "text": "breast lump",
+                "concept_id": "89164003",
+                "score": 0.80,
+                "label": "finding",
+            },
+            {
+                "text": "lump in the breast",
+                "concept_id": "89164003",
+                "score": 0.70,
+                "label": "finding",
+            },
+        ]
+    )
+    assert len(kept) == 1
+    assert kept[0]["text"] == "breast lump"
 
 
 def test_resolve_lookup_term_strips_dysphagia_meal_suffix() -> None:

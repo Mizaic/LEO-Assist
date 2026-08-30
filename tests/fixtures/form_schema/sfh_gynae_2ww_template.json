@@ -130,7 +130,7 @@
         },
         {
           "pattern": "B7.",
-          "entity_text": "Unexpected bleeding more than 4 weeks after stopping HRT",
+          "entity_text": "Unexpected bleeding that cannot be attributed to current HRT",
           "semantic_tag": "finding",
           "assertion": "present",
           "procedure_snomed": "",
@@ -140,7 +140,7 @@
         },
         {
           "pattern": "B8.",
-          "entity_text": "Bleeding persisting after 6 months of continuous combined HRT",
+          "entity_text": "Unexpected bleeding that cannot be attributed to current HRT",
           "semantic_tag": "finding",
           "assertion": "present",
           "procedure_snomed": "",
@@ -170,7 +170,7 @@
       "start_pattern": "For post menopausal bleeding",
       "items": [
         {
-          "pattern": "New presentation with PMB (first episode)",
+          "pattern": "New presentation with PMB",
           "entity_text": "New first-episode postmenopausal bleeding",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -229,7 +229,7 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "Patient is aware they have been referred on an urgent basis",
+          "pattern": "referred on an urgent basis",
           "entity_text": "Patient aware of urgent referral",
           "semantic_tag": "finding",
           "assertion": "present",
@@ -239,8 +239,8 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "Patient has no holiday plans in the next 2 months",
-          "entity_text": "No holiday plans in the next 2 months",
+          "pattern": "holiday plans in the next 2 months",
+          "entity_text": "Holiday plans in the next 2 months",
           "semantic_tag": "finding",
           "assertion": "present",
           "procedure_snomed": "",
@@ -259,8 +259,8 @@
           "value_placeholder": ""
         },
         {
-          "pattern": "Patient has no holidays planned in the next 3 weeks",
-          "entity_text": "No holidays planned in the next 3 weeks",
+          "pattern": "holidays planned in the next 3 weeks",
+          "entity_text": "Holiday plans in the next 3 weeks",
           "semantic_tag": "finding",
           "assertion": "present",
           "procedure_snomed": "",
@@ -752,6 +752,115 @@
       "semantic_tags": []
     },
     {
+      "section_id": "ecog_status",
+      "section_type": "scale",
+      "label": "ECOG performance status",
+      "start_pattern": "ECOG",
+      "items": [
+        {
+          "pattern": "0 [",
+          "entity_text": "ECOG 0 fully active",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "1 [",
+          "entity_text": "ECOG 1 restricted in strenuous activity",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "2 [",
+          "entity_text": "ECOG 2 ambulatory and capable of selfcare",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "3 [",
+          "entity_text": "ECOG 3 limited selfcare",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "4 [",
+          "entity_text": "ECOG 4 completely disabled",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Fully active",
+          "entity_text": "ECOG 0 fully active",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Restricted in physically strenuous",
+          "entity_text": "ECOG 1 restricted in strenuous activity",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Ambulatory and capable of all selfcare",
+          "entity_text": "ECOG 2 ambulatory and capable of selfcare",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "confined to bed or chair more than 50%",
+          "entity_text": "ECOG 3 limited selfcare",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        },
+        {
+          "pattern": "Totally confined to bed or chair",
+          "entity_text": "ECOG 4 completely disabled",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "procedure_snomed": "",
+          "procedure_display": "",
+          "analytes": [],
+          "value_placeholder": ""
+        }
+      ],
+      "semantic_tags": []
+    },
+    {
       "section_id": "points_to_remember",
       "section_type": "template_noise",
       "label": "Points to remember",
@@ -761,6 +870,7 @@
     }
   ],
   "saved_by": "seed_sfh_gynae_2ww_template",
+  "fingerprint": "sfh-gynae-2ww-v1",
   "status": "active",
   "organization_id": "RK5",
   "service_id": "7980224",
@@ -778,6 +888,51 @@
       "members": [
         {
           "section_id": "section_a_cancer_type"
+        },
+        {
+          "name": "Postmenopausal bleeding",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            76742009
+          ]
+        },
+        {
+          "name": "Vaginal discharge",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            271939006
+          ]
+        },
+        {
+          "name": "Ulceration of vulva",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            68640004
+          ]
+        },
+        {
+          "name": "Mass of vulva",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            289477004
+          ]
+        },
+        {
+          "name": "Swelling of vulva",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            289475007
+          ]
         }
       ]
     },
@@ -824,6 +979,51 @@
         {
           "section_id": "section_b_symptoms",
           "item_pattern": "B9."
+        },
+        {
+          "name": "Postmenopausal bleeding",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            76742009
+          ]
+        },
+        {
+          "name": "Vaginal discharge",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            271939006
+          ]
+        },
+        {
+          "name": "Ulceration of vulva",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            68640004
+          ]
+        },
+        {
+          "name": "Mass of vulva",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            289477004
+          ]
+        },
+        {
+          "name": "Swelling of vulva",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            289475007
+          ]
         }
       ]
     },

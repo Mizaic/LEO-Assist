@@ -73,6 +73,10 @@ def safe_search(pattern: str, text: str) -> re.Match[str] | None:
         return re.search(pattern, text, re.IGNORECASE)
     except re.error:
         pass
+    try:
+        return re.search(re.escape(pattern), text, re.IGNORECASE)
+    except re.error:
+        pass
     fallback = _literal_fallback(pattern)
     if not fallback:
         return None

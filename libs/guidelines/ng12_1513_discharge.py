@@ -1,8 +1,7 @@
-"""Reshape NG12 1.5.13 discharge into first time OR platelets OR haematuria.
+"""Apply helper for the NG12 1.5.13 discharge OR reshape.
 
-NICE is unexplained vaginal discharge plus one of: first presentation,
-thrombocytosis, or haematuria. The extracted tree ANDs first presentation
-with platelets or blood in the urine. This copy keeps the haematuria arm.
+Builds a tree for apply_rule_edit. Evaluate must not import this.
+Live match shape lives on AppropriatenessRule.logicJson.
 
 Atlas: UN-5F3BF083, DI-8BAC9BB3, DI-DE8B125E
 """
