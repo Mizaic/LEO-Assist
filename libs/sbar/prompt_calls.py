@@ -359,6 +359,14 @@ async def call_situation(
         }
     md = (raw.get("situation_markdown") or "").strip()
     if md:
+        from libs.sbar.situation_headline import drop_invented_pmb
+
+        extra = extra_context or {}
+        md = drop_invented_pmb(
+            md,
+            present_terms=list(extra.get("present_findings") or []),
+            structured_headline=str(extra.get("structured_headline") or "") or None,
+        )
         return {"markdown": md, "raw": raw, "error": None, "error_code": None}
     friendly = translate_error("situation", "missing_situation_markdown")
     return {

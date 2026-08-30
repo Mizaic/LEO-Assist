@@ -103,6 +103,35 @@ def test_absent_pmb_does_not_become_structured_headline() -> None:
     assert "cervix" in headline.lower() or "cervical" in headline.lower()
 
 
+def test_drops_invented_pmb_when_bleeding_is_absent() -> None:
+    from libs.sbar.situation_headline import drop_invented_pmb
+
+    text = (
+        "This 57-year-old woman is on a two-week-wait gynaecology "
+        "pathway for suspected cervical malignancy. "
+        "Headline trigger: postmenopausal bleeding."
+    )
+    out = drop_invented_pmb(
+        text,
+        present_terms=["Vaginal discharge (finding)"],
+        structured_headline="Suspected cervical cancer. Vaginal discharge.",
+    )
+    assert "postmenopausal bleeding" not in out.lower()
+    assert "cervical" in out.lower()
+
+
+def test_keeps_pmb_when_it_is_a_present_finding() -> None:
+    from libs.sbar.situation_headline import drop_invented_pmb
+
+    text = "Urgent 2WW gynaecology referral for postmenopausal bleeding."
+    out = drop_invented_pmb(
+        text,
+        present_terms=["Postmenopausal bleeding (finding)"],
+        structured_headline="Postmenopausal bleeding.",
+    )
+    assert "postmenopausal bleeding" in out.lower()
+
+
 def test_persists_referral_reason_evidence_with_provenance() -> None:
     evidence = ReferralReasonEvidence(
         reason_text="Progressive dysphagia.",

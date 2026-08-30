@@ -93,3 +93,29 @@ def test_a_present_finding_stays_present() -> None:
     apply_context_detection_to_dicts(doc, [ent])
     assert ent["assertion"] == "present"
     assert not ent.get("context_span_unresolved")
+
+
+def test_deid_date_token_still_locates_raw_letter_span() -> None:
+    """LLM entity text uses [DATE]; ConText searches the raw letter.
+
+    Atlas: DI-B7A69F26 / VT-AA8ED00F
+    """
+    doc = (
+        "Section C: Further Clinical details\n"
+        "vaginal discharge- 10/7 yellowish in colour. no pv bleeding.\n"
+    )
+    ent = _entity("vaginal discharge- [DATE] yellowish in colour", 0, 44)
+    apply_context_detection_to_dicts(doc, [ent])
+    assert not ent.get(
+        "context_span_unresolved"
+    ), "a de-identified date token must still find the raw letter span"
+    assert ent["assertion"] == "present"
+
+
+def test_placeholder_without_surrounding_words_stays_unresolved() -> None:
+    """A [DATE] token is not enough when the finding words are absent."""
+    doc = "Section C\nlast smear November 2025. no pv bleeding.\n"
+    ent = _entity("hepatosplenomegaly [DATE] with ascites", 0, 36)
+    apply_context_detection_to_dicts(doc, [ent])
+    assert ent.get("context_span_unresolved") is True
+    assert ent["assertion"] == "assertion_unverified"

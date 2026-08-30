@@ -23,10 +23,17 @@ confirmed finding.
 from __future__ import annotations
 
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
 UNRESOLVED_KEY = "context_span_unresolved"
+_PHI_TOKEN = re.compile(
+    r"\[(?:date|person|nhs_number|postcode|phone|email|address|"
+    r"organisation|location|staff_id)\]",
+    re.IGNORECASE,
+)
+_PHI_GAP = r".{1,40}?"
 
 
 def span_holds_entity_text(
@@ -36,6 +43,20 @@ def span_holds_entity_text(
     if start < 0 or end <= start or end > len(encounter_text):
         return False
     return encounter_text[start:end].strip().lower() == text.strip().lower()
+
+
+def _placeholder_pattern(needle: str) -> re.Pattern[str] | None:
+    """Build a raw-letter search when the extractor used a PHI token."""
+    if not _PHI_TOKEN.search(needle):
+        return None
+    parts = _PHI_TOKEN.split(needle)
+    tokens = _PHI_TOKEN.findall(needle)
+    out: list[str] = []
+    for index, part in enumerate(parts):
+        out.append(re.escape(part))
+        if index < len(tokens):
+            out.append(_PHI_GAP)
+    return re.compile("".join(out))
 
 
 def find_entity_text(
@@ -56,10 +77,23 @@ def find_entity_text(
     idx = encounter_text_lower.find(needle, cursors.get(needle, 0))
     if idx < 0:
         idx = encounter_text_lower.find(needle)
-    if idx < 0:
+    if idx >= 0:
+        cursors[needle] = idx + len(needle)
+        return idx, idx + len(needle)
+    return _find_placeholder_span(encounter_text_lower, needle, cursors)
+
+
+def _find_placeholder_span(
+    haystack: str, needle: str, cursors: dict[str, int]
+) -> tuple[int, int] | None:
+    pattern = _placeholder_pattern(needle)
+    if pattern is None:
         return None
-    cursors[needle] = idx + len(needle)
-    return idx, idx + len(needle)
+    match = pattern.search(haystack, cursors.get(needle, 0)) or pattern.search(haystack)
+    if match is None:
+        return None
+    cursors[needle] = match.end()
+    return match.start(), match.end()
 
 
 def resolve_context_spans(

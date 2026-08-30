@@ -7,7 +7,14 @@ Atlas:
 
 from __future__ import annotations
 
+import re
 from typing import Any
+
+_PMB_PHRASES = (
+    "postmenopausal bleeding",
+    "post-menopausal bleeding",
+    "post menopausal bleeding",
+)
 
 _ABSENT = frozenset({"absent", "negated", "refuted"})
 _WEAK = (
@@ -49,6 +56,35 @@ def absent_finding_terms(entities: list[dict[str, Any]] | None) -> list[str]:
         if term and term not in out:
             out.append(term)
     return out[:8]
+
+
+def drop_invented_pmb(
+    markdown: str,
+    present_terms: list[str] | None = None,
+    structured_headline: str | None = None,
+) -> str:
+    """Remove a PMB trigger the letter and codes do not support."""
+    text = (markdown or "").strip()
+    if not text or _pmb_is_present(present_terms):
+        return markdown
+    if not any(phrase in text.lower() for phrase in _PMB_PHRASES):
+        return markdown
+    kept = [
+        part.strip()
+        for part in re.split(r"(?<=[.!?])\s+", text)
+        if part.strip() and not any(phrase in part.lower() for phrase in _PMB_PHRASES)
+    ]
+    if kept:
+        return " ".join(kept)
+    return (structured_headline or "").strip() or markdown
+
+
+def _pmb_is_present(present_terms: list[str] | None) -> bool:
+    for term in present_terms or []:
+        low = term.lower()
+        if any(phrase in low for phrase in _PMB_PHRASES):
+            return True
+    return False
 
 
 def present_finding_terms(entities: list[dict[str, Any]] | None) -> list[str]:
