@@ -3,7 +3,7 @@
 Builds a tree for apply_rule_edit. Evaluate must not import this.
 Live match shape lives on AppropriatenessRule.logicJson.
 
-Atlas:
+Atlas trace:
   UN-5F3BF083
   DI-8BAC9BB3
   DO-62FE139E

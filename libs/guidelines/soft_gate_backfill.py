@@ -2,7 +2,7 @@
 
 Writes nothing. A caller may apply only the allow-list after review.
 
-Atlas: DI-C136E4B7, DI-55CCC312
+Atlas trace: DI-C136E4B7, DI-55CCC312
 """
 
 from __future__ import annotations

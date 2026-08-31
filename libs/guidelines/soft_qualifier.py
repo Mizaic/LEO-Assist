@@ -3,7 +3,7 @@
 Body site is not a soft word. Enforcement (soft vs hard) lives in the
 caller, not here.
 
-Atlas:
+Atlas trace:
   DI-DE8B125E, DI-0C904503
   Look up via: get_design_control(dc_type="design_input", dc_id=...)
 """

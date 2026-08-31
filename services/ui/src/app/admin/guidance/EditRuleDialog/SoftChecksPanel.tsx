@@ -1,7 +1,8 @@
 /**
  * Soft guideline-word checks on a CONCEPT chip.
  *
- * Atlas: DI-C136E4B7, DI-0C904503
+ * Atlas trace:
+ *   DI: DI-C136E4B7, DI-0C904503
  */
 "use client";
 
@@ -109,9 +110,9 @@ export default function SoftChecksPanel({
             <Select
               size="small"
               displayEmpty
-              value={q.within_days ?? ""}
+              value={q.within_days == null ? "" : String(q.within_days)}
               onChange={(e) => {
-                const raw = e.target.value;
+                const raw = String(e.target.value);
                 const next = qualifiers.slice();
                 next[index] = {
                   ...q,
@@ -125,7 +126,7 @@ export default function SoftChecksPanel({
             >
               <MenuItem value="">No count window</MenuItem>
               {RECENCY_LABELS.map((opt) => (
-                <MenuItem key={opt.days} value={opt.days}>
+                <MenuItem key={opt.days} value={String(opt.days)}>
                   {opt.label}
                 </MenuItem>
               ))}

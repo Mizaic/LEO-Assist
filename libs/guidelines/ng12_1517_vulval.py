@@ -6,7 +6,7 @@ Live match shape lives on AppropriatenessRule.logicJson.
 NICE is lump or ulceration or bleeding. Swelling of vulva is the
 lump-like code Sherwood letters use when they do not say mass.
 
-Atlas: UN-5F3BF083, DI-8BAC9BB3, DO-62FE139E, VT-766B13F8.
+Atlas trace: UN-5F3BF083, DI-8BAC9BB3, DO-62FE139E, VT-766B13F8.
 """
 
 from __future__ import annotations

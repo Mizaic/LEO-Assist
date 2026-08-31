@@ -35,6 +35,7 @@ describe("Soft checks and FIT policy editor", () => {
     expect(copy).toMatch(/persistent/);
     const panel = read("SoftChecksPanel.tsx");
     expect(panel).toMatch(/Hard/);
+    expect(panel).toMatch(/const raw = String\(e\.target\.value\)/);
   });
 
   it("rule details expose FIT policy Required / Not required / Result gate / None", () => {

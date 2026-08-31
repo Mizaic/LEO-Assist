@@ -3,7 +3,7 @@
 Builds a LogicNode for apply_rule_edit. Evaluate must not import this.
 Live match shape lives on AppropriatenessRule.logicJson.
 
-Atlas: UN-5F3BF083, DI-8BAC9BB3, DO-ABE2AE61, VT-E053BB7C.
+Atlas trace: UN-5F3BF083, DI-8BAC9BB3, DO-ABE2AE61, VT-E053BB7C.
 """
 
 from __future__ import annotations
