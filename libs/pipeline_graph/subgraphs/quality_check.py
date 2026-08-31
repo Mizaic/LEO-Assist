@@ -123,7 +123,7 @@ def _resolve_completeness_schema(state: QualityCheckState) -> list[dict[str, Any
         for group in (state.get("completeness_groups") or [])
         if isinstance(group, dict)
     ]
-    if _schema_is_assessable(form_groups):
+    if form_groups:
         return form_groups
     domain = str(state.get("completeness_domain") or "").strip()
     subdomain = str(state.get("completeness_subdomain") or "").strip()

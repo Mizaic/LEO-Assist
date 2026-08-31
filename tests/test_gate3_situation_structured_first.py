@@ -66,6 +66,44 @@ def test_matching_2ww_reason_still_wins() -> None:
     assert "cervical" in result.headline.lower()
 
 
+def test_form_chrome_lump_does_not_become_headline_when_letter_denies() -> None:
+    """A1 tick-box label must not invent a lump the letter denies.
+
+    Atlas: DI-ED65569C / DO-FE774247 / VT-6CA911CF
+    """
+    from libs.sbar.situation_headline import headline_from_coded_facts
+    from libs.sbar.situation_source import build_structured_situation
+
+    facts = [
+        {
+            "text": "Newly presenting discrete hard breast lump",
+            "assertion": "present",
+            "term": "Newly presenting discrete hard breast lump",
+            "label": "finding",
+            "__source": "form_schema_checkbox",
+        },
+        {
+            "text": "lump",
+            "assertion": "absent",
+            "term": "Lump of breast (finding)",
+            "label": "finding",
+            "concept_id": "89164003",
+        },
+    ]
+    headline = headline_from_coded_facts(facts)
+    if headline:
+        assert "discrete hard lump" not in headline.lower()
+        assert "hard breast lump" not in headline.lower()
+
+    result = build_structured_situation(
+        referral_request={"priority": "TWO_WEEK_WAIT", "clinic_type": "2WW_BREAST"},
+        referral_reason=None,
+        trigger_scoped_letter="There is no discrete lump in either breast.",
+        coded_facts=facts,
+    )
+    assert "discrete hard lump" not in result.headline.lower()
+
+
 def test_absent_pmb_does_not_become_structured_headline() -> None:
     from libs.sbar.situation_headline import headline_from_coded_facts
 

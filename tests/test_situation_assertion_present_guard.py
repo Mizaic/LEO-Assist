@@ -145,6 +145,50 @@ def test_negated_family_history_present_is_forced_absent() -> None:
     assert ent["assertion"] == "absent"
 
 
+def test_no_known_family_history_without_of_stays_absent() -> None:
+    """'There is no known family history' (no 'of') is a denial.
+
+    ConText owns the cue. The situation-present guard must not restore.
+    Atlas: DI-95CB940F / VT-BA44A8B3 / DI-DA60AC55
+    """
+    from libs.ner.context_engine import apply_context_detection_to_dicts, reload_nlp
+
+    reload_nlp()
+    text = "There is no known family history"
+    ent = {
+        "label": "situation",
+        "assertion": "present",
+        "text": "family history",
+        "start": text.lower().index("family history"),
+        "end": text.lower().index("family history") + len("family history"),
+        "evidence_sentence": text,
+        "term": "Family history of malignant neoplasm of breast (situation)",
+        "concept_id": "429740004",
+    }
+    apply_context_detection_to_dicts(text, [ent])
+    apply_false_absent_assertion_guards([ent])
+    assert ent["assertion"] == "absent"
+
+
+def test_situation_guard_does_not_restore_context_absent_family_history() -> None:
+    """ConText-absent denied FH must not be rewritten as present.
+
+    Atlas: DI-95CB940F / VT-BA44A8B3
+    """
+    ent = {
+        "label": "situation",
+        "assertion": "absent",
+        "_assertion_source": "context",
+        "text": "family history",
+        "evidence_sentence": "There is no known family history",
+        "term": "Family history of malignant neoplasm of breast (situation)",
+        "concept_id": "429740004",
+    }
+    fix_situation_present_assertions([ent])
+    apply_false_absent_assertion_guards([ent])
+    assert ent["assertion"] == "absent"
+
+
 def test_situation_guard_does_not_match_preferred_term() -> None:
     """A SNOMED preferred term must not restore present on its own.
 

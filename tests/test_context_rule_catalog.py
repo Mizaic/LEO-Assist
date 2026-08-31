@@ -51,6 +51,23 @@ def test_ac2_suppress_marks_default_inactive() -> None:
     assert hits[0]["source"] == "builtin"
 
 
+def test_uk_pack_includes_no_known_family_history() -> None:
+    """Denied family history without 'of' is a packaged ConText cue.
+
+    Atlas: DI-DA60AC55 / DO-7E9AD55B / VT-AEA5D045
+    """
+    rows = list_packaged_context_rules()
+    hits = [
+        r
+        for r in rows
+        if r["literal"].lower() == "no known family history"
+        and r["source"] == "builtin"
+    ]
+    assert hits, "no known family history must be in the UK ConText pack"
+    assert hits[0]["category"] == "NEGATED_EXISTENCE"
+    assert hits[0]["rule_id"] == packaged_rule_id("uk", "no known family history")
+
+
 def test_ac2_suppressed_literals_from_inactive_rows() -> None:
     rows = [
         {"literal": "to exclude", "active": False, "rule_id": "default:to exclude"},

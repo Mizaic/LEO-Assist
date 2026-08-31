@@ -101,6 +101,9 @@ HARD RULES (12)
    generic ``specialty`` value alone (e.g. bare "2WW").
    Do not name a finding listed in ``CONTEXT.extra.absent_findings``.
    Do not treat an unticked form row as the headline trigger.
+   Do not invent a finding from a form tick-box label when the letter
+   denies that finding (for example a Section A lump row when the
+   letter says there is no lump).
    Postmenopausal state plus absent vaginal bleeding is not
    postmenopausal bleeding.
 7. Do not generate a Recommendation here -- the Recommendation section

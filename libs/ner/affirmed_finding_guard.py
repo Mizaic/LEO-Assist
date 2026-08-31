@@ -78,7 +78,15 @@ def _restore_present(ent: dict[str, Any], reason: str, preview: str) -> None:
     logger.info("affirmed_finding_guard: restored present | text=%r", preview[:80])
 
 
+def _context_marked_absent(ent: dict[str, Any]) -> bool:
+    return (
+        ent.get("_assertion_source") == "context" and ent.get("assertion") == "absent"
+    )
+
+
 def _should_restore(text: str, start: int, ent: dict[str, Any]) -> bool:
+    if _context_marked_absent(ent):
+        return False
     if _has_negation_near_finding(text, start, ent):
         return False
     prefix = text[:start]

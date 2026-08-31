@@ -20,6 +20,7 @@ _PMB_PHRASES = (
 )
 
 _ABSENT = frozenset({"absent", "negated", "refuted"})
+_FORM_CHROME = frozenset({"form_schema_checkbox"})
 _WEAK = (
     "postmenopausal state",
     "post menopausal for",
@@ -35,6 +36,8 @@ def headline_from_coded_facts(entities: list[dict[str, Any]] | None) -> str | No
     findings: list[str] = []
     for entity in entities or []:
         if str(entity.get("assertion") or "").strip().lower() in _ABSENT:
+            continue
+        if _is_form_chrome(entity):
             continue
         term = _short_term(entity)
         if not term or _is_weak(term):
@@ -96,11 +99,17 @@ def present_finding_terms(entities: list[dict[str, Any]] | None) -> list[str]:
     for entity in entities or []:
         if str(entity.get("assertion") or "").strip().lower() in _ABSENT:
             continue
+        if _is_form_chrome(entity):
+            continue
         term = _short_term(entity)
         if not term or _is_weak(term) or term in out:
             continue
         out.append(term)
     return out[:8]
+
+
+def _is_form_chrome(entity: dict[str, Any]) -> bool:
+    return str(entity.get("__source") or "") in _FORM_CHROME
 
 
 def _short_term(entity: dict[str, Any]) -> str:

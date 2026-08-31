@@ -1314,6 +1314,23 @@ def _situation_guard_blob(ent: dict[str, Any]) -> str:
     )
 
 
+def _catalog_denies_family_history(blob: str) -> bool:
+    """True when a packaged ConText cue denies family history in *blob*.
+
+    ContextRule is the source of truth. Do not grow _PMH_NEGATED_RE.
+    """
+    from libs.ner.context_rule_catalog import list_packaged_context_rules
+
+    low = blob.lower()
+    for row in list_packaged_context_rules():
+        if str(row.get("category") or "") != "NEGATED_EXISTENCE":
+            continue
+        lit = str(row.get("literal") or "").strip().lower()
+        if "family history" in lit and lit and lit in low:
+            return True
+    return False
+
+
 def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
     """Restore present for suspected-cancer and FH situation concepts.
 
@@ -1324,6 +1341,11 @@ def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
     """
     for ent in entities:
         if ent.get("assertion") in {"present", "assertion_unverified"}:
+            continue
+        if (
+            ent.get("_assertion_source") == "context"
+            and ent.get("assertion") == "absent"
+        ):
             continue
         if not _is_situation_entity(ent):
             continue
@@ -1337,6 +1359,8 @@ def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
                 "situation_present_guard: restored present (suspected) | text=%r",
                 blob[:80],
             )
+            continue
+        if _catalog_denies_family_history(blob):
             continue
         if _SITUATION_FAMILY_HISTORY_RE.search(blob) and not _PMH_NEGATED_RE.search(
             blob
@@ -1362,9 +1386,12 @@ def fix_negated_family_history_assertions(entities: list[dict[str, Any]]) -> Non
         if not _is_situation_entity(ent):
             continue
         blob = _situation_guard_blob(ent)
-        if not blob or not _PMH_NEGATED_RE.search(blob):
+        if not blob:
             continue
-        if not _SITUATION_FAMILY_HISTORY_RE.search(blob):
+        catalog_denied = _catalog_denies_family_history(blob)
+        if not catalog_denied and not _PMH_NEGATED_RE.search(blob):
+            continue
+        if not catalog_denied and not _SITUATION_FAMILY_HISTORY_RE.search(blob):
             continue
         ent["assertion"] = "absent"
         ent["_assertion_guard"] = "negated_family_history"

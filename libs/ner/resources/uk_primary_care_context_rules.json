@@ -49,6 +49,14 @@
       "example": "no evidence of spread → the cancer has not spread"
     },
     {
+      "literal": "no known family history",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 6,
+      "description": "The doctor states there is no known family history. The family-history situation is denied, not present. This cue does not require the word of after history.",
+      "example": "There is no known family history -> family history of breast cancer stays absent"
+    },
+    {
       "literal": "fhx",
       "category": "FAMILY",
       "direction": "BIDIRECTIONAL",
