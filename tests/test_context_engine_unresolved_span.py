@@ -119,3 +119,46 @@ def test_placeholder_without_surrounding_words_stays_unresolved() -> None:
     apply_context_detection_to_dicts(doc, [ent])
     assert ent.get("context_span_unresolved") is True
     assert ent["assertion"] == "assertion_unverified"
+
+
+def test_wrapped_letter_line_still_locates_the_fact() -> None:
+    """Write-back 000478696630 paused because a newline split the span.
+
+    Atlas: DI-B7A69F26 / VT-AA8ED00F
+    """
+    doc = (
+        "On examination she has a patchy erythematous rash across the "
+        "lower part of\nher breast. Her breasts are both generally lumpy.\n"
+    )
+    ent = _entity("patchy erythematous rash across the lower part of her breast", 0, 61)
+    apply_context_detection_to_dicts(doc, [ent])
+    assert not ent.get(
+        "context_span_unresolved"
+    ), "a fact split by a line wrap must still be found so ConText can run"
+    assert ent["assertion"] == "present"
+
+
+def test_optional_filler_word_still_locates_the_fact() -> None:
+    """Write-back 000486229679: letter has 'lumps are occasionally'.
+
+    Atlas: DI-B7A69F26 / VT-AA8ED00F
+    """
+    doc = "He reports that the lumps\nare occasionally painful and feel firm.\n"
+    ent = _entity("lumps occasionally painful and feel firm", 0, 40)
+    apply_context_detection_to_dicts(doc, [ent])
+    assert not ent.get(
+        "context_span_unresolved"
+    ), "a fact that drops a filler word must still be found so ConText can run"
+    assert ent["assertion"] == "present"
+
+
+def test_comparison_clause_does_not_invent_contralateral_lump() -> None:
+    """'that on the left' after a right-sided lump is not 'lump on the left'."""
+    doc = (
+        "The lump on the right side is larger than that on the left "
+        "and both may have increased in size.\n"
+    )
+    ent = _entity("lump on the left", 0, 16)
+    apply_context_detection_to_dicts(doc, [ent])
+    assert ent.get("context_span_unresolved") is True
+    assert ent["assertion"] == "assertion_unverified"

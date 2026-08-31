@@ -14,6 +14,9 @@ _PMB_PHRASES = (
     "postmenopausal bleeding",
     "post-menopausal bleeding",
     "post menopausal bleeding",
+    "postmenopausal vaginal bleeding",
+    "post-menopausal vaginal bleeding",
+    "post menopausal vaginal bleeding",
 )
 
 _ABSENT = frozenset({"absent", "negated", "refuted"})

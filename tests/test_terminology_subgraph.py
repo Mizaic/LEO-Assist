@@ -358,6 +358,7 @@ def test_generic_vulva_finding_upgrades_when_span_says_ulceration() -> None:
     )
     assert upgraded["concept_id"] == "68640004"
     assert "ulceration of vulva" in str(upgraded.get("term") or "").lower()
+    assert upgraded.get("_vulval_ulcer_remapped") is True
 
 
 def test_generic_vulva_finding_stays_when_span_is_only_soreness() -> None:
@@ -389,3 +390,4 @@ def test_unresolved_ulceration_span_gets_the_ulcer_code() -> None:
     )
     assert upgraded["concept_id"] == "68640004"
     assert upgraded.get("terminology_unresolved") is False
+    assert upgraded.get("_vulval_ulcer_remapped") is True

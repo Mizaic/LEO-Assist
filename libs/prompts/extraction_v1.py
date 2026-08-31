@@ -115,6 +115,8 @@ standalone clinical references (needed for the gender check):
 
 Examples:
 - "has a cervix" -> body structure, lookup_term="cervix uteri", assertion="present"
+- "has womb in situ" / "has womb insitu" -> finding, lookup_term="uterus present"
+  (SNOMED 289619002), assertion="present". This is not a body-structure site.
 - "prostate gland removed" -> body structure, lookup_term="prostate gland", assertion="historical"
 - "no ovaries" -> body structure, lookup_term="ovary structure", assertion="absent"
 

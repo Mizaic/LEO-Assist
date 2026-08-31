@@ -246,6 +246,7 @@ def _upgrade_generic_vulva_ulcer(entity: dict[str, Any]) -> dict[str, Any]:
     upgraded["term"] = _VULVAL_ULCER_TERM
     upgraded["semantic_tag"] = "disorder"
     upgraded["terminology_unresolved"] = False
+    upgraded["_vulval_ulcer_remapped"] = True
     return upgraded
 
 

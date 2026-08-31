@@ -120,6 +120,26 @@ def test_drops_invented_pmb_when_bleeding_is_absent() -> None:
     assert "cervical" in out.lower()
 
 
+def test_drops_invented_postmenopausal_vaginal_bleeding() -> None:
+    """Write-back Situation must not lead on invented PMB wording.
+
+    Atlas: DI-ED65569C / VT-6CA911CF. pv bleeding was absent.
+    """
+    from libs.sbar.situation_headline import drop_invented_pmb
+
+    text = (
+        "This woman is referred on a two-week-wait gynaecology pathway "
+        "for postmenopausal vaginal bleeding and suspected cervical cancer."
+    )
+    out = drop_invented_pmb(
+        text,
+        present_terms=["Vaginal discharge (finding)"],
+        structured_headline="Suspected cervical cancer. Vaginal discharge.",
+    )
+    assert "postmenopausal" not in out.lower() or "bleeding" not in out.lower()
+    assert "cervical" in out.lower() or "discharge" in out.lower()
+
+
 def test_keeps_pmb_when_it_is_a_present_finding() -> None:
     from libs.sbar.situation_headline import drop_invented_pmb
 

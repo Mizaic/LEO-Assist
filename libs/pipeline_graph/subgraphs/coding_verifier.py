@@ -34,6 +34,7 @@ from libs.pipeline.coding_candidate_gate import (
     apply_draft_from_shortlist,
     filter_coding_candidates,
 )
+from libs.pipeline.form_checkbox_seed import is_taught_checkbox
 from libs.pipeline_graph.subgraphs.terminology import _is_blocked_mapping
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,13 @@ def _is_exact_match(entity: dict[str, Any]) -> bool:
         if status_flag:
             return True
     return False
+
+
+def _is_protected_coding(entity: dict[str, Any]) -> bool:
+    """Taught ticks and remapped vulval ulcer must not be dropped."""
+    if is_taught_checkbox(entity):
+        return True
+    return bool(entity.get("_vulval_ulcer_remapped"))
 
 
 def _shortlist_for(entity: dict[str, Any]) -> list[dict[str, Any]]:
@@ -156,7 +164,7 @@ def _prepare_for_verify(
         updated.append(filtered)
         if filtered.get("terminology_unresolved") or not filtered.get("concept_id"):
             continue
-        if _is_exact_match(filtered):
+        if _is_exact_match(filtered) or _is_protected_coding(filtered):
             continue
         eligible_indices.append(i)
         eligible.append(filtered)
