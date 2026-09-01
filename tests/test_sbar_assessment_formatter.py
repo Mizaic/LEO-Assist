@@ -372,3 +372,27 @@ def test_rule_with_no_actions_renders_no_action_lines() -> None:
     rule = _rule_with_actions("R-NOACTION", priority="routine", actions=[])
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
     assert "**Action:**" not in out.markdown
+
+
+def test_unverified_first_presentation_is_named_in_assessment() -> None:
+    """DI-C93802C8: Assessment names first presentation and says it could not be confirmed."""
+    rule = _rule("R-1513", priority="urgent", name="Consider ultrasound")
+    rule["unverified_qualifiers"] = ["first_presentation"]
+    out = format_assessment(matched_rules=[rule], patient_codes=["1"])
+    md = out.markdown
+    assert "first presentation" in md
+    assert "could not confirm that from this letter" in md
+    assert "still offered the scan so a possible cancer is not missed" in md
+    assert "check whether this is a first episode" in md
+    assert "qualifier" not in md.lower()
+    assert "benefit of the doubt" not in md.lower()
+
+
+def test_unverified_unexplained_uses_same_pattern() -> None:
+    """DI-C93802C8: unexplained uses the same everyday-English pattern."""
+    rule = _rule("R-U", priority="urgent", name="Unexplained rule")
+    rule["unverified_qualifiers"] = ["unexplained"]
+    out = format_assessment(matched_rules=[rule], patient_codes=["1"])
+    assert "unexplained" in out.markdown
+    assert "could not confirm that from this letter" in out.markdown
+    assert "qualifier" not in out.markdown.lower()

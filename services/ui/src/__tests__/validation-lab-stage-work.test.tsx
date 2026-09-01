@@ -558,6 +558,30 @@ describe("StageWorkPreview -- observable chip label", () => {
       "HbA1c -- 43396009",
     );
   });
+
+  it("keeps the code visible when a coded fact also has a measurement", () => {
+    render(
+      <StageWorkPreview
+        preview={{
+          headline: "Coded 1 of 1 facts",
+          items: [
+            {
+              kind: "code",
+              text: "BMI",
+              code: "60621009",
+              semanticTag: "observable_entity",
+              value: "20.2",
+              unit: "Kg/m2",
+            },
+          ],
+        }}
+        loading={false}
+      />,
+    );
+    expect(screen.getByTestId("validation-lab-stage-work")).toHaveTextContent(
+      "BMI -- 60621009",
+    );
+  });
 });
 
 describe("diffWorkItems", () => {

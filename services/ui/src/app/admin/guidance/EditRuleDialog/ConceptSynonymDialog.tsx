@@ -52,6 +52,7 @@ import HubIcon from "@mui/icons-material/Hub";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 
 import BlockedCodesPanel from "./BlockedCodesPanel";
+import SoftChecksPanel from "./SoftChecksPanel";
 import ConceptSearchPanel from "./ConceptSearchPanel";
 import ObservationEditDialogBody from "./ObservationEditDialogBody";
 import SeedDescendantsList from "./SeedDescendantsList";
@@ -214,6 +215,7 @@ export default function ConceptSynonymDialog({
               excluded={excluded}
               primaryId={primaryId}
               chipLabel={chipLabel}
+              softQualifiers={criterion?.soft_qualifiers ?? []}
               onUpdate={onUpdate}
               onClearMatch={onClearMatch}
             />
@@ -262,6 +264,7 @@ export function SynonymEditorBody({
   excluded,
   primaryId,
   chipLabel,
+  softQualifiers,
   onUpdate,
   onClearMatch,
 }: {
@@ -270,6 +273,7 @@ export function SynonymEditorBody({
   excluded: string[];
   primaryId: string;
   chipLabel: string;
+  softQualifiers: import("./types").SoftQualifierSpec[];
   onUpdate: (u: NodeUpdate) => void;
   onClearMatch?: () => void;
 }) {
@@ -397,6 +401,11 @@ export function SynonymEditorBody({
         excluded={excluded}
         onUpdate={onUpdate}
         onRequestSearch={() => setSearchMode("add_excluded")}
+      />
+      <SoftChecksPanel
+        nodeId={nodeId}
+        qualifiers={softQualifiers}
+        onUpdate={onUpdate}
       />
 
       {searchMode !== "none" && (

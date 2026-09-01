@@ -26,6 +26,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_SEALED_ASSERTION_SOURCES = frozenset({"form_schema_checkbox"})
+
+
+def _assertion_sealed(entity: dict[str, Any]) -> bool:
+    return str(entity.get("__source") or "") in _SEALED_ASSERTION_SOURCES
+
+
 # Span attribute mapping -- includes the custom DECLINED category.
 # Span.set_extension("is_declined") must be called before ConText is added.
 _SPAN_ATTRS: dict = {
@@ -369,6 +376,7 @@ def apply_context_detection_to_dicts(
         i
         for i, e in enumerate(entities)
         if (e.get("assertion") or "present") == "present"
+        and not _assertion_sealed(e)
     ]
     if not needs:
         return

@@ -58,6 +58,8 @@ _FIND_DOCUMENTS = """
 MATCH (rr:ReferralRequest {id: $referral_id})-[:HAS_DOCUMENT]->(dr:DocumentReference)
 RETURN toString(dr.id) AS doc_id,
        coalesce(dr.url, '') AS url,
+       coalesce(dr.leoOriginalUrl, '') AS leo_original_url,
+       coalesce(dr.leoPdfUrl, '') AS leo_pdf_url,
        coalesce(dr.contentType, '') AS content_type,
        coalesce(dr.documentTitle, dr.title, '') AS title
 ORDER BY title
@@ -82,6 +84,15 @@ def resolve_referral_ids(
 def list_documents(client: Any, referral_id: str) -> list[dict[str, Any]]:
     """Return DocumentReference rows linked to a referral."""
     return client.run(_FIND_DOCUMENTS, referral_id=str(referral_id))
+
+
+def fetch_url_for_document(doc: dict[str, Any]) -> str:
+    """Prefer a signed blob URL over a FHIR Binary path."""
+    for key in ("leo_original_url", "leo_pdf_url", "url"):
+        value = str(doc.get(key) or "").strip()
+        if value.startswith("http://") or value.startswith("https://"):
+            return value
+    return ""
 
 
 def _patient_id_for_referral(client: Any, referral_id: str) -> str:
@@ -133,12 +144,12 @@ def _process_document(
     doc: dict[str, Any],
     converter_url: str,
 ) -> list[dict[str, Any]]:
-    url = str(doc.get("url") or "").strip()
+    url = fetch_url_for_document(doc)
     doc_id = str(doc.get("doc_id") or "")
     title = str(doc.get("title") or doc_id)
     content_type = str(doc.get("content_type") or "")
     if not url or not doc_id:
-        print(f"  skip {doc_id or title}: missing url or id")
+        print(f"  skip {doc_id or title}: missing fetchable url or id")
         return []
     print(f"  fetch {doc_id} ({content_type or 'unknown'})")
     content = _fetch_binary(url)

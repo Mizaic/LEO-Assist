@@ -27,6 +27,8 @@ EXPECTED_SECTION_IDS = {
     "section_c_clinical_details",
     "section_d_investigations",
     "section_e_performance",
+    "ecog_status",
+    "points_to_remember",
 }
 
 BLOOD_BATTERY_LABELS = {
@@ -99,9 +101,7 @@ def test_build_payload_reads_scope_from_fixture(template: dict) -> None:
 
 
 def test_section_count(template: dict) -> None:
-    assert (
-        len(template["sections"]) == 7
-    ), "Expected 7 sections (A, B, PMB pathway, patient awareness, C, D, E)"
+    assert len(template["sections"]) == 9
 
 
 def test_all_section_ids_present(sections_by_id: dict) -> None:
@@ -189,6 +189,16 @@ def test_completeness_cancer_type_required(template: dict) -> None:
     grp = groups["cancer_type_required"]
     assert grp["required"] is True
     assert grp["min_count"] >= 1
+    coded = {
+        cid for member in grp["members"] for cid in (member.get("concept_ids") or [])
+    }
+    assert {
+        _PMB_ID,
+        _DISCHARGE_ID,
+        _VULVAL_ULCER_ID,
+        _VULVAL_MASS_ID,
+        _VULVAL_SWELL_ID,
+    } <= coded
 
 
 def test_completeness_symptom_criterion(template: dict) -> None:
@@ -196,7 +206,75 @@ def test_completeness_symptom_criterion(template: dict) -> None:
     assert "symptom_criterion_required" in groups
     grp = groups["symptom_criterion_required"]
     assert grp["required"] is True
-    assert len(grp["members"]) == 9, "All 9 symptom criteria must be in the group"
+    patterns = {
+        str(member.get("item_pattern") or "")
+        for member in grp["members"]
+        if member.get("item_pattern")
+    }
+    assert patterns == SYMPTOM_PREFIXES, "All 9 symptom criteria must be in the group"
+
+
+# NG12 1.5.12 / 1.5.13 / 1.5.14 / 1.5.17 codes that dry-runs already fire.
+_PMB_ID = 76742009
+_DISCHARGE_ID = 271939006
+_VULVAL_ULCER_ID = 68640004
+_VULVAL_MASS_ID = 289477004
+_VULVAL_SWELL_ID = 289475007
+
+
+def _groups_from_seed() -> list:
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    from seed_sfh_gynae_2ww_template import build_completeness_groups
+
+    return build_completeness_groups()
+
+
+@pytest.mark.parametrize(
+    "concept_id",
+    [_PMB_ID, _DISCHARGE_ID, _VULVAL_ULCER_ID, _VULVAL_MASS_ID, _VULVAL_SWELL_ID],
+)
+def test_ng12_gynae_code_satisfies_taught_completeness(concept_id: int) -> None:
+    """A present NG12 gynae finding meets both required groups with no ticks.
+
+    Dry-runs 000481827411, 000481858468, 000481914514, 000483240881,
+    000484382638, 000486801238: 1.5.12/13/14/17 fired, completeness still
+    asked for a Section A/B tick. Same class as breast lump 89164003.
+    Atlas: DI-50BE367C / VT-8426C84D
+    """
+    from libs.completeness.evaluator import evaluate_completeness_groups
+
+    result = evaluate_completeness_groups(
+        _groups_from_seed(),
+        present_concept_ids={concept_id},
+        present_semantic_tags={"finding"},
+        section_hits=[],
+    )
+    names = {row["name"] for row in result["matched_groups"]}
+    assert "cancer_type_required" in names, result
+    assert "symptom_criterion_required" in names, result
+    assert result["complete"] is True
+    assert result["degraded"] is False
+
+
+def test_fixture_completeness_groups_match_seed(template: dict) -> None:
+    assert template["completeness_groups"] == _groups_from_seed()
+
+
+def test_empty_gynae_without_ng12_code_is_still_incomplete() -> None:
+    from libs.completeness.evaluator import evaluate_completeness_groups
+
+    result = evaluate_completeness_groups(
+        _groups_from_seed(),
+        present_concept_ids=set(),
+        present_semantic_tags=set(),
+        section_hits=[],
+    )
+    missing = {row["name"] for row in result["missing_groups"]}
+    assert "cancer_type_required" in missing
+    assert "symptom_criterion_required" in missing
+    assert result["complete"] is False
 
 
 def test_no_pii_in_fixture(template: dict) -> None:

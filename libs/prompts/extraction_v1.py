@@ -115,6 +115,8 @@ standalone clinical references (needed for the gender check):
 
 Examples:
 - "has a cervix" -> body structure, lookup_term="cervix uteri", assertion="present"
+- "has womb in situ" / "has womb insitu" -> finding, lookup_term="uterus present"
+  (SNOMED 289619002), assertion="present". This is not a body-structure site.
 - "prostate gland removed" -> body structure, lookup_term="prostate gland", assertion="historical"
 - "no ovaries" -> body structure, lookup_term="ovary structure", assertion="absent"
 
@@ -225,6 +227,10 @@ Use the shortest faithful clinical span:
 - Prefer "visual disturbance" over a long eye-symptom sentence when that phrase appears.
 - Prefer "CA125 raised" when the source says "CA125 raised" or "CA125 level is raised";
   do not emit the whole measurement sentence as one entity.
+- Do not emit coordinated findings as one span. Extract each finding separately.
+  "No adnexal mass or free fluid" -> two entities: "no adnexal mass" and
+  "no free fluid". "vaginal itch/dryness" -> "vaginal itch" and "vaginal dryness".
+  Keep PMB as one finding. Do not split measurements or brand products.
 - For FIT checklist tokens, text = exactly the token in the source (-FIT, FIT-, FIT+,
   FIT positive, FIT requested, FIT test) -- not a long paraphrase unless that is
   the only wording present.
@@ -508,6 +514,11 @@ lookup_term whenever they appear in or are clearly implied by sentence_subset:
    with contrast, without contrast, first-line, second-line
    - "screening mammography" -> lookup_term: "screening mammography"
      NOT "mammography"
+8. Gynaecological compound findings: keep PMB as one finding
+   - "PMB", "postmenopausal bleeding", "post-menopausal bleeding",
+     "bleeding after the menopause", "? PMB"
+     -> lookup_term: "postmenopausal bleeding"
+     Do not split into postmenopausal state plus vaginal bleeding.
 
 You MAY normalise abbreviations in lookup_term. You MUST NOT drop the
 qualifier. If the qualifier appears only in context_text (not in

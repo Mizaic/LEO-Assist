@@ -119,7 +119,11 @@ def _redacted_target() -> str:
 def _diff(
     current: list[dict[str, Any]], seeds: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
-    existing = {(r["name"], int(r["version"])): r for r in current}
+    existing = {
+        (r["name"], int(r["version"])): r
+        for r in current
+        if r.get("version") is not None
+    }
     changes: list[dict[str, Any]] = []
     for seed in seeds:
         key = (seed["name"], int(seed["version"]))
@@ -161,11 +165,17 @@ def _upsert_seed(session: Any, prompt: dict[str, Any]) -> None:
 def restore(session: Any, rows: list[dict[str, Any]]) -> None:
     """Restore every backed-up row after a failed apply."""
     for row in rows:
+        if row.get("version") is None:
+            continue
         session.run(_RESTORE_QUERY, **row).consume()
 
 
 def _verify(session: Any, expected: list[dict[str, Any]]) -> list[str]:
-    actual = {(row["name"], int(row["version"])): row for row in snapshot(session)}
+    actual = {
+        (row["name"], int(row["version"])): row
+        for row in snapshot(session)
+        if row.get("version") is not None
+    }
     errors: list[str] = []
     for row in expected:
         key = (row["name"], int(row["version"]))

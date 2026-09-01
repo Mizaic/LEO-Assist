@@ -43,6 +43,8 @@ class QualityCheckState(TypedDict, total=False):
     errors: list[str]
     section_hits: list[dict[str, Any]]
     completeness_groups: list[dict[str, Any]]
+    form_schema_match: str
+    form_layout_matched: bool
     degraded: bool
 
 
@@ -105,13 +107,23 @@ def _load_completeness_schema(domain: str, subdomain: str) -> list[dict[str, Any
     return _pick_assessable_schema(rows or [])
 
 
+def _taught_form_layout_blocks_completeness(state: QualityCheckState) -> bool:
+    """True when a taught form was bound but the page is not that form."""
+    match = str(state.get("form_schema_match") or "none").strip()
+    if match in ("", "none", "not_applicable", "exact_hash"):
+        return False
+    return state.get("form_layout_matched") is not True
+
+
 def _resolve_completeness_schema(state: QualityCheckState) -> list[dict[str, Any]]:
+    if _taught_form_layout_blocks_completeness(state):
+        return []
     form_groups = [
         group
         for group in (state.get("completeness_groups") or [])
         if isinstance(group, dict)
     ]
-    if _schema_is_assessable(form_groups):
+    if form_groups:
         return form_groups
     domain = str(state.get("completeness_domain") or "").strip()
     subdomain = str(state.get("completeness_subdomain") or "").strip()
@@ -229,7 +241,11 @@ def run_quality_checks(state: QualityCheckState) -> dict[str, Any]:
         issues.append(_quality_issue("missing_episode_context", "medium", patient_id))
     global_report = _global_quality_report(errors)
     completeness = _run_completeness_check(state)
-    if completeness and not completeness.get("complete"):
+    if (
+        completeness
+        and completeness.get("configured")
+        and not completeness.get("complete")
+    ):
         issues.append(
             _quality_issue("minimum_dataset_incomplete", "medium", patient_id)
         )

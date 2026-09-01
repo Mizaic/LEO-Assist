@@ -836,3 +836,68 @@ def test_synonym_seed_distance_child_defaults_to_three_when_unset(
     ruleset = compiler._build_ruleset(rows, mock_session)
     leaf = ruleset["rules"][0]["logic_tree"]
     assert "1_default_child" in leaf["seed_concept_ids"]
+
+
+def test_soft_qualifiers_echo_without_changing_bitmap(compiler, store, mock_session):
+    """DI-DE8B125E: soft_qualifiers are echo-only; bitmap matches a bare leaf."""
+    bare = _v2_concept_row(
+        {
+            "kind": "concept",
+            "criterion": {
+                "node_id": "n1",
+                "snomed_concept_id": "443416000",
+                "preferred_term": "Smoker",
+            },
+        }
+    )
+    tagged = _v2_concept_row(
+        {
+            "kind": "concept",
+            "criterion": {
+                "node_id": "n1",
+                "snomed_concept_id": "443416000",
+                "preferred_term": "Smoker",
+                "soft_qualifiers": [
+                    {"kind": "first_presentation", "enforcement": "soft"}
+                ],
+            },
+        }
+    )
+    tagged["rule_id"] = "r2"
+    tagged["investigation_policy"] = "required"
+    bare_leaf = compiler._build_ruleset([bare], mock_session)["rules"][0]["logic_tree"]
+    tagged_rule = compiler._build_ruleset([tagged], mock_session)["rules"][0]
+    tagged_leaf = tagged_rule["logic_tree"]
+    assert tagged_leaf["bitmap_id"] == bare_leaf["bitmap_id"]
+    assert tagged_leaf["seed_concept_ids"] == bare_leaf["seed_concept_ids"]
+    assert tagged_leaf["criterion"]["soft_qualifiers"] == [
+        {"kind": "first_presentation", "enforcement": "soft"}
+    ]
+    assert tagged_rule["investigation_policy"] == "required"
+
+
+def test_unset_investigation_policy_echoes_none(compiler, store, mock_session):
+    """DI-55CCC312: today's rules compile with no FIT policy."""
+    rows = [
+        _v2_concept_row(
+            {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "snomed_concept_id": "443416000",
+                    "preferred_term": "Smoker",
+                },
+            }
+        )
+    ]
+    rule = compiler._build_ruleset(rows, mock_session)["rules"][0]
+    assert rule.get("investigation_policy") in (None, "")
+
+
+def test_cypher_returns_investigation_policy(compiler):
+    """DI-55CCC312: fetch query echoes investigationPolicy onto the compile row."""
+    from services.terminology_api.app.services.guideline_compiler import (
+        _FETCH_ACTIVE_RULES,
+    )
+
+    assert "investigation_policy" in _FETCH_ACTIVE_RULES

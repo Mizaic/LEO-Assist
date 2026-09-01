@@ -6,7 +6,7 @@ PUT  /completeness-domains/{domain_id}  -- update completeness groups
 
 Atlas trace:
   UN: UN-3B25A20E
-  DI: DI-26546721
+  DI: DI-26546721, DI-10667413
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.deps import require_admin
@@ -27,6 +27,8 @@ _LIST_DOMAINS = """
 MATCH (d:AuditDomain {source: 'tenant'})-[:HAS_SUBDOMAIN]->(v:ValueSet)
 WHERE v.completeness_schema_active = true
 OPTIONAL MATCH (d)-[:FOR_ORGANIZATION]->(org:Organization)
+WITH d, v, org
+WHERE $organization_id = '' OR org.id = $organization_id
 RETURN d.id AS domain_id,
        d.name AS domain_name,
        org.id AS organization_id,
@@ -79,12 +81,13 @@ def _domain_detail(row: dict[str, Any]) -> dict[str, Any]:
 
 @router.get("")
 def list_domains(
+    organization_id: str = Query(""),
     _session: dict = Depends(require_admin),
 ) -> dict[str, Any]:
-    """List all tenant ServiceDomain completeness schemas."""
+    """List tenant ServiceDomain completeness schemas from the patient graph."""
     client = PatientGraphClient()
     try:
-        rows = client.run(_LIST_DOMAINS) or []
+        rows = client.run(_LIST_DOMAINS, organization_id=organization_id) or []
         domains = [_domain_detail(dict(r)) for r in rows]
     finally:
         client.close()

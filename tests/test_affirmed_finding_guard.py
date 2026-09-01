@@ -111,3 +111,22 @@ def test_apply_guards_include_locally_affirmed() -> None:
     ent = _span_ent(text, "vulval sores", "absent")
     apply_false_absent_assertion_guards([ent])
     assert ent["assertion"] == "present"
+
+
+def test_context_absent_not_restored_by_later_noted() -> None:
+    """ConText already owns 'no'. A later 'noted' must not flip absent.
+
+    Atlas: DI-0F9542BF / DO-15449C6E / VT-A1919820
+    """
+    text = "There is no pelvic pain. Discharge noted on examination."
+    ent = {
+        "text": "pelvic pain",
+        "start": 0,
+        "end": 3,
+        "assertion": "absent",
+        "_assertion_source": "context",
+        "evidence_sentence": text,
+    }
+    fix_locally_affirmed_assertions([ent])
+    apply_false_absent_assertion_guards([ent])
+    assert ent["assertion"] == "absent"

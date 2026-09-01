@@ -200,6 +200,7 @@ const ALLOWED_CRITERION_KEYS = new Set<keyof LogicCriterion>([
   "needs_human_review",
   "human_reviewed_at",
   "human_reviewed_by",
+  "soft_qualifiers",
 ]);
 
 function sanitiseSeed(seed: LogicSeed): LogicSeed {
@@ -751,6 +752,15 @@ export function applyUpdate(
     case "remove_excluded":
       return mapNode(root, (n) =>
         n.node_id === update.nodeId ? removeExcluded(n, update.conceptId) : n,
+      );
+    case "set_soft_qualifiers":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId
+          ? withCriterion(n, (c) => ({
+              ...c,
+              soft_qualifiers: update.soft_qualifiers,
+            }))
+          : n,
       );
     case "set_name":
       return mapNode(root, (n) =>

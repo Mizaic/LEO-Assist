@@ -23,6 +23,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from libs.llm_client.prompt_safety import sanitise_for_prompt
+from libs.pipeline.form_checkbox_seed import is_taught_checkbox
 from libs.prompts.verification_output_schema import VERIFICATION_OUTPUT_SCHEMA
 from libs.terminology.client import TerminologyClient
 
@@ -552,6 +553,8 @@ def correct_entities(state: VerificationState) -> dict[str, Any]:
             continue
 
         if corr.get("drop"):
+            if is_taught_checkbox(new_entities[idx]):
+                continue
             drop_indices.add(idx)
             logger.info(
                 "correct_entities: dropping entity %d (%s) "

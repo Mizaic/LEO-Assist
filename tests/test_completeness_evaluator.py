@@ -4,9 +4,26 @@ from __future__ import annotations
 
 from libs.completeness.evaluator import (
     build_isa_expansion,
+    concept_ids_from_entities,
     evaluate_completeness_groups,
     semantic_tags_from_entities,
 )
+
+
+def test_absent_concept_is_not_a_present_completeness_fact() -> None:
+    """Denied text must not satisfy a coded completeness member.
+
+    Dry-run 000481827411 coded 'No postmenopausal bleeding' as 76742009
+    absent. That code must not complete the gynae 2WW groups.
+    """
+    ids = concept_ids_from_entities(
+        [
+            {"concept_id": "76742009", "assertion": "absent"},
+            {"concept_id": "68640004", "assertion": "present"},
+        ]
+    )
+    assert 76742009 not in ids
+    assert 68640004 in ids
 
 
 def test_semantic_tags_normalise_observable_entity_alias():

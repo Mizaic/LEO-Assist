@@ -21,6 +21,7 @@ from libs.ner.request_reason_recovery import (
     SuspectedCancerSituation,
     infer_suspected_cancer_site,
 )
+from libs.pipeline.form_checkbox_seed import is_taught_checkbox
 
 _GENERIC_SUSPECTED = SUSPECTED_CANCER_BY_SITE["generic"]
 _SUSPECTED_SITUATION_IDS = frozenset(
@@ -149,6 +150,8 @@ def enrich_suspected_cancer_lookup(
     encounter_text: str,
 ) -> None:
     """Set lookup_term to a suspected-situation phrase before terminology."""
+    if is_taught_checkbox(entity):
+        return
     label = str(entity.get("label") or entity.get("semantic_tag") or "").lower()
     if label != "situation" and not _CANCER_SPAN_RE.search(_entity_blob(entity)):
         return
@@ -183,6 +186,8 @@ def guard_suspected_cancer_resolution(
     encounter_text: str,
 ) -> None:
     """Remap confirmed malignancy disorder codes in suspected context."""
+    if is_taught_checkbox(entity):
+        return
     if not is_confirmed_malignancy_disorder(entity):
         return
 

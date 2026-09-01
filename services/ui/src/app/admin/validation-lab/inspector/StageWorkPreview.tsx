@@ -80,8 +80,8 @@ function itemLabel(item: LabWorkItem): string {
     return `${item.text} -- ${item.relationType} -- ${item.relationTarget}`;
   }
   const measurement = [item.value, item.unit].filter(Boolean).join(" ");
-  if (measurement) return `${item.text} -- ${measurement}`;
   if (item.code) return `${item.text} -- ${item.code}`;
+  if (measurement) return `${item.text} -- ${measurement}`;
   return item.text;
 }
 

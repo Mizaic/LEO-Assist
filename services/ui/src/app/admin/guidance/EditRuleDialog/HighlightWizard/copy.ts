@@ -202,38 +202,38 @@ export const STEP_PATHWAY_CONDITIONS = {
     `We noticed "${terms.join(" or ")}" -- does only one of these need to match, or all of them?`,
   onlyOneLabel: (recommended: boolean) =>
     recommended
-      ? "Only one needs to match (Recommended)"
-      : "Only one needs to match",
+      ? "OR -- only one needs to match (Recommended)"
+      : "OR -- only one needs to match",
   atLeastNLabel: (n: number, recommended: boolean) =>
     recommended
-      ? `At least ${n} need to match (Recommended)`
-      : `At least ${n} need to match`,
-  allMustMatchLabel: "All must match",
+      ? `AT LEAST ${n} need to match (Recommended)`
+      : `AT LEAST ${n} need to match`,
+  allMustMatchLabel: "AND -- all must match",
   /** Shown above a required lead finding that sits outside an either/or
    *  group (NG12 1.3.1 E: rectal bleeding before the either-of symptoms). */
   leadRequiredCaption: "Required in this situation.",
   /** Heading above the either/or symptom rows after the lead. */
   eitherOfHeading: "Plus either of these:",
-  groupingConfirmedOnlyOne: "Only one of these needs to match.",
+  groupingConfirmedOnlyOne: "OR -- only one of these needs to match.",
   groupingConfirmedOnlyOneWithTerms: (terms: string[]) =>
     terms.length > 0
-      ? `Only one of ${formatTermList(terms)} needs to match.`
-      : "Only one of these needs to match.",
+      ? `OR -- only one of ${formatTermList(terms)} needs to match.`
+      : "OR -- only one of these needs to match.",
   groupingConfirmedAtLeastN: (n: number, terms: string[] = []) => {
     if (n <= 1) {
       return terms.length > 0
-        ? `Only one of ${formatTermList(terms)} needs to match.`
-        : "Only one of these needs to match.";
+        ? `OR -- only one of ${formatTermList(terms)} needs to match.`
+        : "OR -- only one of these needs to match.";
     }
     return terms.length > 0
-      ? `At least ${n} of ${formatTermList(terms)} need to match.`
-      : `At least ${n} of these need to match.`;
+      ? `AT LEAST ${n} of ${formatTermList(terms)} need to match.`
+      : `AT LEAST ${n} of these need to match.`;
   },
-  groupingConfirmedAll: "All of these must match.",
+  groupingConfirmedAll: "AND -- all of these must match.",
   groupingConfirmedAllWithTerms: (terms: string[]) =>
     terms.length > 0
-      ? `All of ${formatTermList(terms)} must match.`
-      : "All of these must match.",
+      ? `AND -- all of ${formatTermList(terms)} must match.`
+      : "AND -- all of these must match.",
   clusterMinLabel: "How many must match",
   clusterMinOf: (total: number) => `of ${total}`,
   /** Shown under Confirm when a grouping card is still unanswered --

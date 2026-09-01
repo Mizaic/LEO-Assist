@@ -24,6 +24,7 @@ from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.relations.policy import policy_relation_types
 from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
+from libs.pipeline.form_checkbox_seed import is_taught_checkbox
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +191,8 @@ def _apply_scope_guard_after_extraction_check(
 ) -> list[dict[str, Any]]:
     to_remove: list[int] = []
     for idx, ent in enumerate(entities):
+        if is_taught_checkbox(ent):
+            continue
         assertion = str(ent.get("assertion") or "present").strip().lower()
         if assertion not in ("present", ""):
             continue
@@ -378,8 +381,11 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
 
     drop_indices = set()
     for idx in result.get("drop", []):
-        if isinstance(idx, int) and 0 <= idx < len(entities):
-            drop_indices.add(idx)
+        if not (isinstance(idx, int) and 0 <= idx < len(entities)):
+            continue
+        if is_taught_checkbox(entities[idx]):
+            continue
+        drop_indices.add(idx)
 
     if drop_indices:
         for idx in sorted(drop_indices):
@@ -481,8 +487,11 @@ def _apply_coding_check(state: LLMCheckState) -> dict[str, Any]:
 
     drop_indices = set()
     for idx in result.get("drop", []):
-        if isinstance(idx, int) and 0 <= idx < len(entities):
-            drop_indices.add(idx)
+        if not (isinstance(idx, int) and 0 <= idx < len(entities)):
+            continue
+        if is_taught_checkbox(entities[idx]):
+            continue
+        drop_indices.add(idx)
 
     for row in result.get("force_review", []):
         idx = row if isinstance(row, int) else None

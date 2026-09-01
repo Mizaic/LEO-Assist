@@ -9,8 +9,9 @@
 
 /**
  * Presentational chrome for StepPathwayConditions: copy-across banner,
- * confirmed-pathway summary, and the AT_LEAST / AND grouping card.
+ * confirmed-pathway summary, and the AND / OR / AT_LEAST grouping card.
  */
+import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -193,6 +194,27 @@ export function ConfirmedPathwayConditions({
   );
 }
 
+function confirmedGroupingLabel(
+  grouping: ClusterGrouping,
+  clusterMin: number,
+  confirmedTerms: string[],
+): string {
+  if (grouping === "OR") {
+    return confirmedTerms.length > 0
+      ? STEP_PATHWAY_CONDITIONS.groupingConfirmedOnlyOneWithTerms(confirmedTerms)
+      : STEP_PATHWAY_CONDITIONS.groupingConfirmedOnlyOne;
+  }
+  if (grouping === "AT_LEAST") {
+    return STEP_PATHWAY_CONDITIONS.groupingConfirmedAtLeastN(
+      clusterMin,
+      confirmedTerms,
+    );
+  }
+  return confirmedTerms.length > 0
+    ? STEP_PATHWAY_CONDITIONS.groupingConfirmedAllWithTerms(confirmedTerms)
+    : STEP_PATHWAY_CONDITIONS.groupingConfirmedAll;
+}
+
 export function ClusterGroupingChoice({
   prompt,
   grouping,
@@ -212,19 +234,17 @@ export function ClusterGroupingChoice({
   confirmedTerms?: string[];
   onSetClusterMin?: (min: number) => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const recommendN = suggestedMin > 1;
   const maxMin = Math.max(termCount, suggestedMin, 1);
+  const showChoices = !grouping || editing;
 
-  if (grouping) {
-    const confirmedLabel =
-      grouping === "AT_LEAST"
-        ? STEP_PATHWAY_CONDITIONS.groupingConfirmedAtLeastN(
-            clusterMin,
-            confirmedTerms,
-          )
-        : confirmedTerms.length > 0
-          ? STEP_PATHWAY_CONDITIONS.groupingConfirmedAllWithTerms(confirmedTerms)
-          : STEP_PATHWAY_CONDITIONS.groupingConfirmedAll;
+  if (!showChoices && grouping) {
+    const confirmedLabel = confirmedGroupingLabel(
+      grouping,
+      clusterMin,
+      confirmedTerms,
+    );
     return (
       <Stack
         direction="row"
@@ -262,19 +282,20 @@ export function ClusterGroupingChoice({
           </Stack>
         )}
         <Tooltip title={WIZARD_TOOLTIPS.changeGrouping}>
-          <Button
-            size="small"
-            onClick={() => {
-              if (grouping === "AT_LEAST") onChoose?.("AND");
-              else onChoose?.("AT_LEAST", suggestedMin);
-            }}
-          >
+          <Button size="small" onClick={() => setEditing(true)}>
             {STEP_PATHWAY_CONDITIONS.changeLabel}
           </Button>
         </Tooltip>
       </Stack>
     );
   }
+
+  function pick(next: ClusterGrouping, min?: number) {
+    setEditing(false);
+    if (min === undefined) onChoose?.(next);
+    else onChoose?.(next, min);
+  }
+
   const onlyOneText = STEP_PATHWAY_CONDITIONS.onlyOneLabel(!recommendN);
   const atLeastText = STEP_PATHWAY_CONDITIONS.atLeastNLabel(suggestedMin, true);
   return (
@@ -293,7 +314,7 @@ export function ClusterGroupingChoice({
               variant="contained"
               size="small"
               aria-label={atLeastText}
-              onClick={() => onChoose?.("AT_LEAST", suggestedMin)}
+              onClick={() => pick("AT_LEAST", suggestedMin)}
             >
               {atLeastText}
             </Button>
@@ -304,7 +325,7 @@ export function ClusterGroupingChoice({
             variant={recommendN ? "outlined" : "contained"}
             size="small"
             aria-label={onlyOneText}
-            onClick={() => onChoose?.("AT_LEAST", 1)}
+            onClick={() => pick("OR")}
           >
             {onlyOneText}
           </Button>
@@ -314,7 +335,7 @@ export function ClusterGroupingChoice({
             variant="outlined"
             size="small"
             aria-label={STEP_PATHWAY_CONDITIONS.allMustMatchLabel}
-            onClick={() => onChoose?.("AND")}
+            onClick={() => pick("AND")}
           >
             {STEP_PATHWAY_CONDITIONS.allMustMatchLabel}
           </Button>

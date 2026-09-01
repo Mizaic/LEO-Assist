@@ -96,7 +96,29 @@ export interface LogicCriterion {
    */
   human_reviewed_at?: string | null;
   human_reviewed_by?: string | null;
+  /** Soft guideline words. Empty means today's hard-fact-only leaf. */
+  soft_qualifiers?: SoftQualifierSpec[];
 }
+
+export type SoftQualifierKind =
+  | "first_presentation"
+  | "repeat_or_chronic"
+  | "unexplained"
+  | "unintentional"
+  | "persistent";
+
+export type SoftEnforcement = "soft" | "hard";
+
+export interface SoftQualifierSpec {
+  kind: SoftQualifierKind;
+  enforcement?: SoftEnforcement;
+  concept_id?: string;
+  max_occurrences?: number | null;
+  min_occurrences?: number | null;
+  within_days?: number | null;
+}
+
+export type InvestigationPolicy = "required" | "not_required" | "result_gate";
 
 /**
  * How a set of recommended procedures relate to each other.
@@ -420,6 +442,11 @@ export type NodeUpdate =
   | { kind: "set_seed_distance"; nodeId: string; conceptId: string; distance: number | null }
   | { kind: "add_excluded"; nodeId: string; conceptId: string }
   | { kind: "remove_excluded"; nodeId: string; conceptId: string }
+  | {
+      kind: "set_soft_qualifiers";
+      nodeId: string;
+      soft_qualifiers: SoftQualifierSpec[];
+    }
   | { kind: "replace_root"; node: EditableLogicNode }
   // -- RULE_FIRED chained evaluation (DI-8899D4F3 / DI-6AE25829) --
   | { kind: "add_rule_fired"; parentNodeId: string }

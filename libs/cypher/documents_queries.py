@@ -29,6 +29,7 @@ from typing import Any
 from neo4j.exceptions import TransientError
 
 from libs.cypher.surface_form_task_queries import INCREMENT_SURFACE_FORM_USE
+from libs.ner.context_span_resolution import span_appears_in_text
 from libs.utils.deidentify import deidentify_with_span
 
 logger = logging.getLogger(__name__)
@@ -480,18 +481,16 @@ def select_evidence_sentence_traced(
     span = (span_text or "").strip()
     if not text or not span:
         return text, False
-
-    span_lower = span.lower()
-    if span_lower not in text.lower():
+    if not span_appears_in_text(text, span):
         return text, False
 
     lines = [ln.strip() for ln in re.split(r"\n+", text) if ln.strip()]
-    line_hits = [ln for ln in lines if span_lower in ln.lower()]
+    line_hits = [ln for ln in lines if span_appears_in_text(ln, span)]
     if line_hits:
         return min(line_hits, key=len), True
 
     sentence_parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", text) if p.strip()]
-    sentence_hits = [p for p in sentence_parts if span_lower in p.lower()]
+    sentence_hits = [p for p in sentence_parts if span_appears_in_text(p, span)]
     if sentence_hits:
         return min(sentence_hits, key=len), True
 
@@ -535,14 +534,15 @@ def locate_span_in_sentences(
     Returns ``(index, sentence)``, or ``None`` when no sentence holds the
     words or more than one does. Ambiguity is never resolved by guessing.
     """
-    span = (span_text or "").strip().lower()
+    span = (span_text or "").strip()
     if not span:
         return None
 
     hits = [
         (index, sentence)
         for index, sentence in enumerate(sentences_payload)
-        if index != claimed_index and span in str(sentence.get("text") or "").lower()
+        if index != claimed_index
+        and span_appears_in_text(str(sentence.get("text") or ""), span)
     ]
     if len(hits) != 1:
         return None

@@ -1,0 +1,47 @@
+---
+alwaysApply: true
+description: Name the Neo4j surface before any local workaround
+---
+
+# Architecture First -- No Local Workaround by Default
+
+Before you add a local regex, guard, prompt line, or hardcoded map,
+name the Neo4j (or packaged catalog) surface that already owns it.
+If you cannot name it, stop and look it up. Do not invent a second copy.
+
+This sits in precedence band 4 (architecture). Patient safety still wins
+if a graph surface is down -- fail closed, do not silently hardcode.
+
+## Check before you write
+
+Say the surface in the plan or the first reply:
+
+| The change is... | Own it here first |
+|---|---|
+| Assertion cue (`no`, `denies`, family history) | `ContextRule` + UK pack `uk_primary_care_context_rules.json` |
+| Phrase to SNOMED | `SurfaceForm` / published `MAPS_TO` |
+| Prompt wording or few-shot | `PromptConfig` / `PromptTemplate` |
+| Form tick, completeness, section | `FormSchema` |
+| Extra lifestyle / PMH concept ids | Neo4j `assertion_guard` catalog |
+| Model or provider | `AIModel` |
+| Workflow steps | Graph executor, not a new Python branch |
+
+Search the repo and Atlas for that surface. Prefer update or a new
+graph/catalog row over new Python.
+
+## Local code is allowed only when
+
+1. The graph surface cannot express the rule (structural: fail-closed,
+   polarity-encoded FSN, sealed form checkbox), or
+2. Later code **undoes** a correct graph/ConText result -- then fix
+   that later code. Do not add a third copy of the cue.
+
+If you take a local path, say why the graph surface cannot do it.
+
+## Hard stops
+
+- Do not grow a Python regex that copies ConText (`_PMH_NEGATED_RE`
+  and the like). Teach `ContextRule` instead.
+- Do not hardcode a phrase-to-code map when `SurfaceForm` exists.
+- Do not add a prompt string in-repo when `PromptConfig` owns it.
+- "The local guard already exists" is not a reason to extend it.

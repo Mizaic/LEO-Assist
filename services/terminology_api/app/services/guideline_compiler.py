@@ -128,6 +128,7 @@ RETURN
     coalesce(rule.schemaVersion, 1) AS schema_version,
     rule.logicJson       AS logic_json,
     rule.actionJson      AS action_json,
+    rule.investigationPolicy AS investigation_policy,
     g.id                 AS guideline_id,
     g.title              AS guideline_title,
     coalesce(g.publisher, '') AS guideline_publisher,
@@ -470,6 +471,8 @@ class GuidelineCompiler:
             "action_due_days": rule_in.get("action_due_days"),
             "action_json": rule_in.get("action_json"),
             "applies_to": list(rule_in.get("applies_to") or []),
+            "investigation_policy": rule_in.get("investigation_policy")
+            or rule_in.get("investigationPolicy"),
         }
 
     async def compile_and_store(
@@ -658,6 +661,7 @@ RETURN
     coalesce(rule.schemaVersion, 1) AS schema_version,
     rule.logicJson       AS logic_json,
     rule.actionJson      AS action_json,
+    rule.investigationPolicy AS investigation_policy,
     g.id                 AS guideline_id,
     g.title              AS guideline_title,
     coalesce(g.publisher, '') AS guideline_publisher,
@@ -1002,6 +1006,7 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                     "action_priority": row.get("action_priority"),
                     "action_due_days": row.get("action_due_days"),
                     "guideline_domain_id": row.get("guideline_domain_id"),
+                    "investigation_policy": row.get("investigation_policy"),
                 }
 
             self._merge_legacy_row_action(by_rule[rule_id], row)
@@ -1302,6 +1307,7 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                 "primary_concept_id": primary_id,
                 "seeds": echo_seeds,
                 "excluded_concept_ids": sorted(excluded_ids),
+                "soft_qualifiers": list(criterion.get("soft_qualifiers") or []),
             },
             "seed_concept_ids": sorted_ids,
         }
@@ -1867,6 +1873,7 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
             # Back-compat shim for one release -- removable once libs/sbar
             # (Phase 4b) is confirmed migrated to reading "actions".
             "action": actions[0] if actions else None,
+            "investigation_policy": rule_data.get("investigation_policy") or None,
         }
 
     def _compile_one_rule(
@@ -1908,4 +1915,5 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
             # (Phase 4b) is confirmed migrated to reading "actions".
             "action": actions[0] if actions else None,
             "applies_to": rule_data.get("applies_to") or [],
+            "investigation_policy": rule_data.get("investigation_policy") or None,
         }

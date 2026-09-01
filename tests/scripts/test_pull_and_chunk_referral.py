@@ -21,7 +21,11 @@ from libs.chunking.converter_client import (
     parse_markdown_response,
 )
 from libs.chunking.validation_bundle import load_bundle, write_bundle
-from scripts.pull_and_chunk_referral import list_documents, resolve_referral_ids
+from scripts.pull_and_chunk_referral import (
+    fetch_url_for_document,
+    list_documents,
+    resolve_referral_ids,
+)
 
 
 def test_converter_path_uses_extract_for_pdf_and_images() -> None:
@@ -137,3 +141,25 @@ def test_list_documents_returns_doc_rows() -> None:
     rows = list_documents(client, "0001")
     assert rows[0]["doc_id"] == "dr-1"
     assert rows[0]["content_type"] == "application/pdf"
+
+
+def test_fetch_url_prefers_leo_original_over_fhir_binary_path() -> None:
+    url = fetch_url_for_document(
+        {
+            "url": "Binary/ca688e99-7b23-4c0a-9e11-abc",
+            "leo_original_url": "https://example.blob.core.windows.net/c/letter.doc",
+            "leo_pdf_url": "https://example.blob.core.windows.net/c/letter.pdf",
+        }
+    )
+    assert url.endswith("letter.doc")
+
+
+def test_fetch_url_falls_back_to_http_url() -> None:
+    url = fetch_url_for_document(
+        {"url": "https://example.blob.core.windows.net/c/a.pdf"}
+    )
+    assert url.endswith("a.pdf")
+
+
+def test_fetch_url_empty_when_only_fhir_path() -> None:
+    assert fetch_url_for_document({"url": "Binary/ca688e99-7b23"}) == ""

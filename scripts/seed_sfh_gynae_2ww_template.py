@@ -130,7 +130,7 @@ def build_section_b() -> dict:
             ),
             _item(
                 "B2.",
-                "Lesion suspicious of vulval cancer on examination",
+                "vulval mass",
             ),
             _item(
                 "B3.",
@@ -150,11 +150,11 @@ def build_section_b() -> dict:
             ),
             _item(
                 "B7.",
-                "Unexpected bleeding more than 4 weeks after stopping HRT",
+                "Unexpected bleeding that cannot be attributed to current HRT",
             ),
             _item(
                 "B8.",
-                "Bleeding persisting after 6 months of continuous combined HRT",
+                "Unexpected bleeding that cannot be attributed to current HRT",
             ),
             _item(
                 "B9.",
@@ -174,7 +174,7 @@ def build_primary_care_pathway() -> dict:
         start_pattern="For post menopausal bleeding",
         items=[
             _item(
-                "New presentation with PMB (first episode)",
+                "New presentation with PMB",
                 "New first-episode postmenopausal bleeding",
             ),
             _item(
@@ -206,20 +206,20 @@ def build_patient_awareness() -> dict:
                 "Patient is aware of possible cancer",
             ),
             _item(
-                "Patient is aware they have been referred on an urgent basis",
+                "referred on an urgent basis",
                 "Patient aware of urgent referral",
             ),
             _item(
-                "Patient has no holiday plans in the next 2 months",
-                "No holiday plans in the next 2 months",
+                "holiday plans in the next 2 months",
+                "Holiday plans in the next 2 months",
             ),
             _item(
                 "Has the patient been told of the suspicion of cancer",
                 "Patient told of cancer suspicion",
             ),
             _item(
-                "Patient has no holidays planned in the next 3 weeks",
-                "No holidays planned in the next 3 weeks",
+                "holidays planned in the next 3 weeks",
+                "Holiday plans in the next 3 weeks",
             ),
         ],
     )
@@ -442,6 +442,37 @@ def build_points_to_remember_noise() -> dict:
     )
 
 
+def build_ecog_status() -> dict:
+    """Compact 0 [X] row, or long box-before-score ECOG 0-4."""
+    return _section(
+        section_id="ecog_status",
+        section_type="scale",
+        label="ECOG performance status",
+        start_pattern="ECOG",
+        items=[
+            _item("0 [", "ECOG 0 fully active"),
+            _item("1 [", "ECOG 1 restricted in strenuous activity"),
+            _item("2 [", "ECOG 2 ambulatory and capable of selfcare"),
+            _item("3 [", "ECOG 3 limited selfcare"),
+            _item("4 [", "ECOG 4 completely disabled"),
+            _item("Fully active", "ECOG 0 fully active"),
+            _item(
+                "Restricted in physically strenuous",
+                "ECOG 1 restricted in strenuous activity",
+            ),
+            _item(
+                "Ambulatory and capable of all selfcare",
+                "ECOG 2 ambulatory and capable of selfcare",
+            ),
+            _item(
+                "confined to bed or chair more than 50%",
+                "ECOG 3 limited selfcare",
+            ),
+            _item("Totally confined to bed or chair", "ECOG 4 completely disabled"),
+        ],
+    )
+
+
 def build_section_e() -> dict:
     """Section E -- performance status (Clinical Frailty Scale)."""
     return _section(
@@ -473,6 +504,39 @@ def build_section_e() -> dict:
     )
 
 
+def _coded_finding(name: str, concept_id: int) -> dict:
+    return {
+        "name": name,
+        "kind": "optional",
+        "required": False,
+        "semantic_categories": [],
+        "concept_ids": [concept_id],
+    }
+
+
+def _ng12_gynae_finding_members() -> list:
+    """Coded findings that already fire NG12 1.5.12 / 1.5.13 / 1.5.14 / 1.5.17."""
+    return [
+        _coded_finding("Postmenopausal bleeding", 76742009),
+        _coded_finding("Vaginal discharge", 271939006),
+        _coded_finding("Ulceration of vulva", 68640004),
+        _coded_finding("Mass of vulva", 289477004),
+        _coded_finding("Swelling of vulva", 289475007),
+    ]
+
+
+def _cancer_type_members() -> list:
+    return [{"section_id": "section_a_cancer_type"}] + _ng12_gynae_finding_members()
+
+
+def _symptom_members() -> list:
+    boxes = [
+        {"section_id": "section_b_symptoms", "item_pattern": f"B{index}."}
+        for index in range(1, 10)
+    ]
+    return boxes + _ng12_gynae_finding_members()
+
+
 def build_completeness_groups() -> list:
     return [
         {
@@ -482,7 +546,7 @@ def build_completeness_groups() -> list:
             "min_count": 1,
             "semantic_categories": [],
             "concept_ids": [],
-            "members": [{"section_id": "section_a_cancer_type"}],
+            "members": _cancer_type_members(),
         },
         {
             "name": "symptom_criterion_required",
@@ -491,17 +555,7 @@ def build_completeness_groups() -> list:
             "min_count": 1,
             "semantic_categories": [],
             "concept_ids": [],
-            "members": [
-                {"section_id": "section_b_symptoms", "item_pattern": "B1."},
-                {"section_id": "section_b_symptoms", "item_pattern": "B2."},
-                {"section_id": "section_b_symptoms", "item_pattern": "B3."},
-                {"section_id": "section_b_symptoms", "item_pattern": "B4."},
-                {"section_id": "section_b_symptoms", "item_pattern": "B5."},
-                {"section_id": "section_b_symptoms", "item_pattern": "B6."},
-                {"section_id": "section_b_symptoms", "item_pattern": "B7."},
-                {"section_id": "section_b_symptoms", "item_pattern": "B8."},
-                {"section_id": "section_b_symptoms", "item_pattern": "B9."},
-            ],
+            "members": _symptom_members(),
         },
         {
             "name": "clinical_details_present",
@@ -557,6 +611,7 @@ def _built_template() -> dict:
             build_section_c(),
             build_section_d(),
             build_section_e(),
+            build_ecog_status(),
             build_points_to_remember_noise(),
         ],
         "saved_by": "seed_sfh_gynae_2ww_template",

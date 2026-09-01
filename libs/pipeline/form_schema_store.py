@@ -22,6 +22,7 @@ from libs.cypher.form_schema_queries import (
     DELETE_FORM_SCHEMA,
     GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
     GET_FORM_SCHEMA_BY_FINGERPRINT,
+    RELEASE_SIBLING_FORM_SCHEMAS,
     UPSERT_FORM_SCHEMA,
 )
 from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
@@ -462,6 +463,24 @@ def is_known_schema(
     )
 
 
+def _release_sibling_form_schemas(client: Any, schema: FormSchema) -> None:
+    """Draft other active schemas bound to the same organisation and service."""
+    org = (schema.organization_id or "").strip()
+    service = (schema.service_id or "").strip()
+    if not org or not service:
+        return
+    rows = client.run(
+        RELEASE_SIBLING_FORM_SCHEMAS,
+        organization_id=org,
+        service_id=service,
+        fingerprint=schema.fingerprint,
+    )
+    for row in rows or []:
+        fp = str((row or {}).get("fingerprint") or "").strip()
+        if fp:
+            _SCHEMA_CACHE.pop(fp, None)
+
+
 def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
     """Persist a :FormSchema and, when scoped, its service completeness domain."""
     schema = _build_schema(write)
@@ -492,6 +511,7 @@ def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
             groups=write.completeness_groups,
             require_blocking_groups=False,
         )
+    _release_sibling_form_schemas(client, schema)
     _SCHEMA_CACHE[schema.fingerprint] = schema
     logger.info(
         "Saved FormSchema %s for fingerprint %s",

@@ -119,6 +119,15 @@ _TRANSPORT_REFER_UNDER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Form labels and urgency chrome that are not clinical facts.
+_FORM_CHROME_RE = re.compile(
+    r"^(?:"
+    r"clinical\s+context(?:\s*:.*)?|"
+    r"referred\s+on\s+an\s+urgent\s+basis"
+    r")\.?$",
+    re.IGNORECASE,
+)
+
 
 def _fetch_neo4j_routing_rules(family: str) -> list[dict]:
     """Fetch :NerGuardRule nodes for the routing guard from Neo4j.
@@ -203,6 +212,9 @@ def is_informational_referral_routing(text: str) -> bool:
             re.IGNORECASE,
         ):
             return True
+
+    if _FORM_CHROME_RE.match(stripped):
+        return True
 
     return False
 

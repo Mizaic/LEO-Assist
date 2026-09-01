@@ -69,6 +69,60 @@ def test_extraction_check_applies_drop_and_corrections(monkeypatch):
     assert out["has_extraction_changes"] is True
 
 
+def test_extraction_check_cannot_drop_taught_checkbox(monkeypatch):
+    payload = '{"drop":[0]}'
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _LLM(payload),
+    )
+    graph = build_extraction_check_subgraph()
+    letter = (
+        "Intractable breast pain not responding to initial conservative "
+        "measures - see best practice guidance."
+    )
+    out = graph.invoke(
+        {
+            "encounter_text": letter,
+            "entities": [
+                {
+                    "text": "Intractable breast pain",
+                    "label": "finding",
+                    "assertion": "present",
+                    "start": 0,
+                    "end": 23,
+                    "__source": "form_schema_checkbox",
+                }
+            ],
+        }
+    )
+    assert len(out["entities"]) == 1
+    assert out["entities"][0]["text"] == "Intractable breast pain"
+
+
+def test_coding_check_cannot_drop_taught_checkbox(monkeypatch):
+    payload = '{"drop":[0]}'
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _LLM(payload),
+    )
+    graph = build_coding_check_subgraph()
+    out = graph.invoke(
+        {
+            "encounter_text": "A1. Newly presenting discrete hard lump | Yes [X]",
+            "entities": [
+                {
+                    "text": "Newly presenting discrete hard lump",
+                    "label": "finding",
+                    "concept_id": "89164003",
+                    "__source": "form_schema_checkbox",
+                }
+            ],
+        }
+    )
+    assert len(out["entities"]) == 1
+    assert out["entities"][0]["concept_id"] == "89164003"
+
+
 def test_coding_check_applies_drop_and_force_review(monkeypatch):
     payload = '{"drop":[1],"force_review":[0]}'
     monkeypatch.setattr(

@@ -26,6 +26,170 @@ def test_prefers_referral_request_reason() -> None:
     assert result.letter_extract is None
 
 
+def test_specialty_mismatched_reason_loses_to_2ww_form_section() -> None:
+    """A stored shoulder reason must not lead a 2WW gynaecology Situation."""
+    result = build_structured_situation(
+        referral_request={
+            "id": "rr-gynae",
+            "reason": (
+                "left shoulder injury after a fall with inability to "
+                "complete range of movement and loud crepitus"
+            ),
+            "clinic_type": "2WW_GYNAECOLOGY",
+            "priority": "TWO_WEEK_WAIT",
+        },
+        referral_reason=None,
+        trigger_scoped_letter="Two Week Wait Referral to Gynaecology",
+        form_clinical_section=(
+            "Post-menopausal bleeding started in the last 24 hours "
+            "after 10 years on HRT"
+        ),
+    )
+    assert result.source_precedence == ["form_clinical_section"]
+    assert "shoulder" not in result.headline.lower()
+    assert "bleeding" in result.headline.lower()
+
+
+def test_matching_2ww_reason_still_wins() -> None:
+    result = build_structured_situation(
+        referral_request={
+            "id": "rr-gynae",
+            "reason": "Suspected cervical cancer. Yellow vaginal discharge.",
+            "clinic_type": "2WW_GYNAECOLOGY",
+            "priority": "TWO_WEEK_WAIT",
+        },
+        referral_reason=None,
+        trigger_scoped_letter="Two Week Wait Referral to Gynaecology",
+        form_clinical_section="Yellow vaginal discharge for 10 days",
+    )
+    assert result.source_precedence == ["referral_request.reason"]
+    assert "cervical" in result.headline.lower()
+
+
+def test_form_chrome_lump_does_not_become_headline_when_letter_denies() -> None:
+    """A1 tick-box label must not invent a lump the letter denies.
+
+    Atlas: DI-ED65569C / DO-FE774247 / VT-6CA911CF
+    """
+    from libs.sbar.situation_headline import headline_from_coded_facts
+    from libs.sbar.situation_source import build_structured_situation
+
+    facts = [
+        {
+            "text": "Newly presenting discrete hard breast lump",
+            "assertion": "present",
+            "term": "Newly presenting discrete hard breast lump",
+            "label": "finding",
+            "__source": "form_schema_checkbox",
+        },
+        {
+            "text": "lump",
+            "assertion": "absent",
+            "term": "Lump of breast (finding)",
+            "label": "finding",
+            "concept_id": "89164003",
+        },
+    ]
+    headline = headline_from_coded_facts(facts)
+    if headline:
+        assert "discrete hard lump" not in headline.lower()
+        assert "hard breast lump" not in headline.lower()
+
+    result = build_structured_situation(
+        referral_request={"priority": "TWO_WEEK_WAIT", "clinic_type": "2WW_BREAST"},
+        referral_reason=None,
+        trigger_scoped_letter="There is no discrete lump in either breast.",
+        coded_facts=facts,
+    )
+    assert "discrete hard lump" not in result.headline.lower()
+
+
+def test_absent_pmb_does_not_become_structured_headline() -> None:
+    from libs.sbar.situation_headline import headline_from_coded_facts
+
+    headline = headline_from_coded_facts(
+        [
+            {
+                "text": "no pv bleeding",
+                "assertion": "absent",
+                "term": "Bleeding from vagina (finding)",
+                "concept_id": "289530006",
+            },
+            {
+                "text": "vaginal discharge- yellowish",
+                "assertion": "present",
+                "term": "Vaginal discharge (finding)",
+                "concept_id": "271939006",
+            },
+            {
+                "text": "Cervix",
+                "assertion": "present",
+                "term": "Malignant neoplasm of cervix uteri suspected (situation)",
+                "concept_id": "315266007",
+            },
+            {
+                "text": "post menopausal for 1.5yrs",
+                "assertion": "present",
+                "term": "Postmenopausal state (finding)",
+                "concept_id": "76498008",
+            },
+        ]
+    )
+    assert headline is not None
+    assert "postmenopausal bleeding" not in headline.lower()
+    assert "discharge" in headline.lower()
+    assert "cervix" in headline.lower() or "cervical" in headline.lower()
+
+
+def test_drops_invented_pmb_when_bleeding_is_absent() -> None:
+    from libs.sbar.situation_headline import drop_invented_pmb
+
+    text = (
+        "This 57-year-old woman is on a two-week-wait gynaecology "
+        "pathway for suspected cervical malignancy. "
+        "Headline trigger: postmenopausal bleeding."
+    )
+    out = drop_invented_pmb(
+        text,
+        present_terms=["Vaginal discharge (finding)"],
+        structured_headline="Suspected cervical cancer. Vaginal discharge.",
+    )
+    assert "postmenopausal bleeding" not in out.lower()
+    assert "cervical" in out.lower()
+
+
+def test_drops_invented_postmenopausal_vaginal_bleeding() -> None:
+    """Write-back Situation must not lead on invented PMB wording.
+
+    Atlas: DI-ED65569C / VT-6CA911CF. pv bleeding was absent.
+    """
+    from libs.sbar.situation_headline import drop_invented_pmb
+
+    text = (
+        "This woman is referred on a two-week-wait gynaecology pathway "
+        "for postmenopausal vaginal bleeding and suspected cervical cancer."
+    )
+    out = drop_invented_pmb(
+        text,
+        present_terms=["Vaginal discharge (finding)"],
+        structured_headline="Suspected cervical cancer. Vaginal discharge.",
+    )
+    assert "postmenopausal" not in out.lower() or "bleeding" not in out.lower()
+    assert "cervical" in out.lower() or "discharge" in out.lower()
+
+
+def test_keeps_pmb_when_it_is_a_present_finding() -> None:
+    from libs.sbar.situation_headline import drop_invented_pmb
+
+    text = "Urgent 2WW gynaecology referral for postmenopausal bleeding."
+    out = drop_invented_pmb(
+        text,
+        present_terms=["Postmenopausal bleeding (finding)"],
+        structured_headline="Postmenopausal bleeding.",
+    )
+    assert "postmenopausal bleeding" in out.lower()
+
+
 def test_persists_referral_reason_evidence_with_provenance() -> None:
     evidence = ReferralReasonEvidence(
         reason_text="Progressive dysphagia.",

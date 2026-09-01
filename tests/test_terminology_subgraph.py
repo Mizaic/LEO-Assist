@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from libs.pipeline_graph.subgraphs.terminology import _merge_resolution, _resolve_terms
+from libs.pipeline_graph.subgraphs.terminology import (
+    _dedup_by_concept_id,
+    _merge_resolution,
+    _resolve_terms,
+)
 from libs.terminology.client import ResolvedTerm, TerminologyClient
 
 
@@ -254,6 +258,51 @@ def test_resolve_terms_logs_terminology_low_confidence_for_unresolved() -> None:
     )
 
 
+def test_dedup_keeps_taught_checkbox_when_concept_collides() -> None:
+    """Exam lump and the taught A1 tick can share 89164003. Keep both."""
+    kept = _dedup_by_concept_id(
+        [
+            {
+                "text": "a small deep palpable lump",
+                "concept_id": "89164003",
+                "score": 0.99,
+                "label": "finding",
+            },
+            {
+                "text": "Newly presenting discrete hard lump",
+                "concept_id": "89164003",
+                "score": 0.50,
+                "label": "finding",
+                "__source": "form_schema_checkbox",
+            },
+        ]
+    )
+    texts = {str(row.get("text") or "") for row in kept}
+    assert "a small deep palpable lump" in texts
+    assert "Newly presenting discrete hard lump" in texts
+
+
+def test_dedup_still_collapses_non_taught_same_concept() -> None:
+    kept = _dedup_by_concept_id(
+        [
+            {
+                "text": "breast lump",
+                "concept_id": "89164003",
+                "score": 0.80,
+                "label": "finding",
+            },
+            {
+                "text": "lump in the breast",
+                "concept_id": "89164003",
+                "score": 0.70,
+                "label": "finding",
+            },
+        ]
+    )
+    assert len(kept) == 1
+    assert kept[0]["text"] == "breast lump"
+
+
 def test_resolve_lookup_term_strips_dysphagia_meal_suffix() -> None:
     from libs.pipeline_graph.subgraphs.terminology import _resolve_lookup_term
 
@@ -261,3 +310,84 @@ def test_resolve_lookup_term_strips_dysphagia_meal_suffix() -> None:
         {"text": "difficulty swallowing both solids and liquids", "label": "finding"}
     )
     assert lookup == "difficulty swallowing"
+
+
+def test_resolve_lookup_term_strips_uncertain_cause_from_vulval_ulceration() -> None:
+    """Letter ulceration must look up the ulcer code, not generic vulva finding.
+
+    Dry-run 000481827411 coded 'Vulval ulceration of uncertain cause' as
+    248858001 Vulva finding. NG12 1.5.17 needs 68640004.
+    Atlas: DI-47D2CD86, DO-5A88E0B9, DI-8BAC9BB3.
+    """
+    from libs.pipeline_graph.subgraphs.terminology import _resolve_lookup_term
+
+    lookup = _resolve_lookup_term(
+        {"text": "Vulval ulceration of uncertain cause", "label": "finding"}
+    )
+    assert lookup.lower() == "vulval ulceration"
+
+
+def test_resolve_lookup_term_does_not_invent_ulcer_from_soreness() -> None:
+    from libs.pipeline_graph.subgraphs.terminology import _resolve_lookup_term
+
+    lookup = _resolve_lookup_term({"text": "Vulval soreness", "label": "finding"})
+    assert lookup.lower() == "vulval soreness"
+
+
+def test_resolve_lookup_term_leaves_white_spot_sore_unchanged() -> None:
+    from libs.pipeline_graph.subgraphs.terminology import _resolve_lookup_term
+
+    phrase = "white spot/sore on the vulva"
+    lookup = _resolve_lookup_term({"text": phrase, "label": "finding"})
+    assert lookup.lower() == phrase.lower()
+
+
+def test_generic_vulva_finding_upgrades_when_span_says_ulceration() -> None:
+    from libs.pipeline_graph.subgraphs.terminology import (
+        _upgrade_generic_vulva_ulcer,
+    )
+
+    upgraded = _upgrade_generic_vulva_ulcer(
+        {
+            "text": "Vulval ulceration of uncertain cause",
+            "lookup_term": "vulval ulceration",
+            "concept_id": "248858001",
+            "term": "Vulva finding (finding)",
+            "label": "finding",
+        }
+    )
+    assert upgraded["concept_id"] == "68640004"
+    assert "ulceration of vulva" in str(upgraded.get("term") or "").lower()
+    assert upgraded.get("_vulval_ulcer_remapped") is True
+
+
+def test_generic_vulva_finding_stays_when_span_is_only_soreness() -> None:
+    from libs.pipeline_graph.subgraphs.terminology import (
+        _upgrade_generic_vulva_ulcer,
+    )
+
+    entity = {
+        "text": "Vulval soreness",
+        "concept_id": "248858001",
+        "term": "Vulva finding (finding)",
+        "label": "finding",
+    }
+    assert _upgrade_generic_vulva_ulcer(entity)["concept_id"] == "248858001"
+
+
+def test_unresolved_ulceration_span_gets_the_ulcer_code() -> None:
+    from libs.pipeline_graph.subgraphs.terminology import (
+        _upgrade_generic_vulva_ulcer,
+    )
+
+    upgraded = _upgrade_generic_vulva_ulcer(
+        {
+            "text": "Vulval ulceration of uncertain cause",
+            "concept_id": None,
+            "terminology_unresolved": True,
+            "label": "finding",
+        }
+    )
+    assert upgraded["concept_id"] == "68640004"
+    assert upgraded.get("terminology_unresolved") is False
+    assert upgraded.get("_vulval_ulcer_remapped") is True

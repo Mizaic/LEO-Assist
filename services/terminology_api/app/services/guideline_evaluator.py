@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 from pyroaring import BitMap
@@ -106,6 +107,10 @@ class _PatientContext:
     medications: list[dict[str, Any]] | None
     allergies: list[dict[str, Any]] | None
     treatments: list[dict[str, Any]] | None
+    letter_text: str = ""
+    concept_occurrences: dict[str, list] = dataclasses.field(default_factory=dict)
+    evaluation_time: Any = None
+    unverified_qualifiers: list[str] = dataclasses.field(default_factory=list)
 
 
 class _RuleEvaluationSession:
@@ -225,6 +230,9 @@ class GuidelineEvaluator:
         active_medications: list[dict[str, Any]] | None = None,
         allergies: list[dict[str, Any]] | None = None,
         treatment_history: list[dict[str, Any]] | None = None,
+        letter_text: str | None = None,
+        concept_occurrences: dict[str, list] | None = None,
+        evaluation_time: datetime | None = None,
     ) -> dict[str, Any]:
         """Evaluate patient SNOMED codes against the active bitmap ruleset.
 
@@ -283,6 +291,9 @@ class GuidelineEvaluator:
             medications=active_medications,
             allergies=allergies,
             treatments=treatment_history,
+            letter_text=letter_text or "",
+            concept_occurrences=concept_occurrences or {},
+            evaluation_time=evaluation_time,
         )
         patient_bitmap = self._build_patient_bitmap(effective_codes)
         bitmap_cache, int_id_cache = _prefetch_rule_caches(rules, self._store)
@@ -295,8 +306,20 @@ class GuidelineEvaluator:
             int_id_cache,
             patient_codes=effective_codes,
         )
+        overall = None
+        if matches:
+            from libs.guidelines.soft_qualifier import overall_investigation_status
+
+            overall = overall_investigation_status(
+                [m.get("investigation_status") for m in matches]
+            )
+            if overall == "exempt":
+                for match in matches:
+                    if match.get("investigation_status"):
+                        match["investigation_status"] = "exempt"
         return {
             "matched_rules": matches,
+            "investigation_status": overall,
             "active_version": ruleset.get("version"),
             "not_compiled": False,
             "compile_timestamp": ruleset.get("compile_timestamp"),
@@ -348,6 +371,7 @@ class GuidelineEvaluator:
             if pathway_filter and rule.get("guideline_id") != pathway_filter:
                 continue
             rule_id = rule.get("rule_id", "")
+            ctx.unverified_qualifiers.clear()
             if not session.evaluate(rule_id):
                 continue
             matched_via = self._collect_firing_path_matched_via(
@@ -358,7 +382,13 @@ class GuidelineEvaluator:
                 session=session,
             )
             payload = apply_already_done_filter(
-                _format_match(rule, matched_via=matched_via),
+                _format_match(
+                    rule,
+                    matched_via=matched_via,
+                    unverified_qualifiers=list(ctx.unverified_qualifiers),
+                    patient_codes=codes,
+                    observations=ctx.observations,
+                ),
                 codes,
                 ctx.observations,
                 related_lookup=self._make_related_lookup(),
@@ -641,6 +671,10 @@ class GuidelineEvaluator:
                 matched_concept_ids = self._matched_seed_ids(
                     seed_concept_ids, patient_bm
                 )
+                if matched:
+                    matched = self._soft_concept_allows(
+                        node, session, record_unverified=False
+                    )
             return {
                 "kind": "CONCEPT",
                 "node_id": node_id,
@@ -1186,7 +1220,9 @@ class GuidelineEvaluator:
                     node.get("node_id"),
                 )
                 return False
-            return len(bm & patient_bm) > 0
+            if len(bm & patient_bm) == 0:
+                return False
+            return self._soft_concept_allows(node, session)
         if kind == "DEMOGRAPHIC":
             return _check_demographic_node(node, patient_age, patient_sex)
         if kind == "OBSERVATION":
@@ -1267,6 +1303,37 @@ class GuidelineEvaluator:
             return count >= threshold
         logger.error("Unknown schema v2 logic node kind %r -- failing CLOSED.", kind)
         return False
+
+    def _soft_concept_allows(
+        self,
+        node: dict[str, Any],
+        session: "_RuleEvaluationSession | None",
+        record_unverified: bool = True,
+    ) -> bool:
+        """Apply soft guideline words after the hard CONCEPT bitmap hit."""
+        quals = (node.get("criterion") or {}).get("soft_qualifiers") or []
+        if not quals:
+            return True
+        try:
+            from libs.guidelines.soft_qualifier import apply_soft_qualifiers
+        except Exception:
+            logger.exception(
+                "soft qualifier resolver unavailable -- fail closed"
+            )
+            raise
+        if session is None:
+            logger.error(
+                "soft qualifiers evaluated without patient context -- fail closed"
+            )
+            return False
+        ctx = session._ctx
+        now = ctx.evaluation_time or datetime.now(timezone.utc)
+        facts = {
+            "letter_text": ctx.letter_text,
+            "concept_occurrences": ctx.concept_occurrences,
+        }
+        sink = ctx.unverified_qualifiers if record_unverified else []
+        return apply_soft_qualifiers(node, facts, now, sink)
 
 
 def _observation_mode(node: dict[str, Any]) -> str:
@@ -1648,6 +1715,9 @@ def _format_match(
     rule: dict,
     *,
     matched_via: list[dict[str, Any]] | None = None,
+    unverified_qualifiers: list[str] | None = None,
+    patient_codes: list[str] | None = None,
+    observations: list[dict[str, Any]] | None = None,
 ) -> dict:
     """Format a matched rule for the API response.
 
@@ -1673,6 +1743,17 @@ def _format_match(
     }
     if matched_via:
         payload["matched_via"] = matched_via
+    if unverified_qualifiers:
+        payload["unverified_qualifiers"] = [
+            kind for kind in unverified_qualifiers if kind
+        ]
+    policy = rule.get("investigation_policy")
+    if policy:
+        from libs.guidelines.soft_qualifier import fit_is_present, status_for_policy
+
+        payload["investigation_status"] = status_for_policy(
+            policy, fit_is_present(patient_codes, observations)
+        )
     return payload
 
 

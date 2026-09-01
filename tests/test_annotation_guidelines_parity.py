@@ -37,6 +37,12 @@ def test_extraction_prompt_requires_assertion() -> None:
     assert "Do not output an assertion field" not in EXTRACTION_SYSTEM_V1
 
 
+def test_extraction_prompt_treats_womb_in_situ_as_uterus_present() -> None:
+    assert "has womb in situ" in EXTRACTION_SYSTEM_V1
+    assert "uterus present" in EXTRACTION_SYSTEM_V1
+    assert "289619002" in EXTRACTION_SYSTEM_V1
+
+
 def test_extraction_prompt_has_blood_results_table_section() -> None:
     assert "Blood Tests" in EXTRACTION_SYSTEM_V1
     assert "one observable entity per parameter" in EXTRACTION_SYSTEM_V1

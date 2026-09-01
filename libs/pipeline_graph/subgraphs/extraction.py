@@ -95,6 +95,7 @@ class ExtractionState(TypedDict, total=False):
     section_hits: list[dict[str, Any]]
     completeness_groups: list[dict[str, Any]]
     form_sections: list[dict[str, Any]]
+    form_layout_matched: bool
 
 
 _VALID_MODEL_MODES = {"llm", "ner", "auto"}
@@ -430,6 +431,8 @@ def _chunk_load_payload(
     sections = loaded.get("form_sections")
     if sections is not None:
         payload["form_sections"] = list(sections)
+    if "form_layout_matched" in loaded:
+        payload["form_layout_matched"] = bool(loaded.get("form_layout_matched"))
     return payload
 
 
@@ -447,9 +450,12 @@ def _taught_form_hit_fields(state: dict[str, Any], texts: list[str]) -> dict[str
     extra: dict[str, Any] = {}
     if state.get("section_hits") is not None:
         extra["section_hits"] = list(state.get("section_hits") or [])
+        if state.get("form_layout_matched") is False:
+            return extra
         if state.get("completeness_groups") is not None:
             extra["completeness_groups"] = list(state.get("completeness_groups") or [])
         return extra
+    from libs.pipeline.form_coverage import form_layout_allows_completeness
     from libs.pipeline.form_schema_store import get_cached_schema
     from libs.pipeline.form_section_hits import collect_section_hits
 
@@ -460,7 +466,10 @@ def _taught_form_hit_fields(state: dict[str, Any], texts: list[str]) -> dict[str
     extra["section_hits"] = collect_section_hits(
         schema, texts, schema.chunk_section_map
     )
-    if schema.completeness_groups:
+    match = str(state.get("form_schema_match") or "none")
+    layout_ok = form_layout_allows_completeness(match, schema, texts)
+    extra["form_layout_matched"] = layout_ok
+    if schema.completeness_groups and layout_ok:
         extra["completeness_groups"] = list(schema.completeness_groups)
     return extra
 
@@ -881,7 +890,10 @@ def _enrich_with_blood_panel_entities(
         merge_blood_panel_entities,
     )
     from libs.pipeline.document_quality import form_fingerprint
-    from libs.pipeline.form_checkbox_seed import seed_checkbox_entities
+    from libs.pipeline.form_checkbox_seed import (
+        merge_checkbox_seed_entities,
+        seed_checkbox_entities,
+    )
     from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
     from libs.pipeline.form_schema_store import get_cached_schema, resolve_form_schema
 
@@ -908,10 +920,12 @@ def _enrich_with_blood_panel_entities(
     seeded: list[dict[str, Any]] = []
     if schema is not None:
         seeded = seed_ordered_tests_entities(encounter_text, schema)
-        seeded.extend(seed_checkbox_entities(encounter_text, schema))
+        boxes = seed_checkbox_entities(encounter_text, schema)
         merged = merge_blood_panel_entities(merged, seeded)
+        merged = merge_checkbox_seed_entities(merged, boxes)
+        seeded = seeded + boxes
 
-    if len(merged) > len(result.get("entities") or []):
+    if panel or seeded:
         route = str(result.get("extraction_route") or "")
         tags: list[str] = []
         if panel:

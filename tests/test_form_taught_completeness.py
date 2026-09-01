@@ -94,6 +94,38 @@ def _section() -> FormSection:
     )
 
 
+def test_empty_two_ww_group_is_not_complete(monkeypatch) -> None:
+    """Empty two_ww_criterion_required must not count as complete.
+
+    A stale graph schema with leftover members must not replace empty
+    taught groups and false-complete the referral.
+    Atlas: DI-50BE367C / VT-8426C84D
+    """
+    from libs.pipeline_graph.subgraphs import quality_check
+
+    monkeypatch.setattr(quality_check, "run_global_quality_checks", _EmptyGlobalReport)
+    monkeypatch.setattr(
+        quality_check,
+        "_load_completeness_schema",
+        lambda domain, subdomain: _TAUGHT_GROUPS,
+    )
+    result = quality_check.run_quality_checks(
+        {
+            "patient_id": "p-breast",
+            "completeness_domain": "svc_117038",
+            "completeness_subdomain": "minimum_dataset",
+            "entities": [],
+            "episodes": [{}],
+            "section_hits": _HITS,
+            "completeness_groups": _VACUOUS_GRAPH,
+        }
+    )
+    completeness = result["completeness_result"]
+    assert completeness["complete"] is False
+    names = {row["name"] for row in completeness.get("missing_groups") or []}
+    assert "two_ww_criterion_required" in names
+
+
 def test_quality_check_uses_taught_groups_when_graph_schema_is_vacuous(
     monkeypatch,
 ) -> None:
@@ -154,8 +186,11 @@ def test_rewrite_and_cover_attaches_completeness_groups() -> None:
         created_by="test",
         completeness_groups=_TAUGHT_GROUPS,
     )
-    _texts, extra = _rewrite_and_cover(schema, ["Section A\nA1. Yes [X]"])
+    _texts, extra = _rewrite_and_cover(
+        schema, ["Section A\nA1. Yes [X]\nSection B\nAffected side"]
+    )
     assert extra["completeness_groups"] == _TAUGHT_GROUPS
+    assert extra.get("form_layout_matched") is True
     assert extra.get("section_hits")
 
 

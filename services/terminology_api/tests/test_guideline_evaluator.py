@@ -860,3 +860,149 @@ class TestAnatomyConflict:
         result = ev.evaluate_patient(["41216001"], patient_sex="female")
         assert result["gender_review_flag"] is True
         assert result["limitation_notice"] is None
+
+
+def _v2_soft_rule(
+    *,
+    rule_id: str = "r-soft",
+    soft_qualifiers: list | None = None,
+    investigation_policy: str | None = None,
+    bitmap_id: str = "bm1",
+) -> dict:
+    criterion: dict = {
+        "snomed_concept_id": "443416000",
+        "preferred_term": "Vaginal discharge",
+        "soft_qualifiers": soft_qualifiers or [],
+    }
+    return {
+        "rule_id": rule_id,
+        "name": "Soft gate rule",
+        "strength": "consider",
+        "schema_version": 2,
+        "guideline_id": "NG12",
+        "guideline_title": "Suspected cancer",
+        "chapter_title": None,
+        "recommendation_verbatim": "consider ultrasound",
+        "investigation_policy": investigation_policy,
+        "logic_tree": {
+            "kind": "concept",
+            "bitmap_id": bitmap_id,
+            "criterion": criterion,
+            "seed_concept_ids": ["443416000"],
+        },
+        "action": None,
+        "actions": [],
+    }
+
+
+class TestSoftQualifiersAndFitStatus:
+    """DI-C136E4B7 / DI-55CCC312: evaluator uses the shared resolver."""
+
+    def _ev(self, evaluator_factory, rules, bitmaps=None):
+        return evaluator_factory(
+            current_ruleset={"version": "v-soft", "rules": rules},
+            int_id_map={"443416000": 1},
+            bitmaps=bitmaps or {"bm1": BitMap([1])},
+        )
+
+    def test_hard_facts_plus_not_confirmed_soft_still_match(self, evaluator_factory):
+        """DI-C136E4B7: Hard facts plus a not-confirmed soft word still match."""
+        ev = self._ev(
+            evaluator_factory,
+            [
+                _v2_soft_rule(
+                    soft_qualifiers=[
+                        {"kind": "unexplained", "enforcement": "soft"}
+                    ]
+                )
+            ],
+        )
+        result = ev.evaluate_patient(
+            ["443416000"],
+            letter_text="vaginal discharge- 10/7 yellowish",
+        )
+        assert len(result["matched_rules"]) == 1
+        assert result["matched_rules"][0]["unverified_qualifiers"] == [
+            "unexplained"
+        ]
+
+    def test_contradicted_soft_word_does_not_match(self, evaluator_factory):
+        """DI-C136E4B7: Hard facts plus a contradicted soft word do not match."""
+        from datetime import datetime, timezone
+
+        ev = self._ev(
+            evaluator_factory,
+            [
+                _v2_soft_rule(
+                    soft_qualifiers=[
+                        {
+                            "kind": "first_presentation",
+                            "enforcement": "soft",
+                            "concept_id": "443416000",
+                            "max_occurrences": 1,
+                            "within_days": 365,
+                        }
+                    ]
+                )
+            ],
+        )
+        now = datetime(2026, 8, 30, tzinfo=timezone.utc)
+        result = ev.evaluate_patient(
+            ["443416000"],
+            letter_text="",
+            concept_occurrences={
+                "443416000": [
+                    datetime(2026, 1, 1, tzinfo=timezone.utc),
+                    datetime(2026, 3, 1, tzinfo=timezone.utc),
+                ]
+            },
+            evaluation_time=now,
+        )
+        assert result["matched_rules"] == []
+
+    def test_hard_enforcement_not_confirmed_does_not_match(self, evaluator_factory):
+        """DI-C136E4B7: Hard enforcement plus a not-confirmed word does not match."""
+        ev = self._ev(
+            evaluator_factory,
+            [
+                _v2_soft_rule(
+                    soft_qualifiers=[
+                        {"kind": "unexplained", "enforcement": "hard"}
+                    ]
+                )
+            ],
+        )
+        result = ev.evaluate_patient(["443416000"], letter_text="")
+        assert result["matched_rules"] == []
+
+    def test_fit_required_missing_without_kit_or_result(self, evaluator_factory):
+        """DI-55CCC312: FIT required plus no kit or result is missing."""
+        ev = self._ev(
+            evaluator_factory,
+            [_v2_soft_rule(investigation_policy="required")],
+        )
+        result = ev.evaluate_patient(["443416000"])
+        assert result["matched_rules"][0]["investigation_status"] == "missing"
+
+    def test_fit_not_required_is_exempt_without_fit(self, evaluator_factory):
+        """DI-55CCC312: FIT not_required is exempt even if no FIT is on the record."""
+        ev = self._ev(
+            evaluator_factory,
+            [_v2_soft_rule(investigation_policy="not_required")],
+        )
+        result = ev.evaluate_patient(["443416000"])
+        assert result["matched_rules"][0]["investigation_status"] == "exempt"
+
+    def test_required_and_not_required_both_match_is_exempt(self, evaluator_factory):
+        """DI-55CCC312: When required and not_required both match, status is exempt."""
+        ev = self._ev(
+            evaluator_factory,
+            [
+                _v2_soft_rule(rule_id="r-req", investigation_policy="required"),
+                _v2_soft_rule(rule_id="r-mass", investigation_policy="not_required"),
+            ],
+        )
+        result = ev.evaluate_patient(["443416000"])
+        assert {m["rule_id"] for m in result["matched_rules"]} == {"r-req", "r-mass"}
+        assert result["investigation_status"] == "exempt"
+        assert all(m["investigation_status"] == "exempt" for m in result["matched_rules"])

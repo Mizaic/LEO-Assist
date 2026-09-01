@@ -138,3 +138,41 @@ def coverage_state_fields(
     if report.incomplete:
         fields["degraded"] = True
     return fields
+
+
+_SKIP_LAYOUT_TYPES = frozenset({"admin", "template_noise"})
+_MIN_LAYOUT_HITS = 2
+
+
+def taught_form_layout_matches(schema: FormSchema, chunks: list[str]) -> bool:
+    """True when distinctive taught section headings appear on the page.
+
+    Service-only bind is not enough. A cover letter on the same clinic
+    must not inherit that form's completeness groups.
+    """
+    clinical = [
+        section
+        for section in schema.sections
+        if section.section_type not in _SKIP_LAYOUT_TYPES
+        and (section.start_pattern or "").strip()
+    ]
+    if not clinical:
+        return False
+    needed = min(_MIN_LAYOUT_HITS, len(clinical))
+    hits = 0
+    lines = [line for chunk in chunks for line in str(chunk).splitlines()]
+    for section in clinical:
+        if any(section.matches_header(line) for line in lines):
+            hits += 1
+        if hits >= needed:
+            return True
+    return False
+
+
+def form_layout_allows_completeness(
+    match: str, schema: FormSchema, chunks: list[str]
+) -> bool:
+    """Fingerprint match always applies. Service bind needs a page match."""
+    if str(match or "").strip() == "exact_hash":
+        return True
+    return taught_form_layout_matches(schema, chunks)

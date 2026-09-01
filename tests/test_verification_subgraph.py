@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from libs.pipeline_graph.subgraphs.verification import (
     _route_after_evaluate,
+    correct_entities,
     verify_entities,
 )
 
@@ -148,6 +149,25 @@ def test_verify_entities_records_failed_attempt_for_empty_response() -> None:
     assert "verification_parse_error" in " ".join(
         result["verification_result"]["issues"]
     )
+
+
+def test_correct_entities_cannot_drop_taught_checkbox() -> None:
+    state = {
+        "entities": [
+            {
+                "text": "Intractable breast pain",
+                "label": "finding",
+                "assertion": "present",
+                "__source": "form_schema_checkbox",
+            }
+        ],
+        "verification_result": {
+            "corrections": [{"entity_index": 0, "drop": True}],
+        },
+    }
+    out = correct_entities(state)
+    kept = out.get("entities") or state["entities"]
+    assert kept[0]["text"] == "Intractable breast pain"
 
 
 def test_route_ends_on_non_retryable_verification_error() -> None:

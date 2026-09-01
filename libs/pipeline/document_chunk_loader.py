@@ -249,12 +249,13 @@ def _normalise_chunk_texts(
     )
     if not raw_texts:
         return [], fields
-    normalised, extra = _rewrite_and_cover(schema, raw_texts)
+    match = str(fields.get("form_schema_match") or "none")
+    normalised, extra = _rewrite_and_cover(schema, raw_texts, match=match)
     return [_mark_non_extractable_chunk(t) for t in normalised], {**fields, **extra}
 
 
 def _rewrite_and_cover(
-    schema: Any, raw_texts: list[str]
+    schema: Any, raw_texts: list[str], match: str = ""
 ) -> tuple[list[str], dict[str, Any]]:
     """Rewrite chunk texts and attach taught-form coverage fields."""
     from libs.ner.form_layout_rules import apply_form_layout_rules
@@ -263,26 +264,39 @@ def _rewrite_and_cover(
 
     extra: dict[str, Any] = {}
     if schema is not None and schema.sections:
-        from libs.pipeline.form_coverage import coverage_state_fields
-        from libs.pipeline.form_schema_compose import (
-            taught_hits_for_bundle,
-            taught_sections_for_bundle,
-        )
-
+        extra = _taught_form_coverage_extra(schema, raw_texts, match)
         rewritten = [
             apply_form_layout_rules(text)
             for text in normalise_chunks_with_schema(
                 schema, raw_texts, schema.chunk_section_map
             )
         ]
-        extra = coverage_state_fields(schema, raw_texts, schema.chunk_section_map)
-        extra["section_hits"] = taught_hits_for_bundle(schema, raw_texts)
-        extra["form_sections"] = taught_sections_for_bundle(schema, raw_texts)
-        if schema.completeness_groups:
-            extra["completeness_groups"] = list(schema.completeness_groups)
     else:
         rewritten = [normalize_form_checkbox_text(text) for text in raw_texts]
     return [seal_administrative_documents(text) for text in rewritten], extra
+
+
+def _taught_form_coverage_extra(
+    schema: Any, raw_texts: list[str], match: str
+) -> dict[str, Any]:
+    """Coverage, hits, and completeness groups only when the page matches."""
+    from libs.pipeline.form_coverage import (
+        coverage_state_fields,
+        form_layout_allows_completeness,
+    )
+    from libs.pipeline.form_schema_compose import (
+        taught_hits_for_bundle,
+        taught_sections_for_bundle,
+    )
+
+    extra = coverage_state_fields(schema, raw_texts, schema.chunk_section_map)
+    extra["section_hits"] = taught_hits_for_bundle(schema, raw_texts)
+    extra["form_sections"] = taught_sections_for_bundle(schema, raw_texts)
+    layout_ok = form_layout_allows_completeness(match, schema, raw_texts)
+    extra["form_layout_matched"] = layout_ok
+    if schema.completeness_groups and layout_ok:
+        extra["completeness_groups"] = list(schema.completeness_groups)
+    return extra
 
 
 def _prepare_chunk_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

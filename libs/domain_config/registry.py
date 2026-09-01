@@ -37,6 +37,7 @@ _CLINICAL_ABBREVS = [
     ("gynaecological", "gynae"),
     ("two week wait", "2ww"),
     ("2 week wait", "2ww"),
+    ("postmenopausal bleeding", "PMB"),
 ]
 
 _DOMAIN_EXTRA_TERMS: Dict[str, List[str]] = {

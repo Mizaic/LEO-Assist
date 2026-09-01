@@ -252,7 +252,7 @@ describe("StepPathwayConditions: the cluster grouping question", () => {
     await user.click(
       screen.getByRole("button", { name: /only one needs to match/i }),
     );
-    expect(onChooseGrouping).toHaveBeenCalledWith("AT_LEAST", 1);
+    expect(onChooseGrouping).toHaveBeenCalledWith("OR");
   });
 
   it("shows the confirmed choice with a Change action once grouping is set", async () => {
@@ -281,7 +281,9 @@ describe("StepPathwayConditions: the cluster grouping question", () => {
       ),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /change/i }));
-    expect(onChooseGrouping).toHaveBeenCalledWith("AND");
+    expect(onChooseGrouping).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /\bAND\b/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /\bOR\b/i })).toBeInTheDocument();
   });
 });
 
@@ -446,7 +448,7 @@ describe("StepPathwayConditions: two clusters in the same pathway (NG12 1.2.9 pa
     await user.click(
       within(leadGroup).getByRole("button", { name: /only one needs to match/i }),
     );
-    expect(onChooseLeadGrouping).toHaveBeenCalledWith("AT_LEAST", 1);
+    expect(onChooseLeadGrouping).toHaveBeenCalledWith("OR");
     expect(onChooseGrouping).not.toHaveBeenCalled();
   });
 

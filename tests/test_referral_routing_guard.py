@@ -91,6 +91,9 @@ def test_run_post_processing_drops_routing_entity() -> None:
 def test_clinical_context_2ww_is_routing_chrome() -> None:
     assert is_informational_referral_routing("Clinical Context: 2WW/2WW Gynaecology")
     assert is_informational_referral_routing("Clinical Context: 2WW")
+    assert is_informational_referral_routing("Clinical Context")
+    assert is_informational_referral_routing("Clinical Context: 2WW/2WW")
+    assert is_informational_referral_routing("referred on an urgent basis")
     assert should_suppress_referral_routing_entity(
         {"text": "Clinical Context: 2WW/2WW Gynaecology", "label": "finding"}
     )

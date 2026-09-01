@@ -103,6 +103,61 @@ class TestLocateSpanInSentences:
 
         assert locate_span_in_sentences(sentences, "Blood Pressure", 0) is None
 
+    def test_deid_date_token_locates_raw_letter_span(self) -> None:
+        """Persist must map [DATE] to the raw date, not fail-close the write.
+
+        Atlas: DI-B7A69F26 / VT-AA8ED00F
+        """
+        from libs.cypher.documents_queries import select_evidence_sentence_traced
+
+        raw = (
+            "Section C: Further Clinical details\n"
+            "vaginal discharge- 10/7 yellowish in colour. no pv bleeding."
+        )
+        span = "vaginal discharge- [DATE] yellowish in colour"
+        narrowed, found = select_evidence_sentence_traced(raw, span)
+        assert found is True
+        assert "yellowish" in narrowed.lower()
+
+        sentences = [
+            _sentence("s-wrong", PANEL, []),
+            _sentence("s-letter", raw, []),
+        ]
+        hit = locate_span_in_sentences(sentences, span, claimed_index=0)
+        assert hit is not None
+        assert hit[0] == 1
+
+    def test_wrapped_line_still_locates_the_fact(self) -> None:
+        """Persist must treat a line wrap as the same words, not a miss."""
+        from libs.cypher.documents_queries import select_evidence_sentence_traced
+
+        raw = (
+            "On examination she has a patchy erythematous rash across the "
+            "lower part of\nher breast. Her breasts are both generally lumpy."
+        )
+        span = "patchy erythematous rash across the lower part of her breast"
+        narrowed, found = select_evidence_sentence_traced(raw, span)
+        assert found is True
+        assert "erythematous rash" in narrowed.lower()
+
+    def test_placeholder_without_finding_words_stays_unlocated(self) -> None:
+        """A [DATE] token is not enough when the finding words are absent."""
+        from libs.cypher.documents_queries import select_evidence_sentence_traced
+
+        raw = "Section C\nlast smear November 2025. no pv bleeding."
+        _, found = select_evidence_sentence_traced(
+            raw, "hepatosplenomegaly [DATE] with ascites"
+        )
+        assert found is False
+        assert (
+            locate_span_in_sentences(
+                [_sentence("s1", raw, [])],
+                "hepatosplenomegaly [DATE] with ascites",
+                claimed_index=-1,
+            )
+            is None
+        )
+
 
 class TestRelocationInTheWrite:
     def test_a_misattributed_fact_is_written_against_the_right_chunk(self) -> None:
@@ -170,3 +225,18 @@ class TestRelocationInTheWrite:
 
         assert params["source_id"] == "s8"
         assert params["evidence_start"] is not None
+
+    def test_deid_date_token_is_written_against_the_raw_letter(self) -> None:
+        """A [DATE] fact must still land on the chunk that holds the date."""
+        raw = "vaginal discharge- 10/7 yellowish in colour. no pv bleeding."
+        sentences = [
+            _sentence(
+                "s-wrong",
+                PANEL,
+                [_term("vaginal discharge- [DATE] yellowish in colour")],
+            ),
+            _sentence("s-letter", raw, []),
+        ]
+        params = _writes(sentences)[0].params
+        assert params["source_id"] == "s-letter"
+        assert "yellowish" in str(params["evidence_sentence"] or "").lower()

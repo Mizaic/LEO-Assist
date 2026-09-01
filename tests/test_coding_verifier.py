@@ -221,6 +221,77 @@ def test_verify_entities_exact_match_bypasses_verifier():
     assert result["entities"][0]["concept_id"] == ent["concept_id"]
 
 
+def test_verify_entities_cannot_drop_remapped_vulval_ulcer():
+    """Taught remaps of vulval ulceration must survive coding-verify.
+
+    Write-back 000481827411 lost 68640004 after coding-verify. Soreness
+    or pain alone must not gain this protection.
+    Atlas: DI-47D2CD86 / VT-C265FD93
+    """
+    remapped = _make_entity(
+        text="Vulval ulceration of uncertain cause",
+        concept_id="68640004",
+        term="Ulceration of vulva (disorder)",
+        semantic_tag="disorder",
+    )
+    remapped["_vulval_ulcer_remapped"] = True
+    remapped["had_exact_match"] = False
+    state = {
+        "entities": [remapped],
+        "encounter_text": "Vulval ulceration of uncertain cause.",
+        "errors": [],
+    }
+    mock_verdicts = [
+        {
+            "index": 0,
+            "verdict": "not_codeable",
+            "better_term": None,
+            "reason": "descriptor",
+        }
+    ]
+
+    with patch(
+        "libs.pipeline_graph.subgraphs.coding_verifier.verify_coding_batch",
+        return_value=mock_verdicts,
+    ) as mock_batch:
+        result = _verify_entities(state)
+
+    mock_batch.assert_not_called()
+    kept = result["entities"][0]
+    assert kept["concept_id"] == "68640004"
+    assert kept.get("terminology_unresolved") is False
+
+
+def test_verify_entities_does_not_protect_soreness_as_ulcer():
+    """Pain or soreness must still go through the verifier."""
+    ent = _make_entity(
+        text="Vulval soreness",
+        concept_id="248858001",
+        term="Vulva finding (finding)",
+    )
+    state = {
+        "entities": [ent],
+        "encounter_text": "Patient reports vulval soreness.",
+        "errors": [],
+    }
+    mock_verdicts = [
+        {
+            "index": 0,
+            "verdict": "not_codeable",
+            "better_term": None,
+            "reason": "not an ulcer",
+        }
+    ]
+
+    with patch(
+        "libs.pipeline_graph.subgraphs.coding_verifier.verify_coding_batch",
+        return_value=mock_verdicts,
+    ):
+        result = _verify_entities(state)
+
+    assert result["entities"][0]["concept_id"] is None
+
+
 # ---------------------------------------------------------------------------
 # _verify_entities - gate_failed forces tier override
 # ---------------------------------------------------------------------------

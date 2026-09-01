@@ -23,10 +23,19 @@ confirmed finding.
 from __future__ import annotations
 
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
 UNRESOLVED_KEY = "context_span_unresolved"
+_PHI_TOKEN = re.compile(
+    r"\[(?:date|person|nhs_number|postcode|phone|email|address|"
+    r"organisation|location|staff_id)\]",
+    re.IGNORECASE,
+)
+_PHI_GAP = r".{1,40}?"
+_FILLER_WORD = r"(?:are|is|was|were|be|been|the|a|an)"
+_WORD_GAP = rf"\s+(?:{_FILLER_WORD}\s+)?"
 
 
 def span_holds_entity_text(
@@ -36,6 +45,44 @@ def span_holds_entity_text(
     if start < 0 or end <= start or end > len(encounter_text):
         return False
     return encounter_text[start:end].strip().lower() == text.strip().lower()
+
+
+def _flexible_literal(text: str) -> str:
+    """Escape words; allow wrap whitespace and one dropped filler word."""
+    words = text.split()
+    if not words:
+        return re.escape(text)
+    return _WORD_GAP.join(re.escape(w) for w in words)
+
+
+def _whitespace_flexible_pattern(needle: str) -> re.Pattern[str] | None:
+    words = needle.strip().split()
+    if len(words) < 2:
+        return None
+    return re.compile(_flexible_literal(needle))
+
+
+def _placeholder_pattern(needle: str) -> re.Pattern[str] | None:
+    """Build a raw-letter search when the extractor used a PHI token."""
+    if not _PHI_TOKEN.search(needle):
+        return None
+    parts = _PHI_TOKEN.split(needle)
+    tokens = _PHI_TOKEN.findall(needle)
+    out: list[str] = []
+    for index, part in enumerate(parts):
+        out.append(_flexible_literal(part))
+        if index < len(tokens):
+            out.append(_PHI_GAP)
+    return re.compile("".join(out))
+
+
+def span_appears_in_text(haystack: str, needle: str) -> bool:
+    """True when needle, or its PHI-token pattern, appears in haystack."""
+    if not needle.strip() or not haystack:
+        return False
+    if needle.strip().lower() in haystack.lower():
+        return True
+    return find_entity_text(haystack.lower(), needle, {}) is not None
 
 
 def find_entity_text(
@@ -56,10 +103,42 @@ def find_entity_text(
     idx = encounter_text_lower.find(needle, cursors.get(needle, 0))
     if idx < 0:
         idx = encounter_text_lower.find(needle)
-    if idx < 0:
+    if idx >= 0:
+        cursors[needle] = idx + len(needle)
+        return idx, idx + len(needle)
+    found = _find_placeholder_span(encounter_text_lower, needle, cursors)
+    if found is not None:
+        return found
+    return _find_whitespace_flexible_span(encounter_text_lower, needle, cursors)
+
+
+def _search_pattern(
+    haystack: str,
+    needle: str,
+    cursors: dict[str, int],
+    pattern: re.Pattern[str] | None,
+) -> tuple[int, int] | None:
+    if pattern is None:
         return None
-    cursors[needle] = idx + len(needle)
-    return idx, idx + len(needle)
+    match = pattern.search(haystack, cursors.get(needle, 0)) or pattern.search(haystack)
+    if match is None:
+        return None
+    cursors[needle] = match.end()
+    return match.start(), match.end()
+
+
+def _find_placeholder_span(
+    haystack: str, needle: str, cursors: dict[str, int]
+) -> tuple[int, int] | None:
+    return _search_pattern(haystack, needle, cursors, _placeholder_pattern(needle))
+
+
+def _find_whitespace_flexible_span(
+    haystack: str, needle: str, cursors: dict[str, int]
+) -> tuple[int, int] | None:
+    return _search_pattern(
+        haystack, needle, cursors, _whitespace_flexible_pattern(needle)
+    )
 
 
 def resolve_context_spans(

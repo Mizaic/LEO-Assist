@@ -32,6 +32,7 @@ import type { EditableLogicNode, LogicNodeKind, NodeUpdate } from "../types";
 import { collectShouldNotHaveLeaves } from "./shouldNotHave";
 import {
   cleanPathwayText,
+  looksLikeLeadOrCluster,
   looksLikeWithAnd,
   peelReferralClinicalClauses,
   resolveAtLeastCluster,
@@ -107,7 +108,7 @@ export function pathwayTextWindow(
  *  silently from the wording alone. Canonical home for this type is
  *  here (the pure logic layer); StepPathwayConditions re-exports it
  *  for backward-compatible imports from that file. */
-export type ClusterGrouping = "AT_LEAST" | "AND";
+export type ClusterGrouping = "AT_LEAST" | "AND" | "OR";
 
 const PATHWAY_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -637,10 +638,14 @@ export function findNodeById(
  *  pathway with TWO clusters (see `PathwayRows.leadCluster`), prefer
  *  `findClusterSubgroupByRole` so a click routes to the correct one
  *  instead of always the first AT_LEAST child found. */
+function isClusterSubgroupKind(kind: string): boolean {
+  return kind === "AT_LEAST" || kind === "OR";
+}
+
 export function findClusterSubgroup(
   pathwayNode: EditableLogicNode,
 ): EditableLogicNode | null {
-  return pathwayNode.children?.find((c) => c.kind === "AT_LEAST") ?? null;
+  return pathwayNode.children?.find((c) => isClusterSubgroupKind(c.kind)) ?? null;
 }
 
 /** The AT_LEAST child tagged for `role` (see
@@ -656,7 +661,8 @@ export function findClusterSubgroupByRole(
 ): EditableLogicNode | null {
   return (
     pathwayNode.children?.find(
-      (c) => c.kind === "AT_LEAST" && (c.cluster_role ?? "trailing") === role,
+      (c) =>
+        isClusterSubgroupKind(c.kind) && (c.cluster_role ?? "trailing") === role,
     ) ?? null
   );
 }
@@ -822,6 +828,17 @@ export function buildPathwayRows(boundary: PathwayTextBoundary): PathwayRows {
     if (withParts) {
       const located = locateClusterItems(boundary.text, boundary.start, withParts);
       return { items: located, hasCluster: false };
+    }
+    // NG12 1.5.17: "vulval lump, ulceration or bleeding" -- a marker-less
+    // NICE "or" list. Ask AND / OR / AT LEAST instead of leaving one
+    // unresolved row that later saves as a silent AND of siblings.
+    const orParts = looksLikeLeadOrCluster(clinical);
+    if (orParts) {
+      return {
+        items: locateClusterItems(boundary.text, boundary.start, orParts),
+        hasCluster: true,
+        suggestedMin: 1,
+      };
     }
     const idx = boundary.text.toLowerCase().indexOf(clinical.toLowerCase());
     const start = idx >= 0 ? boundary.start + idx : boundary.start;
@@ -1084,6 +1101,38 @@ function makeAtLeastGroup(
   };
 }
 
+function makeOrGroup(
+  role: "lead" | "trailing",
+  children: EditableLogicNode[],
+): EditableLogicNode {
+  return {
+    node_id: freshNodeId(),
+    kind: "OR",
+    cluster_role: role,
+    children,
+  };
+}
+
+function makeChosenClusterGroup(
+  role: "lead" | "trailing",
+  children: EditableLogicNode[],
+  min: number,
+  grouping: ClusterGrouping,
+): EditableLogicNode {
+  if (grouping === "OR") return makeOrGroup(role, children);
+  return makeAtLeastGroup(role, children, min);
+}
+
+function defaultClusterGrouping(
+  grouping: ClusterGrouping | undefined,
+  present: boolean,
+  suggestedMin = 1,
+): ClusterGrouping | undefined {
+  if (grouping) return grouping;
+  if (!present) return undefined;
+  return suggestedMin > 1 ? "AT_LEAST" : "OR";
+}
+
 /**
  * Rebuilds one pathway's children so lead/trailing cluster leaves sit
  * under the right AT_LEAST subgroups (or stay as AND siblings when the
@@ -1149,24 +1198,39 @@ export function withReifiedPathwayClusters(
     newChildren.push(...take([directLeadRow]));
   }
 
-  const effectiveLead = leadGrouping ?? (leadCluster ? "AT_LEAST" : undefined);
+  const effectiveLead = defaultClusterGrouping(
+    leadGrouping,
+    Boolean(leadCluster),
+    1,
+  );
   if (leadRows.length > 0) {
     const leadLeaves = take(leadRows);
     if (effectiveLead === "AND") {
       newChildren.push(...leadLeaves);
-    } else if (leadLeaves.length > 0) {
-      newChildren.push(makeAtLeastGroup("lead", leadLeaves, existingLeadMin));
+    } else if (leadLeaves.length > 0 && effectiveLead) {
+      newChildren.push(
+        makeChosenClusterGroup("lead", leadLeaves, existingLeadMin, effectiveLead),
+      );
     }
   }
 
-  const effectiveTrail = grouping ?? (hasCluster ? "AT_LEAST" : undefined);
+  const effectiveTrail = defaultClusterGrouping(
+    grouping,
+    hasCluster,
+    suggestedMin ?? 1,
+  );
   if (trailingRows.length > 0) {
     const trailLeaves = take(trailingRows);
     if (effectiveTrail === "AND") {
       newChildren.push(...trailLeaves);
-    } else if (trailLeaves.length > 0) {
+    } else if (trailLeaves.length > 0 && effectiveTrail) {
       newChildren.push(
-        makeAtLeastGroup("trailing", trailLeaves, existingTrailMin),
+        makeChosenClusterGroup(
+          "trailing",
+          trailLeaves,
+          existingTrailMin,
+          effectiveTrail,
+        ),
       );
     }
   }

@@ -23,9 +23,16 @@ _ISA_DESCENDANTS_QUERY = (
 
 
 def concept_ids_from_entities(entities: list[dict[str, Any]]) -> set[int]:
-    """Collect SNOMED concept IDs from pipeline entity dicts."""
+    """Collect SNOMED concept IDs from pipeline entity dicts.
+
+    Absent assertions are skipped. 'No postmenopausal bleeding' must not
+    satisfy a coded completeness member.
+    """
     ids: set[int] = set()
     for entity in entities:
+        assertion = str(entity.get("assertion") or "present").strip().lower()
+        if assertion == "absent":
+            continue
         concept_id = entity.get("concept_id") or entity.get("snomed_concept_id")
         if not concept_id and isinstance(entity.get("coding"), dict):
             concept_id = entity["coding"].get("snomed_concept_id")

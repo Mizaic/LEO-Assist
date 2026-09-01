@@ -92,16 +92,20 @@ def test_no_warning_when_every_fact_is_located() -> None:
     assert not warnings, result.get("warnings")
 
 
-def test_unlocatable_fact_is_assertion_unverified_and_degrades() -> None:
+def test_unlocatable_fact_is_assertion_unverified_without_pausing() -> None:
     """An unresolved ConText span must not look like a checked present finding.
 
-    Atlas: DI-0B907354 / VT-24D1E4F6
+    The assertion guard still ran on every locatable fact. A single
+    unlocatable quote stays unverified and is warned, but it must not
+    pause the whole run. Pause only when the guard cannot run.
+
+    Atlas: DI-0B907354 / VT-24D1E4F6 / DI-B7A69F26
     """
     result = _run([_entity("hepatosplenomegaly with ascites", 0, 30)])
     entities = result.get("processed_entities") or result.get("entities") or []
     assert entities
     assert entities[0]["assertion"] == "assertion_unverified"
-    assert result.get("degraded") is True
+    assert result.get("degraded") is not True
 
 
 def test_warning_does_not_erase_earlier_warnings() -> None:

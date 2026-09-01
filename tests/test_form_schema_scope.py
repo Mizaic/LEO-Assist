@@ -77,6 +77,30 @@ def test_save_form_schema_persists_org_and_service_ids():
     assert kwargs["service_id"] == "svc-gynae"
 
 
+def test_save_form_schema_drafts_other_active_schemas_for_same_service():
+    client = MagicMock()
+    client.run.return_value = [{"fingerprint": "old-hash"}]
+    write = FormSchemaWrite(
+        fingerprint="fp-1",
+        form_name="SFH Gynae",
+        sections=[_section()],
+        created_by="teacher@example.com",
+        organization_id="org-sfh",
+        service_id="svc-gynae",
+    )
+    save_form_schema(client, write)
+    release = [
+        call
+        for call in client.run.call_args_list
+        if "draft" in str(call.args[0]).lower()
+    ]
+    assert release, "save must draft other active schemas for this service"
+    kwargs = release[0].kwargs
+    assert kwargs["organization_id"] == "org-sfh"
+    assert kwargs["service_id"] == "svc-gynae"
+    assert kwargs["fingerprint"] == "fp-1"
+
+
 def test_save_form_schema_ensures_service_completeness_domain():
     client = MagicMock()
     client.run.return_value = []

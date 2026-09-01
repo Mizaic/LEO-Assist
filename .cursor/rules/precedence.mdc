@@ -33,6 +33,9 @@ If a rule is broad and mixed-concern, split it rather than extend it.
 - AI model and provider come from Neo4j runtime configuration, not
   hardcoded names.
 - Workflow logic stays data-driven from Neo4j via a generic executor.
+- Before a local regex, guard, or hardcoded map, name the Neo4j
+  surface that owns it (`architecture-first.mdc`). Do not grow a
+  second copy of ConText, SurfaceForm, PromptConfig, or FormSchema.
 
 ## UX
 

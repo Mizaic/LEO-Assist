@@ -392,6 +392,66 @@ class TestLogicCriterionSynonymSet:
             )
 
 
+class TestSoftQualifiersAndFitPolicy:
+    """DI-DE8B125E / DI-0C904503 / DI-55CCC312: leaf and rule schema."""
+
+    def test_soft_qualifiers_accepts_closed_set_and_optional_window(self) -> None:
+        node = LogicNode.model_validate(
+            {
+                "kind": "CONCEPT",
+                "criterion": {
+                    "snomed_concept_id": "1",
+                    "preferred_term": "Vaginal discharge",
+                    "soft_qualifiers": [
+                        {
+                            "kind": "first_presentation",
+                            "enforcement": "soft",
+                            "max_occurrences": 1,
+                            "within_days": 365,
+                        }
+                    ],
+                },
+            }
+        )
+        assert node.criterion.soft_qualifiers[0].kind == "first_presentation"
+        assert node.criterion.soft_qualifiers[0].enforcement == "soft"
+
+    def test_empty_soft_qualifiers_is_valid(self) -> None:
+        node = LogicNode.model_validate(_concept_node())
+        assert node.criterion.soft_qualifiers == []
+
+    def test_unknown_soft_kind_is_rejected(self) -> None:
+        with pytest.raises(Exception, match="kind|soft"):
+            LogicNode.model_validate(
+                {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                        "snomed_concept_id": "1",
+                        "preferred_term": "Mass",
+                        "soft_qualifiers": [{"kind": "body_site"}],
+                    },
+                }
+            )
+
+    def test_investigation_policy_accepted_on_rule_updates(self) -> None:
+        updates = RuleUpdates.model_validate(
+            {
+                "logic_tree": _and_root(),
+                "investigation_policy": "required",
+            }
+        )
+        assert updates.investigation_policy == "required"
+
+    def test_unknown_investigation_policy_is_rejected(self) -> None:
+        with pytest.raises(Exception):
+            RuleUpdates.model_validate(
+                {
+                    "logic_tree": _and_root(),
+                    "investigation_policy": "maybe",
+                }
+            )
+
+
 # -- apply_rule_edit ----------------------------------------------------------
 
 

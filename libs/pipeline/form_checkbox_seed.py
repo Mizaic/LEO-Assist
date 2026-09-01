@@ -33,6 +33,13 @@ _CHECKBOX_TYPES = frozenset(
 )
 
 
+TAUGHT_CHECKBOX_SOURCE = "form_schema_checkbox"
+
+
+def is_taught_checkbox(entity: dict[str, Any]) -> bool:
+    return str(entity.get("__source") or "") == TAUGHT_CHECKBOX_SOURCE
+
+
 def _raw_label_span(text: str, label: str) -> tuple[int, int] | None:
     if not label:
         return None
@@ -75,33 +82,50 @@ def _ticked_items(line: str, section: FormSection) -> list[FormSchemaItem]:
     return [item for item in section.items if _item_is_checked(line, item)]
 
 
+def _fact_span(
+    text: str, item: FormSchemaItem
+) -> tuple[str, tuple[int, int]] | None:
+    taught = (item.entity_text or "").strip()
+    if taught:
+        span = _raw_label_span(text, taught)
+        if span is not None:
+            return taught, span
+    label = (item.pattern or "").strip()
+    if not label:
+        return None
+    span = _raw_label_span(text, label)
+    if span is None:
+        return None
+    return label, span
+
+
 def _append_seed(
     entities: list[dict[str, Any]],
     seen: set[str],
     text: str,
     item: FormSchemaItem,
 ) -> None:
-    label = (item.pattern or "").strip()
-    if not label:
+    found = _fact_span(text, item)
+    if found is None:
         return
-    key = label.casefold()
+    display, span = found
+    taught = (item.entity_text or display).strip()
+    key = taught.casefold() or display.casefold()
     if key in seen:
-        return
-    span = _raw_label_span(text, label)
-    if span is None:
         return
     seen.add(key)
     start, end = span
     entities.append(
         {
-            "text": label,
-            "entity_text": item.entity_text or label,
+            "text": display,
+            "entity_text": taught,
+            "lookup_term": taught,
             "start": start,
             "end": end,
             "assertion": item.assertion or "present",
             "semantic_tag": item.semantic_tag or "situation",
             "label": item.semantic_tag or "situation",
-            "__source": "form_schema_checkbox",
+            "__source": TAUGHT_CHECKBOX_SOURCE,
         }
     )
 
@@ -124,4 +148,59 @@ def seed_checkbox_entities(
     return entities
 
 
-__all__ = ["seed_checkbox_entities"]
+def _row_key(row: dict[str, Any]) -> str:
+    return str(row.get("text") or "").strip().casefold()
+
+
+def _seed_covers_row(seed_key: str, row_key: str) -> bool:
+    """Exact label, or a printed phrase inside a longer extractor span."""
+    if not seed_key or not row_key:
+        return False
+    if seed_key == row_key:
+        return True
+    if " " not in seed_key:
+        return False
+    return seed_key in row_key
+
+
+def merge_checkbox_seed_entities(
+    entities: list[dict[str, Any]],
+    seeded: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Taught ticks replace same-label or longer same-phrase extractor rows."""
+    if not seeded:
+        return entities
+    covers = [(_row_key(ent), ent) for ent in seeded if _row_key(ent)]
+    merged: list[dict[str, Any]] = []
+    used: set[int] = set()
+    for row in entities:
+        if not isinstance(row, dict):
+            merged.append(row)
+            continue
+        cover = (
+            ent
+            for key, ent in covers
+            if _seed_covers_row(key, _row_key(row))
+        )
+        match = next(cover, None)
+        if match is None:
+            merged.append(row)
+            continue
+        marker = id(match)
+        if marker in used:
+            continue
+        merged.append(match)
+        used.add(marker)
+    for _key, ent in covers:
+        if id(ent) not in used:
+            merged.append(ent)
+            used.add(id(ent))
+    return merged
+
+
+__all__ = [
+    "TAUGHT_CHECKBOX_SOURCE",
+    "is_taught_checkbox",
+    "merge_checkbox_seed_entities",
+    "seed_checkbox_entities",
+]
