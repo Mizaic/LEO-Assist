@@ -201,6 +201,21 @@ class TestPipelineWorkerImageContents:
         assert "COPY services/terminology_api/ /app/services/terminology_api/" in source
 
 
+class TestTerminologyApiImageContents:
+    """terminology-api must install CPU torch, not the default CUDA wheel.
+
+    sentence-transformers pulls torch from PyPI. The default Linux wheel now
+    includes nvidia CUDA 13 packages (~3-5 GB) and fills the GitHub Actions
+    disk during COPY --from=build-model /var/model_cache.
+    """
+
+    def test_terminology_api_pins_cpu_torch(self):
+        dockerfile = DOCKERFILES_DIR / "Dockerfile.terminology-api"
+        source = dockerfile.read_text()
+        assert "https://download.pytorch.org/whl/cpu" in source
+        assert "torch" in source
+
+
 class TestServiceAuthSecretDeployment:
     """SERVICE_AUTH_SECRET must be wired through Bicep to all environments."""
 

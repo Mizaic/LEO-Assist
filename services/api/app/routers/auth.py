@@ -46,7 +46,12 @@ from libs.auth.entra_group_sync import (
     resolve_and_sync_entra_groups,
 )
 from libs.auth.post_login import post_login_path
-from libs.auth.login_org import ensure_organization_for_tenant, org_display_name
+from libs.auth.login_org import (
+    ensure_organization_for_tenant,
+    ensure_user_for_login,
+    org_display_name,
+)
+from libs.auth.org_scope import invalidate_caller_scope_cache
 from libs.auth.session_access import may_issue_session
 from libs.auth.practitioner_org_context import fetch_practitioner_org_context
 from libs.auth.density_state import (
@@ -431,8 +436,18 @@ def callback(
             url=f"{fe}/sign-in?error=tenant_not_allowed", status_code=302
         )
 
-    if not email:
-        email = "unknown"
+    seeded = ensure_user_for_login(email or "", name or "")
+    if not seeded.ok:
+        logger.warning(
+            "Rejecting login: user merge failed reason=%s",
+            seeded.reason,
+        )
+        emit_login_failure(reason="no_access", ip=client_ip)
+        return RedirectResponse(
+            url=f"{fe}/sign-in?error=no_access", status_code=302
+        )
+    email = seeded.email or email
+    invalidate_caller_scope_cache(email)
 
     is_admin, organizations = _fetch_org_context(email)
     session_ttl_secs, idle_mins, require_mfa = _get_session_config()

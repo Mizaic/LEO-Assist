@@ -10,7 +10,14 @@ RUN python3 -m venv /venv && /venv/bin/pip install --upgrade pip setuptools whee
 
 FROM build AS build-venv
 COPY services/terminology_api/requirements.txt /requirements.txt
-RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
+# CPU torch keeps the image smaller than the default CUDA wheel.
+# sentence-transformers pulls torch from PyPI, which now ships nvidia-*
+# CUDA 13 packages (~3-5 GB) and fills the GitHub Actions disk during
+# COPY --from=build-model /var/model_cache.
+ENV PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
+RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir \
+    torch --index-url https://download.pytorch.org/whl/cpu && \
+    /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
 
 # -- Download Bio_ClinicalBERT at build time so the runtime image needs no
 # outbound network.  HF_HOME matches ACA sharedEnv (HF_HOME=/var/model_cache/hf_cache).
@@ -35,7 +42,7 @@ RUN mkdir -p /var/model_cache/hf_cache && \
 # -- Runtime: distroless (no shell, no package manager) --------------------
 ARG BASE_IMAGE_RUNTIME
 FROM ${BASE_IMAGE_RUNTIME}
-COPY --from=build-venv /venv /venv
+COPY --from=build-model /venv /venv
 COPY --from=build-model /var/model_cache /var/model_cache
 COPY libs/ /app/libs/
 COPY services/terminology_api/ /app/services/terminology_api/

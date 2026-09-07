@@ -99,6 +99,22 @@ FOREACH (_ IN CASE WHEN o IS NOT NULL THEN [1] ELSE [] END |
 RETURN pr.email AS email
 """
 
+MERGE_USER_ON_LOGIN = """
+MERGE (u:User {email: $email})
+ON CREATE SET
+  u.id = $id,
+  u.name = $name,
+  u.is_platform_admin = false,
+  u.invited_at = datetime(),
+  u.created_at = datetime(),
+  u.last_seen_at = datetime()
+ON MATCH SET
+  u.name = CASE WHEN u.name IS NULL OR u.name = '' THEN $name ELSE u.name END,
+  u.last_seen_at = datetime()
+SET u:User
+RETURN u.email AS email, u.id AS id, u.is_platform_admin AS is_platform_admin
+"""
+
 UPDATE_PRACTITIONER = """
 MATCH (pr:User {email: $email})
 SET pr += $updates

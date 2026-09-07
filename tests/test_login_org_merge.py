@@ -11,8 +11,12 @@ from __future__ import annotations
 import inspect
 from unittest.mock import MagicMock, patch
 
-from libs.auth.login_org import ensure_organization_for_tenant
+from libs.auth.login_org import (
+    ensure_organization_for_tenant,
+    ensure_user_for_login,
+)
 from libs.cypher import admin_queries as aq
+from libs.cypher import hccp_identity_queries as hq
 
 
 def test_merge_cypher_keys_on_azure_tenant_id() -> None:
@@ -109,3 +113,79 @@ def test_identity_lookups_use_user_not_practitioner() -> None:
     assert ":Practitioner" not in density_queries.GET_PRACTITIONER_DENSITY
     assert ":Practitioner" not in aq.CREATE_PRACTITIONER
     assert "MERGE (pr:User {email: $email})" in aq.CREATE_PRACTITIONER
+
+
+def _on_create_and_match(query: str) -> tuple[str, str]:
+    create, rest = query.split("ON MATCH SET", 1)
+    match = rest.split("RETURN", 1)[0]
+    return create, match
+
+
+def test_login_user_merge_keys_on_email_and_is_user_only() -> None:
+    query = hq.MERGE_USER_ON_LOGIN
+    assert "MERGE (u:User {email: $email})" in query
+    assert ":Practitioner" not in query
+
+
+def test_login_user_merge_sets_admin_false_only_on_create() -> None:
+    create, match = _on_create_and_match(hq.MERGE_USER_ON_LOGIN)
+    assert "is_platform_admin = false" in create
+    assert "is_platform_admin" not in match
+
+
+def test_valid_email_merges_user_as_non_admin() -> None:
+    client = MagicMock()
+    client.run.return_value = [
+        {"email": "will@mizaic.com", "id": "u-1", "is_platform_admin": False}
+    ]
+
+    with patch("libs.auth.login_org.PatientGraphClient", return_value=client):
+        result = ensure_user_for_login("will@mizaic.com", "Will Maw")
+
+    assert result.ok is True
+    assert result.email == "will@mizaic.com"
+    kwargs = client.run.call_args.kwargs
+    assert kwargs["email"] == "will@mizaic.com"
+    assert kwargs["name"] == "Will Maw"
+    query = client.run.call_args.args[0]
+    create, match = _on_create_and_match(query)
+    assert "is_platform_admin = false" in create
+    assert "is_platform_admin" not in match
+
+
+def test_empty_email_does_not_merge_user() -> None:
+    client = MagicMock()
+    with patch("libs.auth.login_org.PatientGraphClient", return_value=client):
+        result = ensure_user_for_login("", "Will Maw")
+
+    assert result.ok is False
+    assert result.reason == "empty_email"
+    client.run.assert_not_called()
+
+
+def test_unknown_email_does_not_merge_user() -> None:
+    client = MagicMock()
+    with patch("libs.auth.login_org.PatientGraphClient", return_value=client):
+        result = ensure_user_for_login("unknown", "Will Maw")
+
+    assert result.ok is False
+    assert result.reason == "empty_email"
+    client.run.assert_not_called()
+
+
+def test_user_merge_exception_does_not_succeed() -> None:
+    client = MagicMock()
+    client.run.side_effect = RuntimeError("graph down")
+    with patch("libs.auth.login_org.PatientGraphClient", return_value=client):
+        result = ensure_user_for_login("will@mizaic.com", "Will Maw")
+
+    assert result.ok is False
+    assert result.reason == "merge_failed"
+
+
+def test_auth_callback_seeds_user_after_org_merge() -> None:
+    from services.api.app.routers import auth as auth_routes
+
+    src = inspect.getsource(auth_routes.callback)
+    assert "ensure_user_for_login" in src
+    assert "error=no_access" in src
