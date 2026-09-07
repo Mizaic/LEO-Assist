@@ -121,6 +121,40 @@ def _resolve_entity_sentence(
     return "__fallback__", fallback_text
 
 
+def _sentence_id_for_patient_write(
+    entity: dict[str, Any],
+    sentence_lookup: dict[str, dict[str, Any]],
+) -> str:
+    """Return a known sentence label, or s-fallback if we cannot tell.
+
+    A missing label with character offsets is recoverable. An explicit
+    unknown label is not: that was the banner-attribution defect.
+    """
+    entity_sid = str(entity.get("__sentence_id") or "").strip()
+    if entity_sid and entity_sid in sentence_lookup:
+        return entity_sid
+    if entity_sid and entity_sid != FALLBACK_SENTENCE_ID:
+        return entity_sid
+    if "start" not in entity:
+        return FALLBACK_SENTENCE_ID
+    try:
+        start = int(entity.get("start") or 0)
+    except (TypeError, ValueError):
+        return FALLBACK_SENTENCE_ID
+    entity_text = str(entity.get("text") or "").strip().lower()
+    if not entity_text:
+        return FALLBACK_SENTENCE_ID
+    for sid, sentence in sentence_lookup.items():
+        sent_start = int(sentence.get("start", 0) or 0)
+        sent_end = int(sentence.get("end", 0) or 0)
+        if not (sent_start <= start <= sent_end):
+            continue
+        sentence_text = str(sentence.get("text") or "").lower()
+        if entity_text in sentence_text:
+            return sid
+    return FALLBACK_SENTENCE_ID
+
+
 def resolve_chunk_source_id(
     sentence_id: str,
     chunk_id_by_sentence_id: dict[str, str],
@@ -546,6 +580,7 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
         n = 0
         docs_written = 0
         uncoded: list[dict[str, Any]] = []
+        sentence_lookup = _build_sentence_lookup(raw_sentences)
         try:
             with client.session() as session:
                 # Build a sentence payload compatible with documents_queries writer.
@@ -558,6 +593,9 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                 for idx, e in enumerate(entities):
                     if _should_skip_persist(e, idx, entities):
                         continue
+                    e["__sentence_id"] = _sentence_id_for_patient_write(
+                        e, sentence_lookup
+                    )
                     term = _entity_persist_term(e, idx, entities, tier_by_index)
                     if term is None:
                         uncoded.append(e)

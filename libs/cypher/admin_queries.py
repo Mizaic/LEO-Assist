@@ -61,7 +61,7 @@ OPTIONAL MATCH (o)-[:PART_OF_ALLIANCE]->(alliance)
 OPTIONAL MATCH (o)-[:PART_OF_PCN]->(pcn_parent:PCN)
 OPTIONAL MATCH (o)-[:HAS_SUBSCRIPTION]->(sub:Subscription)
 RETURN o.id AS id, o.name AS name, o.odsCode AS odsCode, o.short_name AS short_name,
-       o.entra_tenant_id AS entra_tenant_id, o.onboarding_status AS onboarding_status,
+       o.azureTenantId AS azureTenantId, o.onboarding_status AS onboarding_status,
        o.ods_sync_status AS ods_sync_status, o.ods_discrepancy AS ods_discrepancy,
        o.ods_sync_last_checked AS ods_sync_last_checked,
        labels(o) AS labels, patient_count,
@@ -101,7 +101,7 @@ OPTIONAL MATCH (o)-[:PART_OF_ALLIANCE]->(alliance)
 OPTIONAL MATCH (o)-[:PART_OF_PCN]->(pcn_parent:PCN)
 OPTIONAL MATCH (o)-[:HAS_SUBSCRIPTION]->(sub:Subscription)
 RETURN o.id AS id, o.name AS name, o.odsCode AS odsCode, o.short_name AS short_name,
-       o.entra_tenant_id AS entra_tenant_id, o.onboarding_status AS onboarding_status,
+       o.azureTenantId AS azureTenantId, o.onboarding_status AS onboarding_status,
        o.ods_sync_status AS ods_sync_status, o.ods_discrepancy AS ods_discrepancy,
        o.ods_sync_last_checked AS ods_sync_last_checked,
        labels(o) AS labels, patient_count,
@@ -128,7 +128,7 @@ ORDER BY o.name
 CREATE_ORG_GP = """
 CREATE (o:GPPractice:Organization)
 SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_name,
-    o.entra_tenant_id = $entra_tenant_id, o.onboarding_status = $onboarding_status,
+    o.azureTenantId = $azureTenantId, o.onboarding_status = $onboarding_status,
     o.created_at = datetime()
 RETURN o.id AS id
 """
@@ -136,7 +136,7 @@ RETURN o.id AS id
 CREATE_ORG_ICB = """
 CREATE (o:ICB:Organization)
 SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_name,
-    o.entra_tenant_id = $entra_tenant_id, o.onboarding_status = $onboarding_status,
+    o.azureTenantId = $azureTenantId, o.onboarding_status = $onboarding_status,
     o.created_at = datetime()
 RETURN o.id AS id
 """
@@ -144,7 +144,7 @@ RETURN o.id AS id
 CREATE_ORG_ALLIANCE = """
 CREATE (o:CancerAlliance:Organization)
 SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_name,
-    o.entra_tenant_id = $entra_tenant_id, o.onboarding_status = $onboarding_status,
+    o.azureTenantId = $azureTenantId, o.onboarding_status = $onboarding_status,
     o.created_at = datetime()
 RETURN o.id AS id
 """
@@ -152,7 +152,7 @@ RETURN o.id AS id
 CREATE_ORG_PCN = """
 CREATE (o:PCN:Organization)
 SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_name,
-    o.entra_tenant_id = $entra_tenant_id, o.onboarding_status = $onboarding_status,
+    o.azureTenantId = $azureTenantId, o.onboarding_status = $onboarding_status,
     o.created_at = datetime()
 RETURN o.id AS id
 """
@@ -160,7 +160,7 @@ RETURN o.id AS id
 CREATE_ORG_SERVICE_PROVIDER = """
 CREATE (o:ServiceProvider:Organization)
 SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_name,
-    o.entra_tenant_id = $entra_tenant_id, o.onboarding_status = $onboarding_status,
+    o.azureTenantId = $azureTenantId, o.onboarding_status = $onboarding_status,
     o.created_at = datetime()
 RETURN o.id AS id
 """
@@ -170,9 +170,26 @@ RETURN o.id AS id
 MERGE_MIZAIC_ORGANIZATION = (
     "MERGE (o:Organization {id: $id}) "
     "ON CREATE SET o.organization_id = $id, o.name = $name, "
-    "              o.odsCode = '', o.short_name = 'Mizaic' "
-    "ON MATCH SET o.organization_id = coalesce(o.organization_id, $id)"
+    "              o.odsCode = '', o.short_name = 'Mizaic', "
+    "              o.azureTenantId = $azureTenantId "
+    "ON MATCH SET o.organization_id = coalesce(o.organization_id, $id), "
+    "             o.azureTenantId = coalesce(nullif(o.azureTenantId, ''), "
+    "             nullif($azureTenantId, ''))"
 )
+
+MERGE_ORG_BY_AZURE_TENANT = """
+MERGE (o:Organization {azureTenantId: $azureTenantId})
+ON CREATE SET
+  o.id = $id,
+  o.organization_id = $id,
+  o.name = $name,
+  o.short_name = $short_name,
+  o.odsCode = '',
+  o.created_at = datetime()
+ON MATCH SET
+  o.organization_id = coalesce(o.organization_id, o.id, $id)
+RETURN o.id AS id, o.name AS name
+"""
 
 UPDATE_ORG = """
 MATCH (o)
@@ -228,12 +245,6 @@ SET r.effective_to = $effective_to
 RETURN gp.id AS id
 """
 
-GET_ORG_BY_ENTRA_TENANT = """
-MATCH (o:Organization)
-WHERE o.entra_tenant_id = $entra_tenant_id
-RETURN o.id AS id, o.name AS name, o.onboarding_status AS onboarding_status
-LIMIT 1
-"""
 
 # ------------------------------------------------------------------
 # Subscriptions

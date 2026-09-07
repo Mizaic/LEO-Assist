@@ -9,7 +9,7 @@ HCCP graph (source of truth -- do not invent a second RBAC model):
 
     (:User)-[:IS_MEMBER_OF]->(:Group)-[:HAS_ROLE]->(:Role)
 
-A clinician identity node also carries :Practitioner. RBAC queries use :User.
+RBAC queries use :User.
 Role nodes carry both ``id`` (HCCP) and ``name`` (LEO) set to the same
 canonical role string.
 

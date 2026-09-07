@@ -239,7 +239,7 @@ def resolve_caller_scope(
         return cached
 
     practitioner = client.run(
-        "MATCH (pr:Practitioner {email: $email}) "
+        "MATCH (pr:User {email: $email}) "
         "RETURN pr.id AS id, pr.email AS email, "
         "       pr.is_platform_admin AS is_platform_admin",
         email=normalized,
@@ -263,7 +263,7 @@ def resolve_caller_scope(
 
     # Fetch the org the practitioner WORKS_AT and determine scope type.
     orgs = client.run(
-        "MATCH (pr:Practitioner {email: $email})-[:WORKS_AT]->(o) "
+        "MATCH (pr:User {email: $email})-[:WORKS_AT]->(o) "
         "WHERE o:GPPractice OR o:ICB OR o:CancerAlliance "
         "   OR o:ServiceProvider OR o:Organization "
         "RETURN o.id AS id, labels(o) AS nodeLabels",

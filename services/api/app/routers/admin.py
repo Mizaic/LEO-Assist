@@ -228,7 +228,7 @@ def _row_to_org(r: dict) -> dict:
         "name": r.get("name"),
         "odsCode": r.get("odsCode"),
         "short_name": r.get("short_name"),
-        "entra_tenant_id": r.get("entra_tenant_id"),
+        "azureTenantId": r.get("azureTenantId"),
         "onboarding_status": r.get("onboarding_status"),
         "ods_sync_status": r.get("ods_sync_status"),
         "ods_discrepancy": _parse_json_prop(r.get("ods_discrepancy")),
@@ -282,7 +282,7 @@ async def create_org(
             name=body.name,
             ods_code=body.ods_code or "",
             short_name=short_name,
-            entra_tenant_id="",
+            azureTenantId="",
             onboarding_status="active",
         )
         if body.type == "gp":

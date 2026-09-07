@@ -165,11 +165,11 @@ def _seed_practitioner(client: PatientGraphClient) -> None:
     ]
     for email, name, is_admin, role_name in users:
         client.run(
-            "MERGE (pr:Practitioner:User {email: $email}) "
+            "MERGE (pr:User {email: $email}) "
             "ON CREATE SET pr.name = $name, pr.is_platform_admin = $is_admin, "
             "  pr.source = 'demo', pr.selected_role = $role, "
             "  pr.created_at = datetime() "
-            "SET pr:User, pr:Practitioner",
+            "SET pr:User",
             email=email,
             name=name,
             is_admin=is_admin,

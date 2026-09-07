@@ -43,6 +43,39 @@ def test_extraction_prompt_treats_womb_in_situ_as_uterus_present() -> None:
     assert "289619002" in EXTRACTION_SYSTEM_V1
 
 
+def test_body_structure_organ_list_excepts_in_situ_before_examples() -> None:
+    """Organ-present phrases must be excepted in the organ list, not only Examples."""
+    after_header = EXTRACTION_SYSTEM_V1.split("BODY STRUCTURE SCOPE", 1)[1]
+    organ_list, _, _examples = after_header.partition("Examples:")
+    assert "in situ" in organ_list.lower() or "insitu" in organ_list.lower()
+    assert "uterus present" in organ_list
+    assert "finding" in organ_list.lower()
+
+
+def test_extraction_prompt_keeps_scanty_vaginal_discharge() -> None:
+    assert "scanty vaginal discharge" in EXTRACTION_SYSTEM_V1
+
+
+def _terms_for_input(needle: str) -> list[dict]:
+    example = next(row for row in EXTRACTION_EXAMPLES if needle in row["input"])
+    return json.loads(example["output"])["terms"]
+
+
+def test_womb_insitu_few_shot_is_uterus_present_finding() -> None:
+    terms = _terms_for_input("has womb insitu")
+    womb = next(term for term in terms if "womb" in term["text"].lower())
+    assert womb["semantic_tag"] == "finding"
+    assert womb["lookup_term"] == "uterus present"
+
+
+def test_scanty_discharge_few_shot_keeps_qualifier() -> None:
+    terms = _terms_for_input("scanty vaginal discharge")
+    discharge = next(
+        term for term in terms if "discharge" in term["lookup_term"].lower()
+    )
+    assert discharge["lookup_term"] == "scanty vaginal discharge"
+
+
 def test_extraction_prompt_has_blood_results_table_section() -> None:
     assert "Blood Tests" in EXTRACTION_SYSTEM_V1
     assert "one observable entity per parameter" in EXTRACTION_SYSTEM_V1

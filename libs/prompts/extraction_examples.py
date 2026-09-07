@@ -760,6 +760,20 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] | Symptoms pathway (mandatory field): Please place x in relevant boxes | | --- | | [NON_EXTRACTABLE] [ ] New unexplained and unintentional weight loss | | [NON_EXTRACTABLE] Unexplained DVT | | GP intuition or gut feeling (please state reasons you are concerned the patient has cancer) |",
         "output": '{"terms": [{"sentence_id": "s0", "text": "GP intuition or gut feeling", "lookup_term": "suspected malignant neoplasm", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
+    {
+        "category": "multi-entity",
+        "model_scope": "any",
+        "description": "Organ-present status is a finding, not uterine structure",
+        "input": "[s0] has womb insitu.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "has womb insitu", "lookup_term": "uterus present", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "multi-entity",
+        "model_scope": "any",
+        "description": "Keep scanty on vaginal discharge lookup_term",
+        "input": "[s0] scanty vaginal discharge- swabs taken.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "scanty vaginal discharge", "lookup_term": "scanty vaginal discharge", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
 ]
 
 
@@ -804,4 +818,8 @@ _apply_core_by_first_category(
 # Prefer every checkbox example in retrieval -- common 2WW form failure mode.
 for _ex in EXTRACTION_EXAMPLES:
     if _ex.get("category") == "form:checkbox":
+        _ex["core"] = True
+    if "has womb insitu" in str(_ex.get("input", "")):
+        _ex["core"] = True
+    if "scanty vaginal discharge" in str(_ex.get("input", "")):
         _ex["core"] = True

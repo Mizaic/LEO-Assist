@@ -47,10 +47,17 @@ def build_structured_situation(
     coded_facts: list[dict[str, Any]] | None = None,
     run_id: str | None = None,
 ) -> SituationSourceResult:
-    """Prefer a clinic-matching reason, then the taught 2WW form section."""
+    """Prefer coded facts, then a clinic-matching reason, then the form."""
     rr = referral_request or {}
     priority = str(rr.get("priority") or "").strip() or None
     clinic = str(rr.get("clinic_type") or "")
+    coded = headline_from_coded_facts(coded_facts, clinic_type=clinic)
+    if coded:
+        return SituationSourceResult(
+            headline=coded,
+            structured_priority=priority,
+            source_precedence=["coded_facts"],
+        )
     matched = _clinic_matching_reason(rr, referral_reason, clinic, run_id)
     if matched is not None:
         return matched
@@ -63,13 +70,6 @@ def build_structured_situation(
             structured_priority=priority,
             source_precedence=["form_clinical_section"],
             letter_extract=section,
-        )
-    coded = headline_from_coded_facts(coded_facts)
-    if coded:
-        return SituationSourceResult(
-            headline=coded,
-            structured_priority=priority,
-            source_precedence=["coded_facts"],
         )
     return SituationSourceResult(
         headline="Referral reason not documented in structured or letter sources.",

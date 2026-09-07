@@ -453,12 +453,12 @@ export default function OrgDrawer({ org, onClose, onChanged }: OrgDrawerProps) {
                   value={<Typography variant="body2">{currentPcnName ?? currentPcnId}</Typography>}
                 />
               )}
-              {org.entra_tenant_id && (
+              {org.azureTenantId && (
                 <DetailRow
                   label="Entra tenant"
                   value={
                     <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.72rem" }}>
-                      {org.entra_tenant_id}
+                      {org.azureTenantId}
                     </Typography>
                   }
                 />

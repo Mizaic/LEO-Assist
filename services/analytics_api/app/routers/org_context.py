@@ -69,14 +69,14 @@ def get_org_context(
     client = PatientGraphClient()
     try:
         practitioner = client.run(
-            "MATCH (pr:Practitioner {email: $email}) "
+            "MATCH (pr:User {email: $email}) "
             "RETURN pr.id AS id, pr.name AS name, pr.email AS email, "
             "       pr.is_platform_admin AS is_platform_admin",
             email=lookup_email.lower().strip(),
         )
 
         if not practitioner:
-            raise HTTPException(404, f"No practitioner found for {lookup_email}")
+            raise HTTPException(404, f"No user found for {lookup_email}")
 
         user = practitioner[0]
         is_admin = user.get("is_platform_admin", False)
@@ -94,7 +94,7 @@ def get_org_context(
             )
         else:
             orgs = client.run(
-                "MATCH (pr:Practitioner {email: $email})-[:WORKS_AT]->(o) "
+                "MATCH (pr:User {email: $email})-[:WORKS_AT]->(o) "
                 "WHERE " + org_where + " "
                 "RETURN o.id AS id, o.name AS name, o.odsCode AS odsCode, "
                 "       o.short_name AS short_name, o.type AS type, labels(o) AS nodeLabels "

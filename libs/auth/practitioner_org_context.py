@@ -42,7 +42,7 @@ def fetch_practitioner_org_context(
 ) -> tuple[bool, list[dict[str, Any]]]:
     """Return (is_platform_admin, organizations) for session storage.
 
-    On any graph error or missing Practitioner, returns (False, []).
+    On any graph error or missing User, returns (False, []).
     """
     normalized = (email or "").strip().lower()
     if not normalized:
@@ -51,14 +51,14 @@ def fetch_practitioner_org_context(
     client = PatientGraphClient()
     try:
         practitioner = client.run(
-            "MATCH (pr:Practitioner {email: $email}) "
+            "MATCH (pr:User {email: $email}) "
             "RETURN pr.id AS id, pr.name AS name, pr.email AS email, "
             "       pr.is_platform_admin AS is_platform_admin",
             email=normalized,
         )
         if not practitioner:
             logger.warning(
-                "Login: no Practitioner node for email=%s",
+                "Login: no User node for email=%s",
                 normalized,
             )
             return False, []
@@ -80,7 +80,7 @@ def fetch_practitioner_org_context(
             )
         else:
             orgs = client.run(
-                "MATCH (pr:Practitioner {email: $email})-[:WORKS_AT]->(o) "
+                "MATCH (pr:User {email: $email})-[:WORKS_AT]->(o) "
                 "WHERE "
                 + org_where
                 + " RETURN o.id AS id, o.name AS name, o.odsCode AS odsCode, "

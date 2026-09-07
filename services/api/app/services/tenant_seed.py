@@ -682,6 +682,7 @@ def _seed_mizaic_org_and_group(client: PatientGraphClient) -> None:
         MERGE_MIZAIC_ORGANIZATION,
         id=MIZAIC_ORG_ID,
         name=MIZAIC_ORG_NAME,
+        azureTenantId=(os.getenv("AZURE_AD_TENANT_ID") or "").strip(),
     )
     client.run(
         "MERGE (g:Group {id: $id})"
@@ -714,7 +715,7 @@ def _seed_platform_admins(client: PatientGraphClient) -> None:
     User creation is guarded (skip if any already exist) but IS_MEMBER_OF
     edges are always ensured. Platform admins also keep is_platform_admin.
     """
-    rows = client.run("MATCH (pr:Practitioner) RETURN count(pr) AS cnt")
+    rows = client.run("MATCH (pr:User) RETURN count(pr) AS cnt")
     existing = rows[0]["cnt"] if rows else 0
     admins = _parse_seed_admins()
 
@@ -735,13 +736,13 @@ def _create_seed_practitioners(
 ) -> None:
     for email, name in admins:
         client.run(
-            "MERGE (pr:Practitioner:User {email: $email})"
+            "MERGE (pr:User {email: $email})"
             " ON CREATE SET pr.id = $id, pr.name = $name,"
             "               pr.is_platform_admin = true, pr.invited_at = datetime()"
             " ON MATCH SET  pr.is_platform_admin = true,"
             "               pr.name = CASE WHEN pr.name IS NULL THEN $name ELSE pr.name END,"
             "               pr.id   = coalesce(pr.id, $id)"
-            " SET pr:User, pr:Practitioner",
+            " SET pr:User",
             email=email,
             name=name,
             id=str(uuid.uuid4()),

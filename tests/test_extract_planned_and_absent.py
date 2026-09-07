@@ -72,6 +72,17 @@ def test_seed_includes_new_extract_examples() -> None:
     assert any("No recent alcohol excess reported" in text for text in referral_texts)
 
 
+def test_seed_extraction_prompt_contains_womb_and_scanty() -> None:
+    extraction = next(row for row in SEED_PROMPTS if row["name"] == "extraction")
+    text = extraction["system_prompt"]
+    assert "uterus present" in text
+    assert "289619002" in text
+    assert "scanty vaginal discharge" in text
+    inputs = [row["input"] for row in extraction["few_shot_examples"]]
+    assert any("has womb insitu" in text for text in inputs)
+    assert any("scanty vaginal discharge" in text for text in inputs)
+
+
 def _example(needle: str) -> dict:
     return next(row for row in EXTRACTION_EXAMPLES if needle in row["input"])
 

@@ -156,6 +156,49 @@ def test_the_no_sentence_marker_is_never_written_as_a_chunk_id() -> None:
     assert any(UNWRITABLE_FACTS_WARNING in w for w in (result.get("warnings") or []))
 
 
+def test_a_fact_with_span_offsets_is_saved_when_sentence_id_is_missing() -> None:
+    """A missing label is not the same as an unknown chunk.
+
+    Extraction-check adds and some extractor rows omit ``__sentence_id``
+    but still carry character offsets. Stamping ``s-fallback`` then
+    dropping those facts hides a coded finding from the graph. The
+    offsets already name the chunk, so the fact must be saved there.
+    An unknown explicit label (``s7``) still must not be guessed.
+    """
+    state = _state()
+    del state["entities"][0]["__sentence_id"]
+    state["entities"][0]["start"] = 60
+    state["entities"][0]["end"] = 70
+    result, payload = _run(state)
+
+    carrying = [row for row in payload if row.get("terms")]
+    assert len(carrying) == 1
+    assert carrying[0]["sentence_id"] == _EXAM_CHUNK
+    assert not [
+        w for w in (result.get("warnings") or []) if UNWRITABLE_FACTS_WARNING in w
+    ]
+
+
+def test_a_guessed_zero_offset_is_not_saved_on_the_banner() -> None:
+    """A missing label with start=0 is not evidence that the fact is on s0.
+
+    When the span was not found, the resolver guesses offset 0. Recovering
+    from that guess would put the fact on the banner. Only a start that
+    lands in a sentence that actually holds the fact's words may be used.
+    """
+    state = _state()
+    del state["entities"][0]["__sentence_id"]
+    state["entities"][0]["start"] = 0
+    state["entities"][0]["end"] = 10
+    result, payload = _run(state)
+
+    banner_terms = [
+        row for row in payload if row["sentence_id"] == _BANNER_CHUNK and row["terms"]
+    ]
+    assert banner_terms == []
+    assert any(UNWRITABLE_FACTS_WARNING in w for w in (result.get("warnings") or []))
+
+
 def test_a_known_label_still_reaches_its_own_chunk() -> None:
     """The fix must not stop a correctly labelled fact from being saved."""
     state = _state()

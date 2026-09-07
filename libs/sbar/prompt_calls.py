@@ -32,6 +32,7 @@ from libs.sbar.background_partitioner import (
     partition_background_sources,
 )
 from libs.sbar.error_messages import translate_error
+from libs.sbar.situation_headline import sanitize_situation_markdown
 from libs.sbar.source_resolver import (
     ResolvedCode,
     ResolvedSituation,
@@ -359,12 +360,11 @@ async def call_situation(
         }
     md = (raw.get("situation_markdown") or "").strip()
     if md:
-        from libs.sbar.situation_headline import drop_invented_pmb
-
         extra = extra_context or {}
-        md = drop_invented_pmb(
+        md = sanitize_situation_markdown(
             md,
             present_terms=list(extra.get("present_findings") or []),
+            absent_terms=list(extra.get("absent_findings") or []),
             structured_headline=str(extra.get("structured_headline") or "") or None,
         )
         return {"markdown": md, "raw": raw, "error": None, "error_code": None}

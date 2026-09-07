@@ -401,6 +401,9 @@ def _coded_facts(codes: list[ResolvedCode]) -> list[dict[str, Any]]:
             {
                 "concept_id": str(code.concept_id or ""),
                 "term": str(code.term or ""),
+                "text": str(code.evidence or code.evidence_sentence or ""),
+                "label": str(code.semantic_tag or ""),
+                "assertion": str(code.assertion or "present"),
                 "chunk_id": str(code.chunk_id or code.source_id or ""),
             }
         )

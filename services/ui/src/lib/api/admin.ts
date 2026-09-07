@@ -28,7 +28,7 @@ export interface Org {
   name: string;
   odsCode?: string;
   short_name?: string;
-  entra_tenant_id?: string;
+  azureTenantId?: string;
   onboarding_status?: string;
   ods_sync_status?: string;
   ods_discrepancy?: Record<string, { ods: string; leo: string }>;
@@ -387,7 +387,7 @@ export interface OnboardRequest {
     ods_code: string;
     parent_org_id?: string;
     region?: string;
-    entra_tenant_id?: string;
+    azureTenantId?: string;
     subscription?: {
       tier: string;
       credits?: number;

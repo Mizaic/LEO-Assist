@@ -6,8 +6,7 @@ Atlas trace:
 
 HCCP graph: (:User)-[:IS_MEMBER_OF]->(:Group)-[:HAS_ROLE]->(:Role)
 
-A clinician also carries :Practitioner on the same node. Clinical queries
-stay on :Practitioner. Admin and RBAC queries use :User.
+Identity nodes are :User. Admin and RBAC queries use :User.
 """
 
 # ------------------------------------------------------------------
@@ -86,8 +85,8 @@ ORDER BY g.name
 """
 
 CREATE_PRACTITIONER = """
-MERGE (pr:Practitioner:User {email: $email})
-SET pr:User, pr:Practitioner,
+MERGE (pr:User {email: $email})
+SET pr:User,
     pr.name = $name, pr.is_platform_admin = $is_platform_admin,
     pr.id = coalesce(pr.id, $id), pr.invited_at = datetime()
 WITH pr

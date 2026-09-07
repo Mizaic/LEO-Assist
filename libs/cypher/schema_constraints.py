@@ -53,6 +53,7 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE INDEX organization_ods_code IF NOT EXISTS FOR (o:Organization) ON (o.odsCode)",
     "CREATE INDEX organization_ods_sync_status IF NOT EXISTS FOR (o:Organization) ON (o.ods_sync_status)",
     "CREATE INDEX organization_entra_tenant IF NOT EXISTS FOR (o:Organization) ON (o.entra_tenant_id)",
+    "CREATE INDEX organization_azure_tenant IF NOT EXISTS FOR (o:Organization) ON (o.azureTenantId)",
     "CREATE INDEX organization_onboarding_status IF NOT EXISTS FOR (o:Organization) ON (o.onboarding_status)",
     # PromptConfig — LLM prompt management
     "CREATE CONSTRAINT prompt_config_id IF NOT EXISTS FOR (p:PromptConfig) REQUIRE p.id IS UNIQUE",

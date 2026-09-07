@@ -4,8 +4,7 @@ VT for the shared identity graph:
 
     (:User)-[:IS_MEMBER_OF]->(:Group)-[:HAS_ROLE]->(:Role)
 
-A person who is also a clinician keeps the :Practitioner label on the
-same node. Clinical queries stay on :Practitioner. RBAC queries use :User.
+Identity nodes are :User only. RBAC queries use :User.
 """
 
 from __future__ import annotations
@@ -16,9 +15,9 @@ from libs.cypher import role_queries as rq
 from libs.cypher import schema_constraints as sc
 
 
-def test_create_identity_node_is_user_and_practitioner():
+def test_create_identity_node_is_user_only():
     assert ":User" in aq.CREATE_PRACTITIONER
-    assert ":Practitioner" in aq.CREATE_PRACTITIONER
+    assert ":Practitioner" not in aq.CREATE_PRACTITIONER
 
 
 def test_role_state_reads_user_via_group_membership():

@@ -107,7 +107,10 @@ BODY STRUCTURE SCOPE
 Always extract these six reproductive organs when they appear as
 standalone clinical references (needed for the gender check):
 - cervix (or cervix uteri, SNOMED 71252005)
-- uterus (or womb, SNOMED 35039007)
+- uterus (or womb, SNOMED 35039007). EXCEPT organ-present status:
+  "has womb in situ", "has womb insitu", "uterus present" -> finding,
+  lookup_term="uterus present" (SNOMED 289619002). Do not look up
+  uterus or womb for those spans.
 - ovary (or ovaries, SNOMED 15497006)
 - prostate (or prostate gland, SNOMED 41216001)
 - testis (or testes, testicle, SNOMED 40689003)
@@ -519,6 +522,9 @@ lookup_term whenever they appear in or are clearly implied by sentence_subset:
      "bleeding after the menopause", "? PMB"
      -> lookup_term: "postmenopausal bleeding"
      Do not split into postmenopausal state plus vaginal bleeding.
+9. Amount or character of a discharge: scanty, heavy, watery, blood-stained
+   - "scanty vaginal discharge" -> lookup_term: "scanty vaginal discharge"
+     NOT "vaginal discharge"
 
 You MAY normalise abbreviations in lookup_term. You MUST NOT drop the
 qualifier. If the qualifier appears only in context_text (not in

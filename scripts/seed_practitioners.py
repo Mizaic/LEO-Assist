@@ -51,8 +51,8 @@ def seed_practitioner(
     email = email.lower().strip()
 
     client.run(
-        "MERGE (pr:Practitioner:User {email: $email}) "
-        "SET pr:User, pr:Practitioner, "
+        "MERGE (pr:User {email: $email}) "
+        "SET pr:User, "
         "    pr.name = $name, "
         "    pr.is_platform_admin = $is_admin, "
         "    pr.updated_at = datetime(), "
@@ -67,7 +67,7 @@ def seed_practitioner(
     if org_names:
         for org_name in org_names:
             rows = client.run(
-                "MATCH (pr:Practitioner {email: $email}) "
+                "MATCH (pr:User {email: $email}) "
                 "MATCH (o:Organization) WHERE toLower(o.name) CONTAINS toLower($org_name) "
                 "MERGE (pr)-[:WORKS_AT]->(o) "
                 "RETURN o.name AS matched_name",
@@ -98,7 +98,7 @@ def main():
             print(f"\nTotal: {len(orgs)} organizations")
             return
 
-        practitioners = client.run("MATCH (pr:Practitioner) RETURN count(pr) AS cnt")
+        practitioners = client.run("MATCH (pr:User) RETURN count(pr) AS cnt")
         existing = practitioners[0]["cnt"] if practitioners else 0
         if existing > 0:
             print(f"Skipped — {existing} Practitioner(s) already present.")

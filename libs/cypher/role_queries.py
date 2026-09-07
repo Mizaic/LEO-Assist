@@ -8,7 +8,7 @@ Atlas trace:
 These queries read and write the role state used by the UI shell:
 
 - allowed_roles: list of role.name drawn from existing HAS_ROLE edges
-- selected_role: single role.name property on the User (also :Practitioner)
+- selected_role: single role.name property on the User
 - RoleSwitch audit node: append-only record of every role change
 
 Keeping role queries in their own module avoids pushing

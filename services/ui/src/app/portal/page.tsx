@@ -250,7 +250,7 @@ export default function PortalPage() {
                 alliance_name: undefined,
                 pcn_id: undefined,
                 pcn_name: undefined,
-                entra_tenant_id: undefined,
+                azureTenantId: undefined,
                 ods_discrepancy: undefined,
                 ods_sync_last_checked: undefined,
                 subscription: undefined,

@@ -26,14 +26,14 @@ ALLOWED_DENSITIES: tuple[str, ...] = ("compact", "comfortable", "spacious")
 # the practitioner has no preference set so the UI can fall back to the
 # comfortable default.
 GET_PRACTITIONER_DENSITY = """
-MATCH (pr:Practitioner {email: $email})
+MATCH (pr:User {email: $email})
 RETURN pr.density_preference AS density_preference
 """
 
 # Write the density preference. Returns the persisted value so the API can
 # surface it to the client without a separate read.
 SET_PRACTITIONER_DENSITY = """
-MATCH (pr:Practitioner {email: $email})
+MATCH (pr:User {email: $email})
 SET pr.density_preference = $density
 RETURN pr.density_preference AS density_preference
 """

@@ -1,9 +1,9 @@
 """OAuth auth routes: login, callback, logout, session.
 
 Atlas trace:
-  DO: DO-308DD1A6
-  DI: DI-D49BCE55
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-308DD1A6")
+  DO: DO-308DD1A6, DO-8E4A6AF6
+  DI: DI-D49BCE55, DI-E6963408, DI-A482F83F
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8E4A6AF6")
 
 Handles Azure AD OAuth flow. Tokens stored server-side in Redis.
 Frontend uses session cookie only (no token in browser).
@@ -46,6 +46,7 @@ from libs.auth.entra_group_sync import (
     resolve_and_sync_entra_groups,
 )
 from libs.auth.post_login import post_login_path
+from libs.auth.login_org import ensure_organization_for_tenant, org_display_name
 from libs.auth.session_access import may_issue_session
 from libs.auth.practitioner_org_context import fetch_practitioner_org_context
 from libs.auth.density_state import (
@@ -66,10 +67,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # Read Azure AD / frontend settings at request time. Module-level os.getenv() can run
 # before Key Vault hydration or ACA secret injection is visible in edge cases; lazy reads
 # avoid stale empty values for CLIENT_ID.
-
-
-def _env_ad_tenant_id() -> str:
-    return (os.getenv("AZURE_AD_TENANT_ID") or "").strip()
 
 
 def _env_ad_client_id() -> str:
@@ -144,34 +141,6 @@ def _get_jwks() -> dict:
             return _JWKS_CACHE
         raise
     return _JWKS_CACHE
-
-
-def _is_tenant_allowed(tid: str) -> bool:
-    """Check the token's tenant ID against the allowlist of onboarded organisations.
-
-    Permits:
-    - Mizaic's own tenant (for platform admins)
-    - Any tenant registered on an active Organisation node in Neo4j
-
-    This is the multi-tenant trust boundary: only pre-registered NHS tenants can sign in.
-    """
-    if not tid:
-        return False
-    # Always permit Mizaic's own tenant for platform admins
-    tenant = _env_ad_tenant_id()
-    if tenant and tid == tenant:
-        return True
-    try:
-        from libs.neo4j_client.client import PatientGraphClient
-        from libs.cypher.admin_queries import GET_ORG_BY_ENTRA_TENANT
-
-        client = PatientGraphClient()
-        rows = client.run(GET_ORG_BY_ENTRA_TENANT, entra_tenant_id=tid)
-        client.close()
-        return bool(rows)
-    except Exception as exc:
-        logger.error("Tenant allowlist check failed for tid=%s: %s", tid, exc)
-        return False
 
 
 def _verify_id_token(id_token: str) -> dict:
@@ -439,24 +408,28 @@ def callback(
             url=f"{fe}/sign-in?error=token_v1_not_allowed", status_code=302
         )
 
-    # Multi-tenant trust boundary: validate the tid (tenant ID) claim against the
-    # allowlist of onboarded organisations. Tokens from unknown tenants are rejected
-    # even if cryptographically valid — prevents any Microsoft tenant signing in.
     tid = id_claims.get("tid", "")
-    if not _is_tenant_allowed(tid):
-        logger.warning("Rejecting token from unknown tenant tid=%s", tid)
-        emit_token_rejected(reason="tenant_not_allowed", ip=client_ip)
-        emit_login_failure(reason="tenant_not_allowed", ip=client_ip)
-        return RedirectResponse(
-            url=f"{fe}/sign-in?error=tenant_not_allowed", status_code=302
-        )
-
     email = (
         id_claims.get("preferred_username")
         or id_claims.get("upn")
         or id_claims.get("email")
     )
     name = id_claims.get("name")
+    provisioned = ensure_organization_for_tenant(
+        tid,
+        org_display_name(email or "", tid),
+    )
+    if not provisioned.ok:
+        logger.warning(
+            "Rejecting login: org merge failed tid=%s reason=%s",
+            tid,
+            provisioned.reason,
+        )
+        emit_token_rejected(reason="tenant_not_allowed", ip=client_ip)
+        emit_login_failure(reason="tenant_not_allowed", ip=client_ip)
+        return RedirectResponse(
+            url=f"{fe}/sign-in?error=tenant_not_allowed", status_code=302
+        )
 
     if not email:
         email = "unknown"
