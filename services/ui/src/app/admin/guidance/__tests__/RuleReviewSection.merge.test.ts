@@ -20,7 +20,6 @@
 
 import {
   filterRulesForReview,
-  formatApiDetail,
   formatRelativeUpdatedAt,
   mergeEditedRuleIntoCache,
   ruleReviewKey,
@@ -224,50 +223,6 @@ describe("RuleReviewSection recommendation-level de-duping", () => {
     );
 
     expect(visible.map((rule) => rule.rule_id)).toEqual(["rule-ng12-113"]);
-  });
-});
-
-describe("formatApiDetail (Pydantic 422 readable error regression)", () => {
-  it("renders an array of validation errors as a readable, joined string", () => {
-    // Real shape produced by a FastAPI 422 -- previously stringified as
-    // "[object Object],[object Object],..." which hid the cause.
-    const detail = [
-      {
-        type: "extra_forbidden",
-        loc: ["body", "updates", "logic_tree", "criterion", "source_text"],
-        msg: "Extra inputs are not permitted",
-      },
-      {
-        type: "extra_forbidden",
-        loc: ["body", "updates", "logic_tree", "criterion", "candidates"],
-        msg: "Extra inputs are not permitted",
-      },
-    ];
-
-    const out = formatApiDetail(detail);
-
-    expect(out).not.toMatch(/\[object Object\]/);
-    expect(out).toMatch(/source_text/);
-    expect(out).toMatch(/candidates/);
-    expect(out).toMatch(/Extra inputs are not permitted/);
-    // "body" / "updates" prefixes are stripped from the loc path so the
-    // message is intelligible to a non-engineer reviewer.
-    expect(out).not.toMatch(/^body\./);
-  });
-
-  it("passes a plain-string detail through unchanged", () => {
-    expect(formatApiDetail("Rule not found")).toBe("Rule not found");
-  });
-
-  it("never returns the literal string '[object Object]' for unexpected shapes", () => {
-    const out = formatApiDetail({ unexpected: { nested: "shape" } });
-    expect(out).not.toMatch(/\[object Object\]/);
-    expect(out.length).toBeGreaterThan(0);
-  });
-
-  it("returns an empty string for null / undefined so callers fall back to statusText", () => {
-    expect(formatApiDetail(null)).toBe("");
-    expect(formatApiDetail(undefined)).toBe("");
   });
 });
 

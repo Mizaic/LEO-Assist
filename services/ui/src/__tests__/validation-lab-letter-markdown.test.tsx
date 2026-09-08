@@ -10,9 +10,9 @@
  */
 
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 
 import LetterPane from "../app/admin/validation-lab/LetterPane";
+import LetterMarkdownView from "../app/admin/validation-lab/LetterMarkdownView";
 import {
   parseLetterMarkdown,
   splitLetterSource,
@@ -89,15 +89,13 @@ describe("VT-F0A6B9F4 - letter markdown is formatted", () => {
     expect(mark).toHaveAttribute("data-semantic-tag", "finding");
   });
 
-  it("formats the GP note tab", async () => {
-    const user = userEvent.setup();
+  it("formats a GP note through the same letter renderer", () => {
     render(
-      <LetterPane
-        referralText="Plain letter"
-        gpNote={"## Note\n\nPatient **well**."}
+      <LetterMarkdownView
+        text={"## Note\n\nPatient **well**."}
+        emptyLabel="No note"
       />,
     );
-    await user.click(screen.getByRole("tab", { name: "GP note" }));
     expect(screen.getByRole("heading", { name: "Note" })).toBeInTheDocument();
     expect(screen.queryByText(/\*\*well\*\*/)).not.toBeInTheDocument();
   });

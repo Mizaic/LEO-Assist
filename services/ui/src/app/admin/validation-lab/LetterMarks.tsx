@@ -127,6 +127,7 @@ function LetterMarkSpan({
         data-assertion={String(mark?.assertion || "present").toLowerCase()}
         data-semantic-tag={mark?.semanticTag || ""}
         data-change={change}
+        data-letter-term={part.toLowerCase()}
         data-mention-index={mentionIndex || undefined}
         data-review-focus={mentionIndex === 1 ? "true" : undefined}
         sx={{
@@ -136,6 +137,7 @@ function LetterMarkSpan({
           outline: mentionIndex === 1 ? "2px solid" : undefined,
           outlineColor: mentionIndex === 1 ? "primary.main" : undefined,
           outlineOffset: mentionIndex === 1 ? "1px" : undefined,
+          cursor: "pointer",
           pl: 0.7,
           borderRadius: "2px",
           fontWeight: 600,

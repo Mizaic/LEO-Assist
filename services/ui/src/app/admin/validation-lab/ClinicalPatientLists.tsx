@@ -12,10 +12,14 @@
 
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 import type { ClinicalPipelineRun } from "./labFindingsApi";
+import { investigationKey } from "./ncrInvestigationCases";
 import {
   glassPanel,
   matchLabel,
@@ -30,27 +34,47 @@ export function UsedAndAllLists({
   frequent,
   patients,
   onPick,
+  linkedCases = [],
 }: {
   recent: ClinicalPipelineRun[];
   frequent: ClinicalPipelineRun[];
   patients: ClinicalPipelineRun[];
   onPick: (row: ClinicalPipelineRun) => void;
+  linkedCases?: ClinicalPipelineRun[];
 }) {
+  const linkedKeys = new Set(linkedCases.map(investigationKey));
   return (
     <>
-      <PatientSection
-        title="Recently used"
-        testId="validation-lab-clinical-recent"
-        emptyText="Patients you open will show here."
-        rows={recent}
-        onPick={onPick}
-      />
+      {/* Recently used: compact rows with instant add / already-added checkmark */}
+      {recent.length > 0 ? (
+        <Box data-testid="validation-lab-clinical-recent">
+          <Typography sx={{ ...sectionLabel, mb: 1.25 }}>Recently used</Typography>
+          <Stack
+            spacing={0.5}
+            sx={{
+              ...glassPanel,
+              p: 1,
+              borderRadius: "16px",
+            }}
+          >
+            {recent.map((row) => (
+              <CompactPatientRow
+                key={`${row.patient_id}-${row.run_id}-${row.nhs_number}`}
+                row={row}
+                onPick={onPick}
+                alreadyAdded={linkedKeys.has(investigationKey(row))}
+              />
+            ))}
+          </Stack>
+        </Box>
+      ) : null}
       <PatientSection
         title="Frequently used"
         testId="validation-lab-clinical-frequent"
         emptyText="Patients you open often will show here."
         rows={frequent}
         onPick={onPick}
+        linkedCases={linkedCases}
       />
       <PatientSection
         title="All patients"
@@ -58,9 +82,78 @@ export function UsedAndAllLists({
         emptyText="No patients with a pipeline run yet."
         rows={patients}
         onPick={onPick}
+        linkedCases={linkedCases}
         scroll
       />
     </>
+  );
+}
+
+function CompactPatientRow({
+  row,
+  onPick,
+  alreadyAdded,
+}: {
+  row: ClinicalPipelineRun;
+  onPick: (row: ClinicalPipelineRun) => void;
+  alreadyAdded: boolean;
+}) {
+  const label = [
+    row.patient_name || row.patient_id || "Patient",
+    row.nhs_number ? `NHS ${row.nhs_number}` : "",
+    row.ubrn ? `Referral ${row.ubrn}` : "",
+    shortDate(row.created_at),
+  ].filter(Boolean).join(" -- ");
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      justifyContent="space-between"
+      spacing={1}
+      sx={{
+        px: 1,
+        py: 0.75,
+        borderRadius: "10px",
+        cursor: alreadyAdded ? "default" : "pointer",
+        transition: "background 140ms ease-out",
+        "@media (hover: hover) and (pointer: fine)": {
+          "&:hover": {
+            bgcolor: alreadyAdded ? "transparent" : "action.hover",
+          },
+        },
+      }}
+      onClick={alreadyAdded ? undefined : () => onPick(row)}
+    >
+      <Typography
+        variant="body2"
+        sx={{
+          flex: 1,
+          color: alreadyAdded ? "text.secondary" : "text.primary",
+          lineHeight: 1.4,
+        }}
+      >
+        {label}
+      </Typography>
+      {alreadyAdded ? (
+        <CheckCircleIcon
+          sx={{ fontSize: 18, color: "success.main", flexShrink: 0 }}
+          aria-label="Already in investigation"
+        />
+      ) : (
+        <IconButton
+          size="small"
+          onClick={() => onPick(row)}
+          aria-label={`Add ${row.patient_name || row.patient_id}`}
+          sx={{
+            ...pressable,
+            p: 0.5,
+            color: "primary.main",
+          }}
+        >
+          <AddCircleOutlineIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      )}
+    </Stack>
   );
 }
 
@@ -71,6 +164,7 @@ export function PatientSection({
   onPick,
   emptyText,
   scroll,
+  linkedCases,
 }: {
   title: string;
   testId: string;
@@ -78,7 +172,9 @@ export function PatientSection({
   onPick: (row: ClinicalPipelineRun) => void;
   emptyText?: string;
   scroll?: boolean;
+  linkedCases?: ClinicalPipelineRun[];
 }) {
+  const linkedKeys = new Set((linkedCases || []).map(investigationKey));
   return (
     <Box data-testid={testId}>
       <Typography sx={{ ...sectionLabel, mb: 1.25 }}>{title}</Typography>
@@ -96,6 +192,7 @@ export function PatientSection({
               key={`${row.patient_id}-${row.run_id}-${row.nhs_number}`}
               row={row}
               onPick={onPick}
+              alreadyAdded={linkedKeys.has(investigationKey(row))}
             />
           ))}
         </Stack>
@@ -107,20 +204,30 @@ export function PatientSection({
 function PatientRow({
   row,
   onPick,
+  alreadyAdded = false,
 }: {
   row: ClinicalPipelineRun;
   onPick: (row: ClinicalPipelineRun) => void;
+  alreadyAdded?: boolean;
 }) {
   const why = matchLabel(row.matched_on);
   return (
     <Box
-      onClick={() => onPick(row)}
+      onClick={alreadyAdded ? undefined : () => onPick(row)}
       sx={{
         ...glassPanel,
-        ...pressable,
+        ...(!alreadyAdded && pressable),
         p: 2,
         borderRadius: "16px",
-        "&:hover": { boxShadow: "0 14px 40px rgba(15, 23, 42, 0.12)" },
+        opacity: alreadyAdded ? 0.6 : 1,
+        cursor: alreadyAdded ? "default" : "pointer",
+        "@media (hover: hover) and (pointer: fine)": {
+          "&:hover": {
+            boxShadow: alreadyAdded
+              ? undefined
+              : "0 14px 40px rgba(15, 23, 42, 0.12)",
+          },
+        },
       }}
     >
       <Stack
@@ -133,7 +240,13 @@ function PatientRow({
         <Typography sx={{ fontWeight: 700, letterSpacing: "-0.01em" }}>
           {row.patient_name || row.patient_id || "Patient"}
         </Typography>
-        <Stack direction="row" spacing={0.75}>
+        <Stack direction="row" spacing={0.75} alignItems="center">
+          {alreadyAdded ? (
+            <CheckCircleIcon
+              sx={{ fontSize: 16, color: "success.main" }}
+              aria-label="Already in investigation"
+            />
+          ) : null}
           {why ? <Chip size="small" label={why} variant="outlined" /> : null}
           {row.status ? (
             <Chip

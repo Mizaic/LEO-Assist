@@ -217,6 +217,14 @@ function measurementChanged(prev: LabWorkItem, curr: LabWorkItem): boolean {
   return Boolean(currM) && currM !== prevM;
 }
 
+export function changedLetterMarks(marks: LetterMark[]): LetterMark[] {
+  return marks.filter((mark) => mark.change && mark.change !== "stable");
+}
+
+export function firstChangedTerm(marks: LetterMark[]): string {
+  return changedLetterMarks(marks)[0]?.term || "";
+}
+
 export function changeLabel(change: LetterChange): string {
   if (change === "context") return "Context changed";
   if (change === "uncoded") return "Not coded";

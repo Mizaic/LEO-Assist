@@ -38,6 +38,7 @@ export interface LookupPanelProps {
   patients: ClinicalPipelineRun[];
   onFind: () => void;
   onPick: (row: ClinicalPipelineRun) => void;
+  linkedCases?: ClinicalPipelineRun[];
 }
 
 export function LookupPanel(props: LookupPanelProps) {
@@ -62,6 +63,7 @@ export function LookupPanel(props: LookupPanelProps) {
           testId="validation-lab-clinical-runs"
           rows={props.rows}
           onPick={props.onPick}
+          linkedCases={props.linkedCases}
         />
       ) : null}
       <UsedAndAllLists
@@ -69,6 +71,7 @@ export function LookupPanel(props: LookupPanelProps) {
         frequent={props.frequent}
         patients={props.patients}
         onPick={props.onPick}
+        linkedCases={props.linkedCases}
       />
     </Stack>
   );

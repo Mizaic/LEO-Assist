@@ -515,9 +515,13 @@ describe("VT-10011926 - Validation Lab three-path home", () => {
 
 describe("VT-F0A6B9F4 - run review mark as wrong", () => {
   test("lightbox shows letter, stages, mark as wrong, SBAR, and log", () => {
-    const lightbox = readFile(
-      "services/ui/src/app/admin/validation-lab/RunReviewLightbox.tsx",
-    );
+    const lightbox =
+      readFile(
+        "services/ui/src/app/admin/validation-lab/RunReviewLightbox.tsx",
+      ) +
+      readFile(
+        "services/ui/src/app/admin/validation-lab/useClinicalReview.ts",
+      );
     const letter = readFile(
       "services/ui/src/app/admin/validation-lab/LetterPane.tsx",
     );
@@ -597,10 +601,10 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     expect(style).toMatch(/#CBD5E1/);
     expect(style).toMatch(/#99F6E4/);
     expect(style).toMatch(/#F9A8D4/);
-    expect(lightbox).toMatch(/PipelineWizard/);
-    expect(lightbox).toMatch(/MarkWrongDialog/);
-    expect(lightbox).toMatch(/RunSheetSbarActions/);
-    expect(lightbox).toMatch(/Show live log/);
+    expect(lightbox).not.toMatch(/PipelineWizard/);
+    expect(lightbox).not.toMatch(/MarkWrongDialog/);
+    expect(lightbox).not.toMatch(/RunSheetSbarActions/);
+    expect(lightbox).not.toMatch(/Show live log/);
     expect(pane).toMatch(/Yes, this step looks right/);
     expect(pane).toMatch(/No, mark something wrong/);
     expect(pane).toMatch(/validation-lab-next-step/);
@@ -608,7 +612,7 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     expect(pane).toMatch(/Next step/);
     expect(pane).toMatch(/Show extra detail/);
     expect(pane).not.toMatch(/Mark as wrong/);
-    expect(lightbox).toMatch(/findingSavedAt/);
+    expect(lightbox).not.toMatch(/findingSavedAt/);
     expect(dialog).toMatch(/extraction/);
     expect(types).toMatch(/phrase_mapping/);
     expect(types).toMatch(/guideline_rule/);
@@ -616,6 +620,58 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     expect(types).toMatch(/Wrong kind of fact/);
     expect(types).toMatch(/Other instead of a procedure/);
     expect(dialog).not.toMatch(/ConText/);
+  });
+});
+
+describe("VT-592D30E9 - run review rewind and fact tree", () => {
+  test("lightbox has a phase rail, centre letter, and no engineer chrome", () => {
+    const lightbox = readFile(
+      "services/ui/src/app/admin/validation-lab/RunReviewLightbox.tsx",
+    );
+    const letter = readFile(
+      "services/ui/src/app/admin/validation-lab/LetterPane.tsx",
+    );
+    const rail = readFile(
+      "services/ui/src/app/admin/validation-lab/PhaseRail.tsx",
+    );
+    const phases = readFile(
+      "services/ui/src/app/admin/validation-lab/clinicalPhases.ts",
+    );
+    const tree = readFile(
+      "services/ui/src/app/admin/validation-lab/FactTree.tsx",
+    );
+    const sbar = readFile(
+      "services/ui/src/app/admin/validation-lab/DecideSbar.tsx",
+    );
+    const highlight = readFile(
+      "services/ui/src/app/admin/validation-lab/letterHighlight.ts",
+    );
+    const hook = readFile(
+      "services/ui/src/app/admin/validation-lab/useClinicalReview.ts",
+    );
+    expect(lightbox).toMatch(/PhaseRail/);
+    expect(lightbox).toMatch(/LetterPane/);
+    expect(lightbox).toMatch(/FactTree/);
+    expect(lightbox).toMatch(/DecideSbar/);
+    expect(hook).toMatch(/defaultOpenStepId/);
+    expect(hook).toMatch(/firstChangedTerm/);
+    expect(lightbox).not.toMatch(/Data flow/);
+    expect(lightbox).not.toMatch(/Summary/);
+    expect(lightbox).not.toMatch(/Did LEO find every important fact/);
+    expect(lightbox).not.toMatch(/GP note/);
+    expect(lightbox).not.toMatch(/validation-lab-retest/);
+    expect(lightbox).not.toMatch(/Build a synthetic twin/);
+    expect(letter).toMatch(/md: "50%"/);
+    expect(letter).not.toMatch(/Past history/);
+    expect(letter).toMatch(/onMarkClick/);
+    expect(letter).toMatch(/data-letter-term/);
+    expect(rail).toMatch(/validation-lab-phase-rail/);
+    expect(rail).toMatch(/CLINICAL_PHASE_LABEL/);
+    expect(phases).toMatch(/Read/);
+    expect(phases).toMatch(/Decide/);
+    expect(tree).toMatch(/validation-lab-fact-tree/);
+    expect(sbar).toMatch(/LeoSbarHost/);
+    expect(highlight).toMatch(/changedLetterMarks/);
   });
 });
 

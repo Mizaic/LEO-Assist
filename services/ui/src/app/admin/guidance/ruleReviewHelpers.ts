@@ -25,39 +25,7 @@ export type {
   PromoteResult,
 } from "./ruleReviewTypes";
 
-export function formatApiDetail(detail: unknown): string {
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) {
-    const parts = detail
-      .map((d) => {
-        if (typeof d === "string") return d;
-        if (d && typeof d === "object") {
-          const obj = d as Record<string, unknown>;
-          const loc = Array.isArray(obj.loc)
-            ? (obj.loc as unknown[]).filter((x) => x !== "body" && x !== "updates").join(".")
-            : "";
-          const msg = typeof obj.msg === "string" ? obj.msg : "";
-          if (loc && msg) return `${loc}: ${msg}`;
-          if (msg) return msg;
-        }
-        try {
-          return JSON.stringify(d);
-        } catch {
-          return String(d);
-        }
-      })
-      .filter((s) => s.length > 0);
-    return parts.join("; ");
-  }
-  if (detail && typeof detail === "object") {
-    try {
-      return JSON.stringify(detail);
-    } catch {
-      return String(detail);
-    }
-  }
-  return "";
-}
+export { formatApiDetail } from "@/lib/api/formatApiDetail";
 
 export function mergeEditedRuleIntoCache(
   previous: Rule,
