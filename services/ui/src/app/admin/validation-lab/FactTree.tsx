@@ -1,11 +1,12 @@
 /**
  * Context-then-kind tree of extracted facts.
  *
- * Atlas: DI-49BA8E04 / VT-592D30E9
+ * Atlas: DI-49BA8E04 / DI-42EB69CA / DO-DD92B11E / VT-592D30E9 / VT-E8A064C9
  */
 "use client";
 
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -20,6 +21,7 @@ interface Props {
   onToggleAssertion: (key: string) => void;
   onToggleTag: (assertion: string, tag: string) => void;
   onSelectLeaf: (leaf: FactLeaf, assertion: string, tag: string) => void;
+  onMarkWrong?: (text: string) => void;
 }
 
 export function FactTree({
@@ -30,6 +32,7 @@ export function FactTree({
   onToggleAssertion,
   onToggleTag,
   onSelectLeaf,
+  onMarkWrong,
 }: Props) {
   return (
     <Box
@@ -47,6 +50,7 @@ export function FactTree({
             onToggle={() => onToggleAssertion(group.key)}
             onToggleTag={(tag) => onToggleTag(group.key, tag)}
             onSelectLeaf={(leaf, tag) => onSelectLeaf(leaf, group.key, tag)}
+            onMarkWrong={onMarkWrong}
           />
         ))}
       </Stack>
@@ -62,6 +66,7 @@ function AssertionNode({
   onToggle,
   onToggleTag,
   onSelectLeaf,
+  onMarkWrong,
 }: {
   group: FactTreeGroup;
   open: boolean;
@@ -70,6 +75,7 @@ function AssertionNode({
   onToggle: () => void;
   onToggleTag: (tag: string) => void;
   onSelectLeaf: (leaf: FactLeaf, tag: string) => void;
+  onMarkWrong?: (text: string) => void;
 }) {
   return (
     <Box>
@@ -88,6 +94,7 @@ function AssertionNode({
               selectedText={selectedText}
               onToggle={() => onToggleTag(tag.key)}
               onSelectLeaf={(leaf) => onSelectLeaf(leaf, tag.key)}
+              onMarkWrong={onMarkWrong}
             />
           ))
         : null}
@@ -101,12 +108,14 @@ function TagNode({
   selectedText,
   onToggle,
   onSelectLeaf,
+  onMarkWrong,
 }: {
   tag: FactTagGroup;
   open: boolean;
   selectedText: string;
   onToggle: () => void;
   onSelectLeaf: (leaf: FactLeaf) => void;
+  onMarkWrong?: (text: string) => void;
 }) {
   return (
     <Box sx={{ pl: 1.5 }}>
@@ -122,6 +131,7 @@ function TagNode({
               leaf={leaf}
               selected={selectedText.toLowerCase() === leaf.text.toLowerCase()}
               onSelect={() => onSelectLeaf(leaf)}
+              onMarkWrong={onMarkWrong}
             />
           ))
         : null}
@@ -133,42 +143,54 @@ function LeafNode({
   leaf,
   selected,
   onSelect,
+  onMarkWrong,
 }: {
   leaf: FactLeaf;
   selected: boolean;
   onSelect: () => void;
+  onMarkWrong?: (text: string) => void;
 }) {
   return (
-    <ButtonBase
-      onClick={onSelect}
-      sx={{
-        display: "block",
-        width: "100%",
-        textAlign: "left",
-        pl: 3,
-        py: 0.75,
-        borderRadius: "6px",
-        bgcolor: selected ? "#EEF2FF" : "transparent",
-      }}
-      data-testid="validation-lab-fact-leaf"
-    >
-      <Typography variant="body2">{leaf.text}</Typography>
-      {leaf.code ? (
-        <Typography variant="caption" color="text.secondary" display="block">
-          {leaf.code}
-        </Typography>
+    <Box sx={{ pl: 3, py: 0.5 }}>
+      <ButtonBase
+        onClick={onSelect}
+        sx={{
+          display: "block",
+          width: "100%",
+          textAlign: "left",
+          py: 0.5,
+          borderRadius: "6px",
+          bgcolor: selected ? "#EEF2FF" : "transparent",
+        }}
+        data-testid="validation-lab-fact-leaf"
+      >
+        <Typography variant="body2">{leaf.text}</Typography>
+        {leaf.code ? (
+          <Typography variant="caption" color="text.secondary" display="block">
+            {leaf.code}
+          </Typography>
+        ) : null}
+        {leaf.value ? (
+          <Typography variant="caption" color="text.secondary" display="block">
+            {[leaf.value, leaf.unit].filter(Boolean).join(" ")}
+          </Typography>
+        ) : null}
+        {leaf.relation ? (
+          <Typography variant="caption" color="text.secondary" display="block">
+            {leaf.relation}
+          </Typography>
+        ) : null}
+      </ButtonBase>
+      {selected && onMarkWrong ? (
+        <Button
+          size="small"
+          onClick={() => onMarkWrong(leaf.text)}
+          data-testid="validation-lab-mark-wrong-leaf"
+        >
+          This is wrong
+        </Button>
       ) : null}
-      {leaf.value ? (
-        <Typography variant="caption" color="text.secondary" display="block">
-          {[leaf.value, leaf.unit].filter(Boolean).join(" ")}
-        </Typography>
-      ) : null}
-      {leaf.relation ? (
-        <Typography variant="caption" color="text.secondary" display="block">
-          {leaf.relation}
-        </Typography>
-      ) : null}
-    </ButtonBase>
+    </Box>
   );
 }
 

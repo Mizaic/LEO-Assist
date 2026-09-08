@@ -1,10 +1,11 @@
 /**
  * Clinical Validation Lab run review. Letter in the centre. Rewind four phases.
  *
- * Atlas: DI-49BA8E04 / DI-C953EF73 / DO-4FD76836 / VT-592D30E9
+ * Atlas: DI-49BA8E04 / DI-42EB69CA / DO-DD92B11E / VT-592D30E9 / VT-E8A064C9
  */
 "use client";
 
+import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
@@ -20,8 +21,11 @@ import { DecideSbar } from "./DecideSbar";
 import { FactTree } from "./FactTree";
 import type { LabWorkPreview } from "./inspectorTypes";
 import LetterPane from "./LetterPane";
+import MarkWrongDialog from "./MarkWrongDialog";
 import { PhaseRail } from "./PhaseRail";
+import { SelectedFactBar } from "./SelectedFactBar";
 import { useClinicalReview } from "./useClinicalReview";
+import { useFactFinding } from "./useFactFinding";
 
 export interface RunReviewTarget {
   title: string;
@@ -63,7 +67,52 @@ function ReviewBody({
   const labRunId = target.labRunId || "";
   const inspector = useRunInspector(target);
   const review = useClinicalReview(inspector);
+  const finding = useFactFinding(
+    labRunId || target.pipelineRunId || "",
+    inspector.selectedStepId,
+    target.readOnly,
+  );
 
+  return (
+    <ReviewDialog onClose={onClose}>
+      <ReviewHeader title={target.title} status={target.status} onClose={onClose} />
+      <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
+        <PhaseRail selected={review.selectedPhase} onSelect={review.onSelectPhase} />
+        <LetterPane
+          referralText={
+            target.referralText || inspector.snapshot?.source_text || ""
+          }
+          openedBecause={target.whyOpened}
+          highlights={review.highlights}
+          focusTerm={review.focusTerm}
+          onMarkClick={review.onMarkClick}
+        />
+        <ReviewSide
+          caseId={caseId}
+          runId={labRunId}
+          review={review}
+          readOnly={target.readOnly}
+          fixCategory={finding.fixCategory}
+          onMarkWrong={finding.openMarkWrong}
+        />
+      </Box>
+      <MarkWrongDialog
+        open={Boolean(finding.markTarget)}
+        target={finding.markTarget}
+        onClose={finding.closeMarkWrong}
+        onSave={finding.saveFinding}
+      />
+    </ReviewDialog>
+  );
+}
+
+function ReviewDialog({
+  onClose,
+  children,
+}: {
+  onClose: () => void;
+  children: ReactNode;
+}) {
   return (
     <Dialog
       open
@@ -80,22 +129,7 @@ function ReviewBody({
         },
       }}
     >
-      <Stack sx={{ height: "100%", minHeight: 0 }}>
-        <ReviewHeader title={target.title} status={target.status} onClose={onClose} />
-        <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
-          <PhaseRail selected={review.selectedPhase} onSelect={review.onSelectPhase} />
-          <LetterPane
-            referralText={
-              target.referralText || inspector.snapshot?.source_text || ""
-            }
-            openedBecause={target.whyOpened}
-            highlights={review.highlights}
-            focusTerm={review.focusTerm}
-            onMarkClick={review.onMarkClick}
-          />
-          <ReviewSide caseId={caseId} runId={labRunId} review={review} />
-        </Box>
-      </Stack>
+      <Stack sx={{ height: "100%", minHeight: 0 }}>{children}</Stack>
     </Dialog>
   );
 }
@@ -124,15 +158,27 @@ function ReviewSide({
   caseId,
   runId,
   review,
+  readOnly,
+  fixCategory,
+  onMarkWrong,
 }: {
   caseId: string;
   runId: string;
   review: ReturnType<typeof useClinicalReview>;
+  readOnly?: boolean;
+  fixCategory: ReturnType<typeof useFactFinding>["fixCategory"];
+  onMarkWrong: (text: string) => void;
 }) {
   return (
     <Box
       sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
     >
+      <SelectedFactBar
+        text={review.focusTerm}
+        readOnly={readOnly}
+        fixCategory={fixCategory}
+        onMarkWrong={onMarkWrong}
+      />
       {review.selectedPhase === "decide" ? (
         <DecideSbar caseId={caseId} runId={runId} />
       ) : (
@@ -144,6 +190,7 @@ function ReviewSide({
           onToggleAssertion={review.onToggleAssertion}
           onToggleTag={review.onToggleTag}
           onSelectLeaf={review.onSelectLeaf}
+          onMarkWrong={readOnly ? undefined : onMarkWrong}
         />
       )}
     </Box>

@@ -602,7 +602,7 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     expect(style).toMatch(/#99F6E4/);
     expect(style).toMatch(/#F9A8D4/);
     expect(lightbox).not.toMatch(/PipelineWizard/);
-    expect(lightbox).not.toMatch(/MarkWrongDialog/);
+    expect(lightbox).toMatch(/MarkWrongDialog/);
     expect(lightbox).not.toMatch(/RunSheetSbarActions/);
     expect(lightbox).not.toMatch(/Show live log/);
     expect(pane).toMatch(/Yes, this step looks right/);
@@ -672,6 +672,30 @@ describe("VT-592D30E9 - run review rewind and fact tree", () => {
     expect(tree).toMatch(/validation-lab-fact-tree/);
     expect(sbar).toMatch(/LeoSbarHost/);
     expect(highlight).toMatch(/changedLetterMarks/);
+  });
+});
+
+describe("VT-E8A064C9 - mark a selected fact as wrong", () => {
+  test("letter or tree can mark the selected fact wrong and open the fix path", () => {
+    const lightbox =
+      readFile(
+        "services/ui/src/app/admin/validation-lab/RunReviewLightbox.tsx",
+      ) +
+      readFile(
+        "services/ui/src/app/admin/validation-lab/SelectedFactBar.tsx",
+      ) +
+      readFile(
+        "services/ui/src/app/admin/validation-lab/useFactFinding.ts",
+      );
+    const tree = readFile(
+      "services/ui/src/app/admin/validation-lab/FactTree.tsx",
+    );
+    expect(lightbox).toMatch(/MarkWrongDialog/);
+    expect(lightbox).toMatch(/createFinding/);
+    expect(lightbox).toMatch(/This is wrong/);
+    expect(lightbox).toMatch(/InlineFixCards/);
+    expect(tree).toMatch(/onMarkWrong/);
+    expect(tree).toMatch(/validation-lab-mark-wrong-leaf/);
   });
 });
 
