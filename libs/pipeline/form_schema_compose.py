@@ -138,6 +138,29 @@ def _filled_ers_findings(hits: list[dict[str, Any]]) -> bool:
     )
 
 
+def resolve_bundle_schema(
+    client: Any,
+    fingerprint: str,
+    raw_texts: list[str],
+    organization_id: str = "",
+    service_id: str = "",
+    ers_service_id: str = "",
+) -> tuple[FormSchema | None, str, str, str]:
+    """Resolve a taught form, then bind the national e-RS form if needed."""
+    from libs.pipeline.form_schema_store import resolve_form_schema_traced
+
+    schema, match, loaded_key, label = resolve_form_schema_traced(
+        client,
+        fingerprint,
+        organization_id=organization_id,
+        service_id=service_id,
+        ers_service_id=ers_service_id,
+    )
+    return bind_national_ers_if_needed(
+        client, schema, raw_texts, (match, loaded_key, label)
+    )
+
+
 def bind_national_ers_if_needed(
     client: Any,
     schema: FormSchema | None,

@@ -21,6 +21,7 @@ from libs.completeness.service_domain import ensure_service_completeness_domain
 from libs.cypher.form_schema_queries import (
     DELETE_FORM_SCHEMA,
     GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
+    GET_ACTIVE_FORM_SCHEMA_BY_SERVICE,
     GET_FORM_SCHEMA_BY_FINGERPRINT,
     RELEASE_SIBLING_FORM_SCHEMAS,
     UPSERT_FORM_SCHEMA,
@@ -223,15 +224,23 @@ def _load_schema_by_org_service(
     """
     org = organization_id.strip()
     service = service_id.strip()
-    if not org or not service:
+    if not service:
         return None
-    row = _first_row(
-        client,
-        GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
-        f"service {org}/{service}",
-        organization_id=org,
-        service_id=service,
-    )
+    if not org:
+        row = _first_row(
+            client,
+            GET_ACTIVE_FORM_SCHEMA_BY_SERVICE,
+            f"service {service}",
+            service_id=service,
+        )
+    else:
+        row = _first_row(
+            client,
+            GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
+            f"service {org}/{service}",
+            organization_id=org,
+            service_id=service,
+        )
     if not row:
         return None
     try:
@@ -347,12 +356,14 @@ def form_schema_fields_from_state(
         }
     from libs.neo4j_client.client import PatientGraphClient
     from libs.pipeline.document_quality import form_fingerprint
+    from libs.pipeline.form_schema_compose import resolve_bundle_schema
 
     client = PatientGraphClient()
     try:
-        _schema, match, loaded_key, label = resolve_form_schema_traced(
+        _schema, match, loaded_key, label = resolve_bundle_schema(
             client,
             form_fingerprint(encounter_text),
+            [encounter_text],
             organization_id=organization_id,
             service_id=service_id,
             ers_service_id=str(state.get("healthcare_service_ers_id") or ""),

@@ -121,6 +121,27 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] PMH: appendicectomy 2019.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "appendicectomy", "lookup_term": "appendicectomy", "semantic_tag": "procedure", "assertion": "historical", "value": null, "unit": null, "reference_range": null}]}',
     },
+    {
+        "category": "assertion:historical",
+        "model_scope": "any",
+        "description": "e-RS dated past medical history list",
+        "input": (
+            "[s0] Past medical history\n"
+            "Diagnoses\n"
+            "03/02/2022 Asthma\n"
+            "15/06/2018 Cholecystectomy"
+        ),
+        "output": (
+            '{"terms": ['
+            '{"sentence_id": "s0", "text": "Asthma", "lookup_term": "asthma", '
+            '"semantic_tag": "disorder", "assertion": "historical", '
+            '"value": null, "unit": null, "reference_range": null}, '
+            '{"sentence_id": "s0", "text": "Cholecystectomy", '
+            '"lookup_term": "cholecystectomy", "semantic_tag": "procedure", '
+            '"assertion": "historical", "value": null, "unit": null, '
+            '"reference_range": null}]}'
+        ),
+    },
     # -- Assertion: planned ---------------------------------------------------
     {
         "category": "assertion:planned",

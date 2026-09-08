@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from libs.pipeline.extraction_review_letter import resolve_review_letter
 from libs.pipeline.extraction_review_store import (
@@ -79,14 +79,20 @@ def test_resolve_letter_loads_chunks_from_neo4j_when_ids_only() -> None:
             "char_end": 34,
         },
     ]
-    text = resolve_review_letter(
-        client=client,
-        task={},
-        state={
-            "text_segmentation_mode": "document_chunks",
-            "chunk_ids": ["c1", "c2"],
-        },
-    )
+    schema_client = MagicMock()
+    schema_client.run.return_value = []
+    with patch(
+        "libs.neo4j_client.client.PatientGraphClient",
+        return_value=schema_client,
+    ):
+        text = resolve_review_letter(
+            client=client,
+            task={},
+            state={
+                "text_segmentation_mode": "document_chunks",
+                "chunk_ids": ["c1", "c2"],
+            },
+        )
     assert "Chunk one letter" in text
     assert "Chunk two letter" in text
 

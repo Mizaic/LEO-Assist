@@ -144,6 +144,30 @@ ORDER BY s.updated_at DESC
 LIMIT 1
 """
 
+GET_ACTIVE_FORM_SCHEMA_BY_SERVICE = """
+MATCH (s:FormSchema)
+WHERE s.status = 'active'
+  AND s.service_id = $service_id
+RETURN s.schema_id AS schema_id,
+       s.fingerprint AS fingerprint,
+       s.form_name AS form_name,
+       s.version AS version,
+       s.status AS status,
+       s.sections_json AS sections_json,
+       s.created_at AS created_at,
+       s.created_by AS created_by,
+       s.organization_id AS organization_id,
+       s.service_id AS service_id,
+       s.organization_name AS organization_name,
+       s.service_name AS service_name,
+       s.organization_ods_code AS organization_ods_code,
+       s.chunk_section_map AS chunk_section_map,
+       s.prompt_contract AS prompt_contract,
+       s.completeness_groups_json AS completeness_groups_json
+ORDER BY s.updated_at DESC
+LIMIT 1
+"""
+
 LIST_FORM_SCHEMAS = """
 MATCH (s:FormSchema)
 RETURN s.schema_id AS schema_id,
