@@ -146,3 +146,88 @@ def test_placeholder_reason_does_not_satisfy_completeness() -> None:
         section_hits=hits,
     )
     assert result["complete"] is False
+
+
+def test_cis_only_letter_binds_national_form_on_quality_reresolve() -> None:
+    """A Clinical Information Summary with no 2WW page must still bind.
+
+    Quality scoring re-resolves from letter text. If that path skips the
+    national e-RS bind, CIS-only referrals pause as unlike training
+    examples even though nhs-ers-clinical-information-v1 is taught.
+    """
+    from unittest.mock import MagicMock, patch
+
+    from libs.pipeline.form_schema_store import (
+        form_schema_fields_from_state,
+        reset_schema_cache,
+    )
+
+    reset_schema_cache()
+    ers = _schema()
+    with (
+        patch(
+            "libs.neo4j_client.client.PatientGraphClient",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "libs.pipeline.form_schema_store.resolve_form_schema_traced",
+            return_value=(None, "none", "none", ""),
+        ),
+        patch(
+            "libs.pipeline.form_schema_store.load_form_schema",
+            return_value=ers,
+        ),
+    ):
+        fields = form_schema_fields_from_state({}, _FILLED_ERS)
+
+    assert fields["form_schema_match"] != "none"
+    assert fields["form_schema_fingerprint"] == "nhs-ers-clinical-information-v1"
+
+
+def test_cis_only_quality_gate_does_not_pause_when_national_form_binds() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from libs.pipeline.form_schema_store import reset_schema_cache
+    from libs.pipeline_graph.subgraphs.extraction import merge_results
+
+    reset_schema_cache()
+    ers = _schema()
+    with (
+        patch(
+            "libs.neo4j_client.client.PatientGraphClient",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "libs.pipeline.form_schema_store.resolve_form_schema_traced",
+            return_value=(None, "none", "none", ""),
+        ),
+        patch(
+            "libs.pipeline.form_schema_store.load_form_schema",
+            return_value=ers,
+        ),
+    ):
+        out = merge_results(
+            {
+                "encounter_text": _FILLED_ERS,
+                "entities": [{"text": "Appendicectomy", "label": "procedure"}],
+                "few_shot_max_similarity": 0.0,
+            }
+        )
+
+    quality = out["document_quality"]
+    assert quality["document_quality_score"] == 1.0
+    assert "few_shot_ood" not in quality["quality_reasons"]
+
+
+def test_dated_pmh_list_few_shot_keeps_each_historical_fact() -> None:
+    from libs.prompts.extraction_examples import EXTRACTION_EXAMPLES
+
+    example = next(
+        row
+        for row in EXTRACTION_EXAMPLES
+        if row.get("description") == "e-RS dated past medical history list"
+    )
+    terms = json.loads(example["output"])["terms"]
+    texts = {term["text"] for term in terms}
+    assert texts == {"Asthma", "Cholecystectomy"}
+    assert {term["assertion"] for term in terms} == {"historical"}

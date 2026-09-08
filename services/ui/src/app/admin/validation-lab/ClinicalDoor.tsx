@@ -15,19 +15,21 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import { AnimatePresence, motion as fm, useReducedMotion } from "framer-motion";
 
 import { ClinicalNcrPanel } from "./ClinicalNcrPanel";
 import { LookupPanel } from "./ClinicalPatientPicker";
 import { useClinicalDoor } from "./clinicalDoorState";
 import { useNcrInvestigation } from "./useNcrInvestigation";
-import { displayTitle, glassPanel, pressable, statusTone } from "./clinicalDoorChrome";
+import { displayTitle, glassPanel, pressable, sectionLabel, statusTone } from "./clinicalDoorChrome";
 import type { ClinicalPipelineRun } from "./labFindingsApi";
 import type { RunReviewTarget } from "./RunReviewLightbox";
-import { caseLabel } from "./ncrInvestigationCases";
+import { caseLabel, investigationKey } from "./ncrInvestigationCases";
 import type { ProductNcr } from "./ncrDraft";
 
 interface Props {
@@ -88,12 +90,7 @@ function CaseAfterNcr({
   return (
     <Box data-testid="validation-lab-clinical-after-ncr">
       <LinkedNcrBar ncr={ncr} onChange={onChangeNcr} />
-      <InvestigationCases
-        cases={door.linkedCases}
-        active={door.picked}
-        onSelect={door.onSelectCase}
-        onRemove={door.onRemoveCase}
-      />
+      {/* Search + recently used first: no scrolling to reach it */}
       <LookupPanel
         query={door.query}
         onQuery={door.setQuery}
@@ -107,6 +104,14 @@ function CaseAfterNcr({
         patients={door.patients}
         onFind={door.onFind}
         onPick={door.onPick}
+        linkedCases={door.linkedCases}
+      />
+      {/* Cases accumulate below the search -- no scroll-up needed */}
+      <InvestigationCases
+        cases={door.linkedCases}
+        active={door.picked}
+        onSelect={door.onSelectCase}
+        onRemove={door.onRemoveCase}
       />
       {door.picked ? (
         <Box sx={{ mt: 2 }}>
@@ -186,48 +191,51 @@ function InvestigationCases({
   onSelect: (row: ClinicalPipelineRun) => void;
   onRemove: (row: ClinicalPipelineRun) => void;
 }) {
-  if (cases.length === 0) {
-    return (
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 2 }}
-        data-testid="validation-lab-ncr-cases-empty"
-      >
-        Add one or more cases with an NHS number or referral number
-        (UBRN). They stay in this investigation. Atlas gets a note
-        with numbers removed.
-      </Typography>
-    );
-  }
+  const reduced = useReducedMotion();
+  if (cases.length === 0) return null;
   return (
-    <Stack spacing={1} sx={{ mb: 2 }} data-testid="validation-lab-ncr-cases">
-      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-        Cases in this investigation
+    <Box sx={{ mt: 2 }} data-testid="validation-lab-ncr-cases">
+      <Divider sx={{ mb: 2 }} />
+      <Typography sx={{ ...sectionLabel, mb: 1.5 }}>
+        Cases in this investigation ({cases.length})
       </Typography>
-      {cases.map((row) => (
-        <Stack
-          key={row.run_id || row.patient_id}
-          direction="row"
-          spacing={1}
-          alignItems="center"
-        >
-          <Button
-            size="small"
-            variant={
-              active && active.run_id === row.run_id ? "contained" : "outlined"
-            }
-            onClick={() => onSelect(row)}
-            sx={{ ...pressable, flex: 1, justifyContent: "flex-start" }}
-          >
-            {caseLabel(row)}
-          </Button>
-          <Button size="small" onClick={() => onRemove(row)} sx={pressable}>
-            Remove
-          </Button>
-        </Stack>
-      ))}
-    </Stack>
+      <Stack spacing={1}>
+        <AnimatePresence initial={false}>
+          {cases.map((row) => (
+            <fm.div
+              key={investigationKey(row)}
+              initial={{ opacity: 0, y: reduced ? 0 : -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, x: reduced ? 0 : 10 }}
+              transition={{ duration: reduced ? 0 : 0.18, ease: [0.23, 1, 0.32, 1] }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Button
+                  size="small"
+                  variant={
+                    active && active.run_id === row.run_id
+                      ? "contained"
+                      : "outlined"
+                  }
+                  onClick={() => onSelect(row)}
+                  sx={{ ...pressable, flex: 1, justifyContent: "flex-start" }}
+                >
+                  {caseLabel(row)}
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => onRemove(row)}
+                  sx={pressable}
+                  aria-label={`Remove ${caseLabel(row)}`}
+                >
+                  Remove
+                </Button>
+              </Stack>
+            </fm.div>
+          ))}
+        </AnimatePresence>
+      </Stack>
+    </Box>
   );
 }
 

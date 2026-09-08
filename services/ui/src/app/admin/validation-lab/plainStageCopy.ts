@@ -132,6 +132,10 @@ const SUFFIX_MAP: Record<string, string> = {
   sbar: "sbar",
 };
 
+export function stepCopyKey(stepId: string): string {
+  return keyFromStepId(stepId);
+}
+
 function keyFromStepId(stepId: string): string {
   const lower = stepId.toLowerCase().replace(/_/g, "-");
   // Try the last hyphen-delimited segment(s) progressively longer

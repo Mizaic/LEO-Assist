@@ -8,6 +8,7 @@
  */
 import type { OperationOutcome } from '@/lib/types/fhir';
 import { shouldDeferReauth } from '@/lib/authReauthPolicy';
+import { formatApiDetail } from './formatApiDetail';
 
 function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined') return window.location.origin;
@@ -107,10 +108,10 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     if (response.status === 401 && requireAuth) await triggerReauth();
-    const outcome = data as OperationOutcome & { detail?: string };
+    const outcome = data as OperationOutcome & { detail?: unknown };
     const message =
       outcome.issue?.[0]?.diagnostics ||
-      (typeof outcome.detail === 'string' ? outcome.detail : Array.isArray(outcome.detail) ? outcome.detail[0] : undefined) ||
+      formatApiDetail(outcome.detail) ||
       'API request failed';
     throw new ApiError(message, response.status, outcome);
   }

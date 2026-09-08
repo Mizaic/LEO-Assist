@@ -94,8 +94,13 @@ export function useClinicalDoor(onReview: (target: RunReviewTarget) => void) {
     recent,
     frequent,
     onFind: () => void findRuns(query, searchMode, mut, setLinkedCases),
-    onPick: (row: ClinicalPipelineRun) =>
-      void pickPatient(row, mut, setLinkedCases),
+    onPick: (row: ClinicalPipelineRun) => {
+      void pickPatient(row, mut, setLinkedCases).then(() => {
+        setQuery("");
+        setRows([]);
+        setSearched(false);
+      });
+    },
     onSelectCase: (row: ClinicalPipelineRun) => setPicked(row),
     onRemoveCase: (row: ClinicalPipelineRun) => {
       setLinkedCases((prev) => removeInvestigationCase(prev, row));

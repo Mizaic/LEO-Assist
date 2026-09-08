@@ -24,17 +24,23 @@ import {
   type MarkStyle,
 } from "./letterMarkStyle";
 
-export function LetterMarkLegend({ marks }: { marks: LetterMark[] }) {
+export function LetterMarkLegend({
+  marks,
+  compact = false,
+}: {
+  marks: LetterMark[];
+  compact?: boolean;
+}) {
   if (!marks.length) return null;
   const changes = unique(
     marks.map((mark) => changeLabel(mark.change || "stable")).filter(Boolean),
   );
   return (
     <Stack
-      spacing={1}
+      spacing={compact ? 0.5 : 1}
       sx={{
         mb: 1.5,
-        p: 1.25,
+        p: compact ? 1 : 1.25,
         bgcolor: "#FFFFFF",
         border: "1px solid",
         borderColor: "divider",
@@ -45,7 +51,7 @@ export function LetterMarkLegend({ marks }: { marks: LetterMark[] }) {
       <Typography variant="caption" sx={{ fontWeight: 700, color: "text.primary" }}>
         How to read a highlight
       </Typography>
-      <LegendSample />
+      {compact ? null : <LegendSample />}
       <LegendGroup
         title="When it applies -- the bar"
         variant="bar"

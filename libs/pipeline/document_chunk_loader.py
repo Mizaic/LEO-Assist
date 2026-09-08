@@ -195,27 +195,22 @@ def _resolve_chunk_schema(
 ) -> tuple[Any, dict[str, str]]:
     """Return the taught schema and inspector state fields for these chunks."""
     from libs.neo4j_client.client import PatientGraphClient
-    from libs.pipeline.form_schema_store import (
-        form_schema_state_fields,
-        resolve_form_schema_traced,
-    )
+    from libs.pipeline.form_schema_store import form_schema_state_fields
 
     if not raw_texts:
         return None, form_schema_state_fields("none")
     fingerprint = bundle_fingerprint(raw_texts)
     client = PatientGraphClient()
     try:
-        schema, match, loaded_key, label = resolve_form_schema_traced(
+        from libs.pipeline.form_schema_compose import resolve_bundle_schema
+
+        schema, match, loaded_key, label = resolve_bundle_schema(
             client,
             fingerprint,
+            raw_texts,
             organization_id=organization_id,
             service_id=service_id,
             ers_service_id=ers_service_id,
-        )
-        from libs.pipeline.form_schema_compose import bind_national_ers_if_needed
-
-        schema, match, loaded_key, label = bind_national_ers_if_needed(
-            client, schema, raw_texts, (match, loaded_key, label)
         )
     finally:
         client.close()

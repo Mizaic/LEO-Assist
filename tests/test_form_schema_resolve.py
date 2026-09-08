@@ -180,6 +180,22 @@ def test_is_known_schema_true_after_org_service_resolve() -> None:
     assert known is True
 
 
+def test_is_known_schema_true_when_org_missing_and_service_matches() -> None:
+    """Live referrals often have Service.id but no Organization.id on state."""
+    from libs.pipeline.form_schema_store import is_known_schema
+
+    letter_hash = form_fingerprint(LETTER)
+    client = MagicMock()
+    client.run.side_effect = [[], [_row(_seeded_schema())]]
+    known = is_known_schema(
+        client,
+        letter_hash,
+        organization_id="",
+        service_id=SERVICE_ID,
+    )
+    assert known is True
+
+
 def test_merge_results_bypasses_gate_when_org_service_schema_exists() -> None:
     """Worker merge_results treats the seeded alias as a known schema."""
     from libs.pipeline_graph.subgraphs.extraction import merge_results
