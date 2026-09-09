@@ -15,11 +15,13 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from libs.cypher.validation_lab_finding_queries import (
+    COUNT_RECENT_PIPELINE_RUNS,
     FIND_PIPELINE_RUNS_BY_IDENTIFIER,
     FIND_PIPELINE_RUNS_BY_LETTER,
     GET_PIPELINE_RUN_EXISTS,
     LIST_CLINICAL_PATIENTS,
     LIST_RECENT_PIPELINE_RUNS,
+    LIST_RECENT_PIPELINE_RUNS_PAGE,
 )
 
 SearchMode = Literal["patient", "letters"]
@@ -53,6 +55,24 @@ def list_recent_pipeline_runs(
 ) -> list[dict[str, Any]]:
     rows = client.run(LIST_RECENT_PIPELINE_RUNS, limit=int(limit))
     return [_run_row(row) for row in rows]
+
+
+def page_pipeline_runs(
+    client: Any,
+    *,
+    page: int = 0,
+    per_page: int = 25,
+) -> dict[str, Any]:
+    """Paginated recent PipelineRuns with total count."""
+    skip = max(0, page) * max(1, per_page)
+    rows = client.run(
+        LIST_RECENT_PIPELINE_RUNS_PAGE,
+        skip=skip,
+        per_page=int(per_page),
+    )
+    count_rows = client.run(COUNT_RECENT_PIPELINE_RUNS)
+    total = int(count_rows[0].get("total", 0)) if count_rows else 0
+    return {"rows": [_run_row(r) for r in rows], "total": total}
 
 
 def find_pipeline_runs(

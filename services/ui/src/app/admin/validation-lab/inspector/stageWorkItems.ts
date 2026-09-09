@@ -28,6 +28,24 @@ const TEXT_KEYS = [
 const CODE_KEYS = ["concept_id", "snomed_concept_id", "code", "conceptId"];
 const SENTENCE_KEYS = ["evidence_sentence", "sentence", "sentence_text"];
 
+export function clinicalFactItems(
+  output: Record<string, unknown> | null | undefined,
+  input?: Record<string, unknown> | null,
+  fallback?: LabWorkPreview | null,
+): LabWorkItem[] {
+  const payload = output && typeof output === "object" ? output : {};
+  const source = input && typeof input === "object" ? input : {};
+  const sentences = pickSentences(payload, source);
+  const fromOut = entityItems(payload, sentences);
+  const items = fromOut.length ? fromOut : entityItems(source, sentences);
+  if (items.length) return items;
+  return (fallback?.items || []).filter((item) => !isSkippedFact(item));
+}
+
+function isSkippedFact(item: LabWorkItem): boolean {
+  return item.kind === "relation" || item.kind === "sbar";
+}
+
 export function workPreviewFromStage(
   output: Record<string, unknown> | null | undefined,
   input?: Record<string, unknown> | null,

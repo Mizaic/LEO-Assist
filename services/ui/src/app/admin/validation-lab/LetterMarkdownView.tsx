@@ -85,7 +85,18 @@ export default function LetterMarkdownView({
             variant="outlined"
             label={filename}
             data-testid="validation-lab-letter-filename"
-            sx={{ mb: 1.5, maxWidth: "100%", height: "auto", py: 0.5 }}
+            sx={{
+              mb: 1.5,
+              maxWidth: "100%",
+              height: "auto",
+              "& .MuiChip-label": {
+                display: "block",
+                whiteSpace: "normal",
+                wordBreak: "break-all",
+                lineHeight: 1.4,
+                py: 0.5,
+              },
+            }}
           />
         ) : null}
         {blocks.map((block, index) => (

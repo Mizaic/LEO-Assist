@@ -63,6 +63,8 @@ export function stepsInPhase(
     .map((span) => span.step_id);
 }
 
+const CODE_FACT_KEYS = new Set(["terminology", "coding-verify", "coding"]);
+
 export function phaseSnapshotStepId(
   spans: PhaseSpan[],
   phase: ClinicalPhaseId,
@@ -72,9 +74,18 @@ export function phaseSnapshotStepId(
     (span) => phaseForStepId(span.step_id, order) === phase,
   );
   if (!inPhase.length) return null;
-  const done = inPhase.filter((span) => span.status === "completed");
-  const pick = done.length ? done : inPhase;
+  const pool =
+    phase === "code" ? codeFactSpans(inPhase) : inPhase;
+  const done = pool.filter((span) => span.status === "completed");
+  const pick = done.length ? done : pool;
   return pick[pick.length - 1].step_id;
+}
+
+function codeFactSpans(spans: PhaseSpan[]): PhaseSpan[] {
+  const preferred = spans.filter((span) =>
+    CODE_FACT_KEYS.has(stepCopyKey(span.step_id)),
+  );
+  return preferred.length ? preferred : spans;
 }
 
 export function defaultOpenStepId(spans: PhaseSpan[]): string | null {
@@ -83,6 +94,16 @@ export function defaultOpenStepId(spans: PhaseSpan[]): string | null {
     spans[spans.length - 1]?.step_id ||
     null
   );
+}
+
+export function applyPhaseClick(
+  spans: PhaseSpan[],
+  phase: ClinicalPhaseId,
+): { selectedPhase: ClinicalPhaseId; selectedStepId: string | null } {
+  return {
+    selectedPhase: phase,
+    selectedStepId: phaseSnapshotStepId(spans, phase),
+  };
 }
 
 export function phaseIndex(phase: ClinicalPhaseId): number {

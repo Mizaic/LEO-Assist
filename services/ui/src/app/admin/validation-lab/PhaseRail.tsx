@@ -60,6 +60,7 @@ export function PhaseRail({ selected, onSelect }: Props) {
               borderLeftColor: active ? "primary.main" : "transparent",
               bgcolor: active ? "#FFFFFF" : "transparent",
               fontWeight: active ? 700 : 500,
+              cursor: "pointer",
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: "inherit" }}>

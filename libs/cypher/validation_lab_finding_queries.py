@@ -81,6 +81,36 @@ ORDER BY r.created_at DESC
 LIMIT $limit
 """
 
+# Paginated variant -- use with $skip and $per_page
+LIST_RECENT_PIPELINE_RUNS_PAGE = """
+MATCH (r:PipelineRun)
+WHERE r.id IS NOT NULL
+OPTIONAL MATCH (p:Patient)-[:HAS_ENCOUNTER]->(:Encounter)-[:TRIGGERED]->(r)
+OPTIONAL MATCH (p2:Patient)-[:HAS_ENCOUNTER]->(:Encounter)<-[:FOR_ENCOUNTER]-(r)
+OPTIONAL MATCH (p3:Patient)-[:HAS_PIPELINE_RUN]->(r)
+OPTIONAL MATCH (p4:Patient {id: r.patient_id})
+WITH r, coalesce(p, p2, p3, p4) AS patient
+OPTIONAL MATCH (rr:ReferralRequest)-[:FOR_PATIENT]->(patient)
+WITH r, patient, head(collect(rr)) AS rr
+RETURN r.id AS run_id,
+       coalesce(r.status, '') AS status,
+       toString(coalesce(r.created_at, r.updated_at, datetime())) AS created_at,
+       coalesce(r.plan_definition_id, r.plan_id, '') AS plan_id,
+       coalesce(patient.id, '') AS patient_id,
+       coalesce(patient.displayName, patient.name, '') AS patient_name,
+       coalesce(patient.nhsNumber, '') AS nhs_number,
+       coalesce(rr.ubrn, rr.id, '') AS ubrn
+ORDER BY r.created_at DESC
+SKIP $skip
+LIMIT $per_page
+"""
+
+COUNT_RECENT_PIPELINE_RUNS = """
+MATCH (r:PipelineRun)
+WHERE r.id IS NOT NULL
+RETURN count(r) AS total
+"""
+
 LIST_CLINICAL_PATIENTS = """
 MATCH (r:PipelineRun)
 WHERE r.id IS NOT NULL

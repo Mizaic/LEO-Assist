@@ -19,7 +19,7 @@ import {
 } from "@/hooks/useLabRunInspector";
 import { DecideSbar } from "./DecideSbar";
 import { FactTree } from "./FactTree";
-import type { LabWorkPreview } from "./inspectorTypes";
+import type { LabTraceSpan, LabWorkPreview } from "./inspectorTypes";
 import LetterPane from "./LetterPane";
 import MarkWrongDialog from "./MarkWrongDialog";
 import { PhaseRail } from "./PhaseRail";
@@ -87,14 +87,18 @@ function ReviewBody({
           focusTerm={review.focusTerm}
           onMarkClick={review.onMarkClick}
         />
-        <ReviewSide
-          caseId={caseId}
-          runId={labRunId}
-          review={review}
-          readOnly={target.readOnly}
-          fixCategory={finding.fixCategory}
-          onMarkWrong={finding.openMarkWrong}
-        />
+          <ReviewSide
+            decide={{
+              caseId: caseId || target.assessmentCaseId || "",
+              runId: labRunId,
+              pipelineRunId: target.pipelineRunId || "",
+              spans: inspector.spans,
+            }}
+            review={review}
+            readOnly={target.readOnly}
+            fixCategory={finding.fixCategory}
+            onMarkWrong={finding.openMarkWrong}
+          />
       </Box>
       <MarkWrongDialog
         open={Boolean(finding.markTarget)}
@@ -155,15 +159,18 @@ function useRunInspector(target: RunReviewTarget) {
 }
 
 function ReviewSide({
-  caseId,
-  runId,
+  decide,
   review,
   readOnly,
   fixCategory,
   onMarkWrong,
 }: {
-  caseId: string;
-  runId: string;
+  decide: {
+    caseId: string;
+    runId: string;
+    pipelineRunId: string;
+    spans: LabTraceSpan[];
+  };
   review: ReturnType<typeof useClinicalReview>;
   readOnly?: boolean;
   fixCategory: ReturnType<typeof useFactFinding>["fixCategory"];
@@ -179,8 +186,18 @@ function ReviewSide({
         fixCategory={fixCategory}
         onMarkWrong={onMarkWrong}
       />
+      {review.phaseReached ? null : (
+        <Typography variant="body2" color="text.secondary" sx={{ px: 1.5, pt: 1.5 }}>
+          LEO did not reach this step. The run stopped earlier.
+        </Typography>
+      )}
       {review.selectedPhase === "decide" ? (
-        <DecideSbar caseId={caseId} runId={runId} />
+        <DecideSbar
+          caseId={decide.caseId}
+          runId={decide.runId}
+          pipelineRunId={decide.pipelineRunId}
+          spans={decide.spans}
+        />
       ) : (
         <FactTree
           groups={review.tree}

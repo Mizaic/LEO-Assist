@@ -23,7 +23,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { AnimatePresence, motion as fm, useReducedMotion } from "framer-motion";
 
 import { ClinicalNcrPanel } from "./ClinicalNcrPanel";
-import { LookupPanel } from "./ClinicalPatientPicker";
+import { RunPickerGrid } from "./RunPickerGrid";
 import { useClinicalDoor } from "./clinicalDoorState";
 import { useNcrInvestigation } from "./useNcrInvestigation";
 import { displayTitle, glassPanel, pressable, sectionLabel, statusTone } from "./clinicalDoorChrome";
@@ -91,20 +91,9 @@ function CaseAfterNcr({
     <Box data-testid="validation-lab-clinical-after-ncr">
       <LinkedNcrBar ncr={ncr} onChange={onChangeNcr} />
       {/* Search + recently used first: no scrolling to reach it */}
-      <LookupPanel
-        query={door.query}
-        onQuery={door.setQuery}
-        searchMode={door.searchMode}
-        onSearchMode={door.setSearchMode}
-        busy={door.busy}
-        searched={door.searched}
-        rows={door.rows}
-        recent={door.recent}
-        frequent={door.frequent}
-        patients={door.patients}
-        onFind={door.onFind}
-        onPick={door.onPick}
+      <RunPickerGrid
         linkedCases={door.linkedCases}
+        onPick={door.onPick}
       />
       {/* Cases accumulate below the search -- no scroll-up needed */}
       <InvestigationCases

@@ -98,6 +98,24 @@ export function listClinicalPatients(opts?: {
   return apiJson(path);
 }
 
+export interface RunPageResult {
+  rows: ClinicalPipelineRun[];
+  total: number;
+}
+
+export function listClinicalRunsPage(params?: {
+  q?: string;
+  page?: number;
+  per_page?: number;
+}): Promise<RunPageResult> {
+  const { q = "", page = 0, per_page = 25 } = params || {};
+  const qs = new URLSearchParams();
+  if (q.trim()) qs.set("q", q.trim());
+  qs.set("page", String(page));
+  qs.set("per_page", String(per_page));
+  return apiJson(`/api/validation-lab/pipeline-runs/page?${qs}`);
+}
+
 export function getPipelineRunInspector(
   runId: string,
 ): Promise<LabRunInspectorSnapshot> {

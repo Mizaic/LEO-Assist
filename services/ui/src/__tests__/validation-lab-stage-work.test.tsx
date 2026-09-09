@@ -10,6 +10,7 @@ import type { LabStageDetail, LabTraceSpan } from "../app/admin/validation-lab/i
 import { LetterMarkLegend } from "../app/admin/validation-lab/LetterMarks";
 import { StageWorkPreview } from "../app/admin/validation-lab/inspector/StageWorkPreview";
 import {
+  clinicalFactItems,
   extractRelationItems,
   formatEvidenceTooltip,
   plainLetterText,
@@ -458,6 +459,27 @@ describe("workPreviewFromStage -- relation-link output", () => {
     expect(preview.headline).toBe("Found 1 link");
     expect(preview.items?.[0].kind).toBe("relation");
     expect(preview.items?.[0].relationType).toBe("linked to");
+  });
+
+  it("keeps extracted facts for the clinical tree when links are also present", () => {
+    const items = clinicalFactItems({
+      entities: [
+        {
+          text: "weight loss",
+          label: "finding",
+          concept_id: "263521009",
+          __relations: [
+            { type: "associated_finding", target_text: "pancreatic cancer" },
+          ],
+        },
+        { text: "atrial fibrillation", label: "disorder" },
+      ],
+    });
+    expect(items.map((item) => item.text)).toEqual([
+      "weight loss",
+      "atrial fibrillation",
+    ]);
+    expect(items.some((item) => item.kind === "relation")).toBe(false);
   });
 });
 
