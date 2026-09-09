@@ -2,6 +2,11 @@
  * Save a Validation Lab finding for the selected fact.
  *
  * Atlas: DI-42EB69CA / DI-562F2C9E / DO-DD92B11E / VT-E8A064C9
+ *
+ * Atlas trace:
+ *   DO: DO-DD92B11E
+ *   DI: DI-42EB69CA
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-DD92B11E")
  */
 
 import { useState } from "react";

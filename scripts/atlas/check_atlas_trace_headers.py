@@ -143,7 +143,7 @@ def main() -> int:
     print(f"  skipped (triage queue):  {skipped_triage}")
     print(f"  MISSING:                 {len(missing)}")
 
-    if missing and (args.list_missing or args.report):
+    if missing:
         print("\nMissing files:")
         for m in missing[:50]:
             print(f"  {m}")

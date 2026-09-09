@@ -324,7 +324,7 @@ jobs:
   build-push:
     name: Build ${{ matrix.service }}
     needs: [test, detect-changes]
-    if: needs.detect-changes.outputs.has_backend == 'true'
+    if: needs.test.result == 'success' && needs.detect-changes.outputs.has_backend == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -407,7 +407,7 @@ jobs:
   build-push-ui:
     name: Build ui
     needs: [test, detect-changes]
-    if: needs.detect-changes.outputs.build_ui == 'true'
+    if: needs.test.result == 'success' && needs.detect-changes.outputs.build_ui == 'true'
     runs-on: ubuntu-latest
 
     steps:

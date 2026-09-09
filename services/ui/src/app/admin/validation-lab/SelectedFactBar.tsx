@@ -2,6 +2,11 @@
  * Mark the selected letter or tree fact as wrong, then open the fix path.
  *
  * Atlas: DI-42EB69CA / DO-DD92B11E / VT-E8A064C9
+ *
+ * Atlas trace:
+ *   DO: DO-DD92B11E
+ *   DI: DI-42EB69CA
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-DD92B11E")
  */
 "use client";
 

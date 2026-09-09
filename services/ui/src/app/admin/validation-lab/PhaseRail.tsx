@@ -2,6 +2,12 @@
  * Four-phase rewind rail for clinical run review.
  *
  * Atlas: DI-49BA8E04 / VT-592D30E9
+ *
+ * Atlas trace:
+ *   DO: DO-7B63A6BE
+ *   DI: DI-49BA8E04
+ *   Risks: R-823853D7
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-7B63A6BE")
  */
 "use client";
 

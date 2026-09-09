@@ -2,6 +2,12 @@
  * Open on Decide, rewind phases, and sync letter marks with the fact tree.
  *
  * Atlas: DI-49BA8E04 / VT-592D30E9
+ *
+ * Atlas trace:
+ *   DO: DO-7B63A6BE
+ *   DI: DI-49BA8E04
+ *   Risks: R-823853D7
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-7B63A6BE")
  */
 
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
