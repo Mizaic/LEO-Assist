@@ -2,6 +2,13 @@
  * Clinical Validation Lab run review. Letter in the centre. Rewind four phases.
  *
  * Atlas: DI-49BA8E04 / DI-42EB69CA / DO-DD92B11E / VT-592D30E9 / VT-E8A064C9
+ *
+ * Atlas trace:
+ *   DO: DO-7B63A6BE
+ *   DI: DI-49BA8E04
+ *   Also implements: DO-DD92B11E
+ *   Risks: R-823853D7
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-7B63A6BE")
  */
 "use client";
 
