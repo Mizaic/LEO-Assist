@@ -5,50 +5,46 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
-import { LeoSbarHost } from "@/components/sbar-final/LeoSbarHost";
-import { loadSbarAssessmentId } from "./labApi";
+import { LeoSbarHost, SbarFinalView } from "@/components/sbar-final";
+import type { PhaseSpan } from "./clinicalPhases";
+import { DecideOutcomes } from "./DecideOutcomes";
+import { useDecideEvidence } from "./useDecideEvidence";
 
 interface Props {
   caseId: string;
   runId: string;
+  pipelineRunId?: string;
+  spans: PhaseSpan[];
 }
 
-export function DecideSbar({ caseId, runId }: Props) {
-  const [assessmentId, setAssessmentId] = useState<string | null>(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!caseId || !runId) return;
-    let alive = true;
-    void loadSbarAssessmentId(caseId, runId)
-      .then((id) => {
-        if (!alive) return;
-        setAssessmentId(id);
-        setError(id ? "" : "The draft is not ready yet.");
-      })
-      .catch(() => {
-        if (!alive) return;
-        setAssessmentId(null);
-        setError("We could not load the draft.");
-      });
-    return () => {
-      alive = false;
-    };
-  }, [caseId, runId]);
-
+export function DecideSbar({
+  caseId,
+  runId,
+  pipelineRunId = "",
+  spans,
+}: Props) {
+  const view = useDecideEvidence(caseId, runId, pipelineRunId, spans);
   return (
     <Box
       sx={{ flex: 1, minHeight: 0, overflow: "auto", p: 1.5 }}
       data-testid="validation-lab-decide-sbar"
     >
-      {assessmentId ? <LeoSbarHost assessmentId={assessmentId} /> : null}
-      {!assessmentId ? (
+      <DecideOutcomes
+        guideline={view.guideline}
+        completeness={view.completeness}
+      />
+      {view.assessmentId ? (
+        <LeoSbarHost assessmentId={view.assessmentId} />
+      ) : null}
+      {!view.assessmentId && view.markdown ? (
+        <SbarFinalView markdown={view.markdown} testIdPrefix="validation-lab-sbar" />
+      ) : null}
+      {!view.assessmentId && !view.markdown ? (
         <Typography variant="body2" color="text.secondary">
-          {error || "Loading the draft..."}
+          {view.loading ? "Loading the draft..." : view.error || "The draft is not ready yet."}
         </Typography>
       ) : null}
     </Box>

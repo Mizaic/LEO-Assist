@@ -25,6 +25,7 @@ from libs.validation_lab.clinical_runs import (
     find_pipeline_runs,
     list_clinical_patients,
     list_recent_pipeline_runs,
+    page_pipeline_runs,
 )
 from libs.validation_lab.findings import FindingError
 
@@ -93,6 +94,29 @@ def list_open_findings(
     client = _client()
     try:
         return finding_service.list_open_findings(client, limit=limit)
+    finally:
+        client.close()
+
+
+@router.get("/pipeline-runs/page")
+def list_pipeline_runs_page(
+    page: int = Query(default=0, ge=0),
+    per_page: int = Query(default=25, ge=1, le=100),
+    q: str | None = Query(default=None),
+    _scope: CallerScope = Depends(require_admin_or_service),
+) -> dict[str, Any]:
+    """Paginated recent PipelineRuns. With q, does a server-side search."""
+    client = _client()
+    try:
+        query = str(q or "").strip()
+        if query:
+            rows = find_pipeline_runs(
+                client, query=query, limit=per_page * 4, mode="patient"
+            )
+            skip = page * per_page
+            paged = rows[skip: skip + per_page]
+            return {"rows": paged, "total": len(rows)}
+        return page_pipeline_runs(client, page=page, per_page=per_page)
     finally:
         client.close()
 

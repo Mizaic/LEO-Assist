@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 
 import {
+  applyPhaseClick,
   defaultOpenStepId,
   phaseForStepId,
   phaseSnapshotStepId,
@@ -14,7 +15,7 @@ import {
   type PhaseSpan,
 } from "./clinicalPhases";
 import { buildFactTree, type FactLeaf, type FactTreeGroup } from "./factTree";
-import { workPreviewFromStage } from "./inspector/stageWorkItems";
+import { clinicalFactItems } from "./inspector/stageWorkItems";
 import type { LabStageDetail, LabWorkPreview } from "./inspectorTypes";
 import type { LetterMark } from "./letterHighlight";
 import { firstChangedTerm, stageLetterHighlights } from "./letterHighlight";
@@ -30,6 +31,7 @@ interface InspectorSlice {
 
 export interface ClinicalReviewState {
   selectedPhase: ClinicalPhaseId;
+  phaseReached: boolean;
   highlights: LetterMark[];
   tree: FactTreeGroup[];
   focusTerm: string;
@@ -46,28 +48,36 @@ export function useClinicalReview(inspector: InspectorSlice): ClinicalReviewStat
   const [focusTerm, setFocusTerm] = useState("");
   const [openAssertion, setOpenAssertion] = useState<string | null>(null);
   const [openTag, setOpenTag] = useState<string | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<ClinicalPhaseId>("decide");
+  const userPicked = useRef(false);
   const lastPhase = useRef<ClinicalPhaseId | null>(null);
-  const stepOrder = inspector.spans.map((span) => span.step_id);
-  const selectedPhase =
-    phaseForStepId(inspector.selectedStepId || "", stepOrder) || "decide";
+  const phaseStepId = phaseSnapshotStepId(inspector.spans, selectedPhase);
   const highlights = stageLetterHighlights(
-    inspector.selectedStepId,
+    phaseStepId || inspector.selectedStepId,
     inspector.spans,
     inspector.stageDetail,
     focusTerm,
   );
 
-  useOpenDecideStep(inspector);
+  useOpenDecideStep(inspector, userPicked, setSelectedPhase);
   useRewindFocus(selectedPhase, lastPhase, highlights, setFocusTerm);
 
   return {
     selectedPhase,
+    phaseReached: Boolean(phaseStepId),
     highlights,
-    tree: treeFromInspector(inspector),
+    tree: treeFromInspector(inspector, phaseStepId),
     focusTerm,
     openAssertion,
     openTag,
-    onSelectPhase: (phase) => selectPhase(inspector, phase),
+    onSelectPhase: (phase) => {
+      userPicked.current = true;
+      const next = applyPhaseClick(inspector.spans, phase);
+      setSelectedPhase(next.selectedPhase);
+      if (next.selectedStepId) {
+        inspector.setSelectedStepId(next.selectedStepId);
+      }
+    },
     onMarkClick: (mark) => {
       setFocusTerm(mark.term);
       setOpenAssertion(assertionKey(mark.assertion));
@@ -87,34 +97,38 @@ export function useClinicalReview(inspector: InspectorSlice): ClinicalReviewStat
   };
 }
 
-function treeFromInspector(inspector: InspectorSlice): FactTreeGroup[] {
-  const preview = workPreviewFromStage(
-    inspector.stageDetail?.step_id === inspector.selectedStepId
+function treeFromInspector(
+  inspector: InspectorSlice,
+  phaseStepId: string | null,
+): FactTreeGroup[] {
+  if (!phaseStepId) return buildFactTree([]);
+  const items = clinicalFactItems(
+    inspector.stageDetail?.step_id === phaseStepId
       ? inspector.stageDetail?.output
       : null,
     inspector.stageDetail?.input,
-    inspector.spans.find((span) => span.step_id === inspector.selectedStepId)
+    inspector.spans.find((span) => span.step_id === phaseStepId)
       ?.work_preview,
   );
-  return buildFactTree(preview.items || []);
+  return buildFactTree(items);
 }
 
-function selectPhase(inspector: InspectorSlice, phase: ClinicalPhaseId): void {
-  const stepId = phaseSnapshotStepId(inspector.spans, phase);
-  if (stepId) inspector.setSelectedStepId(stepId);
-}
-
-function useOpenDecideStep(inspector: InspectorSlice): void {
+function useOpenDecideStep(
+  inspector: InspectorSlice,
+  userPicked: MutableRefObject<boolean>,
+  setSelectedPhase: (phase: ClinicalPhaseId) => void,
+): void {
   useEffect(() => {
+    if (userPicked.current) return;
     const openId = defaultOpenStepId(inspector.spans);
     if (!openId) return;
-    const known = inspector.spans.some(
-      (span) => span.step_id === inspector.selectedStepId,
-    );
-    if (!inspector.selectedStepId || !known) {
+    const order = inspector.spans.map((span) => span.step_id);
+    const phase = phaseForStepId(openId, order) || "read";
+    setSelectedPhase(phase);
+    if (inspector.selectedStepId !== openId) {
       inspector.setSelectedStepId(openId);
     }
-  }, [inspector.spans, inspector.selectedStepId, inspector.setSelectedStepId]);
+  }, [inspector.spans, inspector.selectedStepId, inspector.setSelectedStepId, setSelectedPhase, userPicked]);
 }
 
 function useRewindFocus(

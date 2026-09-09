@@ -461,20 +461,17 @@ describe("VT-10011926 - Validation Lab three-path home", () => {
     const clinical = readFile(
       "services/ui/src/app/admin/validation-lab/ClinicalDoor.tsx",
     );
-    const picker = readFile(
-      "services/ui/src/app/admin/validation-lab/ClinicalPatientPicker.tsx",
+    const grid = readFile(
+      "services/ui/src/app/admin/validation-lab/RunPickerGrid.tsx",
     );
-    const lists = readFile(
-      "services/ui/src/app/admin/validation-lab/ClinicalPatientLists.tsx",
+    const gridRows = readFile(
+      "services/ui/src/app/admin/validation-lab/RunPickerRows.tsx",
     );
     const chrome = readFile(
       "services/ui/src/app/admin/validation-lab/clinicalDoorChrome.ts",
     );
     const doorState = readFile(
       "services/ui/src/app/admin/validation-lab/clinicalDoorState.ts",
-    );
-    const used = readFile(
-      "services/ui/src/app/admin/validation-lab/clinicalUsedPatients.ts",
     );
     expect(home).toMatch(/Investigate a non-conformance/);
     expect(home).toMatch(/Run baseline tests/);
@@ -485,29 +482,23 @@ describe("VT-10011926 - Validation Lab three-path home", () => {
     expect(rule).toMatch(/listGuidanceRules/);
     expect(rule).toMatch(/queueCasePipeline/);
     expect(rule).toMatch(/uniqueByRuleId/);
-    expect(doorState).toMatch(/listClinicalPipelineRuns/);
-    expect(doorState).toMatch(/listClinicalPatients/);
-    expect(doorState).toMatch(/searchMode/);
-    expect(doorState).toMatch(/listClinicalPipelineRuns\(\{ q, mode \}\)/);
+    expect(doorState).toMatch(/hydrateCases/);
+    expect(doorState).toMatch(/whyOpened/);
+    expect(doorState).not.toMatch(/referralText: why/);
     expect(clinical).toMatch(/does not start a new job/);
     expect(clinical).toMatch(/ClinicalNcrPanel/);
     expect(clinical).toMatch(/Why did you open this\?/);
     expect(clinical).not.toMatch(/label="Why did you open this\?"/);
-    expect(picker).toMatch(/NHS number, or referral number/);
-    expect(picker).toMatch(/UBRN/);
-    expect(picker).toMatch(/In letters/);
-    expect(picker).toMatch(/Words from the letter/);
-    expect(lists).toMatch(/Recently used/);
-    expect(lists).toMatch(/Frequently used/);
-    expect(lists).toMatch(/All patients/);
+    expect(clinical).toMatch(/RunPickerGrid/);
+    expect(grid).toMatch(/NHS number or UBRN/);
+    expect(grid).toMatch(/listClinicalRunsPage/);
+    expect(grid).toMatch(/PAGE_SIZE/);
+    expect(gridRows).toMatch(/NhsGroupRows/);
+    expect(gridRows).toMatch(/RunDataRow/);
+    expect(gridRows).toMatch(/GridSortHeader/);
     expect(chrome).toMatch(/backdropFilter/);
     expect(chrome).toMatch(/prefers-reduced-motion/);
     expect(chrome).toMatch(/matchLabel/);
-    expect(picker).toMatch(/glassPanel/);
-    expect(used).toMatch(/recentlyUsed/);
-    expect(used).toMatch(/frequentlyUsed/);
-    expect(doorState).toMatch(/whyOpened/);
-    expect(doorState).not.toMatch(/referralText: why/);
     expect(home).toMatch(/Look up or open the product NCR/);
     expect(page).toMatch(/AccuracyLoopHome/);
   });
@@ -654,6 +645,8 @@ describe("VT-592D30E9 - run review rewind and fact tree", () => {
     expect(lightbox).toMatch(/FactTree/);
     expect(lightbox).toMatch(/DecideSbar/);
     expect(hook).toMatch(/defaultOpenStepId/);
+    expect(hook).toMatch(/applyPhaseClick/);
+    expect(hook).toMatch(/setSelectedPhase/);
     expect(hook).toMatch(/firstChangedTerm/);
     expect(lightbox).not.toMatch(/Data flow/);
     expect(lightbox).not.toMatch(/Summary/);
@@ -665,12 +658,18 @@ describe("VT-592D30E9 - run review rewind and fact tree", () => {
     expect(letter).not.toMatch(/Past history/);
     expect(letter).toMatch(/onMarkClick/);
     expect(letter).toMatch(/data-letter-term/);
+    expect(
+      readFile("services/ui/src/app/admin/validation-lab/LetterMarkdownView.tsx"),
+    ).toMatch(/wordBreak:\s*"break-all"/);
     expect(rail).toMatch(/validation-lab-phase-rail/);
     expect(rail).toMatch(/CLINICAL_PHASE_LABEL/);
     expect(phases).toMatch(/Read/);
     expect(phases).toMatch(/Decide/);
     expect(tree).toMatch(/validation-lab-fact-tree/);
     expect(sbar).toMatch(/LeoSbarHost/);
+    expect(sbar).toMatch(/DecideOutcomes/);
+    expect(sbar).toMatch(/SbarFinalView/);
+    expect(sbar).toMatch(/pipelineRunId/);
     expect(highlight).toMatch(/changedLetterMarks/);
   });
 });

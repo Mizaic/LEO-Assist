@@ -6,6 +6,7 @@
 
 import {
   CLINICAL_PHASES,
+  applyPhaseClick,
   defaultOpenStepId,
   phaseForStepId,
   phaseSnapshotStepId,
@@ -62,7 +63,9 @@ describe("clinicalPhases", () => {
     expect(phaseSnapshotStepId(spans, "clean")).toBe(
       "act-ref-extraction-check",
     );
-    expect(phaseSnapshotStepId(spans, "code")).toBe("act-ref-persist");
+    expect(phaseSnapshotStepId(spans, "code")).toBe(
+      "act-ref-coding-verifier",
+    );
     expect(phaseSnapshotStepId(spans, "decide")).toBe("act-ref-sbar");
   });
 
@@ -75,5 +78,18 @@ describe("clinicalPhases", () => {
 
   test("review opens on the Decide snapshot", () => {
     expect(defaultOpenStepId(spansFrom(REFERRAL_STEPS))).toBe("act-ref-sbar");
+  });
+
+  test("later phases stay selectable when the run failed at Read", () => {
+    const spans = spansFrom(["act-ref-extract"], "failed");
+    expect(phaseSnapshotStepId(spans, "clean")).toBeNull();
+    expect(applyPhaseClick(spans, "clean")).toEqual({
+      selectedPhase: "clean",
+      selectedStepId: null,
+    });
+    expect(applyPhaseClick(spans, "decide")).toEqual({
+      selectedPhase: "decide",
+      selectedStepId: null,
+    });
   });
 });
