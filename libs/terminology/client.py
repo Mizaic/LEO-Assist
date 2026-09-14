@@ -5,7 +5,7 @@ Atlas trace:
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-572A5C05")
 
 Provides both synchronous and asynchronous clients for the Terminology API.
-All pipeline code should import from here — do NOT duplicate.
+All pipeline code should import from here -- do NOT duplicate.
 """
 
 from __future__ import annotations
@@ -200,6 +200,16 @@ _runtime_cache_value = dict(_DEFAULT_RUNTIME_CONFIG)
 _ignore_pattern_cache_lock = threading.Lock()
 _ignore_pattern_cache_loaded_at = 0.0
 _ignore_pattern_cache_value: tuple[re.Pattern[str], ...] = ()
+
+
+class TerminologyUnavailable(RuntimeError):
+    """The terminology lookup itself failed, so nothing was looked up.
+
+    This is not the same answer as "the service replied and holds no safe
+    match". Rule 2 of .cursor/rules/fail-closed-boundary.mdc: a resolution
+    lookup has three answers -- Found, NotFound, and LookupFailed -- and
+    "we could not ask" must never be handed back as "definitely not there".
+    """
 
 
 @dataclass(frozen=True)
@@ -557,7 +567,7 @@ class TerminologyClient:
                                     len(terms),
                                 )
                                 return _parse_results(data.get("results", {}))
-                        except Exception:
+                        except Exception as final_exc:
                             if final_attempt + 1 == final_attempts:
                                 logger.error(
                                     "Terminology resolve remained unavailable or too slow after cooldown and %d final attempt(s) for %d term(s); failing workflow.",
@@ -565,8 +575,15 @@ class TerminologyClient:
                                     len(terms),
                                     exc_info=True,
                                 )
-                                return {}
-        return {}
+                                raise TerminologyUnavailable(
+                                    "Could not reach the terminology service to "
+                                    f"look up {len(terms)} term(s) after "
+                                    f"{final_attempts} final attempt(s)."
+                                ) from final_exc
+        raise TerminologyUnavailable(
+            "Could not reach the terminology service to look up "
+            f"{len(terms)} term(s)."
+        )
 
     def resolve(
         self,
@@ -617,9 +634,10 @@ class TerminologyClient:
 
         aggregated: dict[str, list[ResolvedTerm]] = {}
         for batch in _chunk_terms(normalised_unique, chunk_size):
+            # An unreachable service raises TerminologyUnavailable. An empty
+            # batch result therefore means the service answered and holds no
+            # safe match, which is a real answer and not a reason to abort.
             batch_results = self._resolve_batch(batch, norm_tags, runtime, org_id=oid)
-            if not batch_results and batch:
-                return {}
             aggregated.update(batch_results)
 
         rekeyed: dict[str, list[ResolvedTerm]] = {}
@@ -721,7 +739,9 @@ class TerminologyClient:
                     if isinstance(row, dict)
                 }
         except Exception:
-            logger.warning("batch_get_related failed for %d ids", len(unique), exc_info=True)
+            logger.warning(
+                "batch_get_related failed for %d ids", len(unique), exc_info=True
+            )
             return {}
 
     def get_descendants(
@@ -847,7 +867,7 @@ class AsyncTerminologyClient:
                                 len(terms),
                             )
                             return data.get("results", {})
-                    except Exception:
+                    except Exception as final_exc:
                         if final_attempt + 1 == final_attempts:
                             logger.error(
                                 "Async terminology resolve remained unavailable or too slow after cooldown and %d final attempt(s) for %d term(s); failing workflow.",
@@ -855,8 +875,15 @@ class AsyncTerminologyClient:
                                 len(terms),
                                 exc_info=True,
                             )
-                            return {}
-        return {}
+                            raise TerminologyUnavailable(
+                                "Could not reach the terminology service to "
+                                f"look up {len(terms)} term(s) after "
+                                f"{final_attempts} final attempt(s)."
+                            ) from final_exc
+        raise TerminologyUnavailable(
+            "Could not reach the terminology service to look up "
+            f"{len(terms)} term(s)."
+        )
 
     async def resolve(
         self,
@@ -916,9 +943,10 @@ class AsyncTerminologyClient:
 
         aggregated: dict[str, list[dict[str, Any]]] = {}
         for batch in _chunk_terms(normalised_unique, chunk_size):
+            # An unreachable service raises TerminologyUnavailable. An empty
+            # batch result therefore means the service answered and holds no
+            # safe match, which is a real answer and not a reason to abort.
             batch_results = await self._resolve_batch_raw(batch, norm_tags, runtime)
-            if not batch_results and batch:
-                return {}
             aggregated.update(batch_results)
 
         rekeyed: dict[str, list[dict[str, Any]]] = {}

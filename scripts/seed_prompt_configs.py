@@ -21,7 +21,7 @@ import logging
 import os
 import sys
 import uuid
-from typing import Any
+from typing import Any  # noqa: F401
 from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -82,7 +82,9 @@ def _add(
 # -- Extraction -- structured output schema + example library -----------------
 from libs.prompts.extraction_output_schema import EXTRACTION_OUTPUT_SCHEMA
 from libs.prompts.extraction_examples import EXTRACTION_EXAMPLES
-from libs.prompts.referral_extraction_v1 import REFERRAL_EXTRACTION_SYSTEM_V1
+from libs.prompts.referral_extraction_v1 import (  # noqa: F401
+    REFERRAL_EXTRACTION_SYSTEM_V1,
+)
 from libs.prompts.extraction_check_v1 import EXTRACTION_CHECK_EXAMPLES_V2
 from libs.prompts.coding_check_v1 import CODING_CHECK_EXAMPLES_V1
 from libs.prompts.relation_linking_v1 import RELATION_LINKING_EXAMPLES_V1
@@ -122,6 +124,8 @@ _REFERRAL_EXAMPLE_CATEGORIES = {
     "assertion:declined",
     "assertion:cancelled",
     "precision:referral_scope:ers_reason",
+    "precision:no_inferred_suspicion",
+    "precision:benign_outcome",
     "form:checkbox",
 }
 _REFERRAL_EXAMPLE_TERMS = (

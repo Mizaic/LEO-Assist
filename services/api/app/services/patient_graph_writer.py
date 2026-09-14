@@ -1,9 +1,10 @@
 """Write and read semantic DOCUMENTS links in patient graph.
 
 Atlas trace:
-  DO: DO-92F92EFB
-  DI: DI-88C1715A
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+  DO: DO-9D39A0DF
+  DI: DI-F71A6A69
+  VT: VT-6238CE8B
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-9D39A0DF")
 """
 
 from __future__ import annotations
@@ -52,6 +53,7 @@ SET r.coded_at = datetime(),
     r.confidence = $confidence,
     r.domain = $domain,
     r.context = $context,
+    r.assertion = $assertion,
     r.modifiers = $modifiers,
     r.source = $source
 """
@@ -117,6 +119,11 @@ class PatientGraphWriter:
             confidence=float(payload.confidence),
             domain=payload.domain,
             context=json.dumps(payload.context) if payload.context else "{}",
+            # Stamp the property as well as the JSON blob, so a reader that
+            # trusts r.assertion never sees null and reads a historical or
+            # absent finding as a current one. Matches the pipeline writer
+            # in libs/cypher/documents_queries.py.
+            assertion=(payload.context or {}).get("assertion") or "present",
             modifiers=json.dumps(payload.modifiers) if payload.modifiers else "{}",
             source=payload.source,
         )

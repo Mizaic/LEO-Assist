@@ -35,6 +35,7 @@ from libs.pipeline.form_schema_store import load_form_schema, reset_schema_cache
 from libs.pipeline_graph.registry import SubgraphRegistry, _register_defaults
 from libs.pipeline_graph.subgraphs.post_processing import run_post_process
 from libs.workflow.durable_step_runner import _step_result_for_output
+from libs.terminology.client import TerminologyClient
 from libs.workflow.engine import ActionDefinition, WorkflowEngine
 from libs.workflow.plan_manifest import PlanAction
 
@@ -282,3 +283,26 @@ def test_extraction_errors_do_not_switch_off_the_review_gate() -> None:
         "an errored low-quality extraction must still pause for human "
         f"review, got status={result.status!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Site 8 -- a terminology outage reads as "no such clinical term"
+# ---------------------------------------------------------------------------
+
+
+def test_terminology_lookup_failure_differs_from_no_match() -> None:
+    """Site 8: ``TerminologyClient.resolve`` returned ``{}`` on an outage.
+
+    Clinical consequence: while the terminology service is down a
+    referral is coded as though the letter held nothing codeable. Every
+    span comes back unresolved, persist drops the facts, and the run
+    still finishes as completed. The reviewer's warning says "no SNOMED
+    match found", which points at the letter instead of the outage.
+
+    FIXED. See tests/test_terminology_lookup_fail_closed.py.
+    """
+    with patch.object(
+        TerminologyClient, "_resolve_batch", side_effect=ConnectionError("down")
+    ):
+        with pytest.raises(Exception):
+            TerminologyClient().resolve(["benign"])

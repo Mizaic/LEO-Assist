@@ -598,6 +598,38 @@
       "max_scope": null,
       "description": "Template instruction 'No ECOG in patient record' is form chrome, not negation of later findings.",
       "example": "No ECOG in patient record - consider using tool -> nearby findings stay present"
+    },
+    {
+      "literal": "does not appear consistent with",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "PSEUDO",
+      "max_scope": null,
+      "description": "Stops default 'not' or 'does not' looking backward. The next rule then marks only the diagnosis that follows.",
+      "example": "Vulval ulceration of uncertain cause Does not appear consistent with lichen sclerosus -> ulceration stays present"
+    },
+    {
+      "literal": "does not appear consistent with",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "The diagnosis after this phrase is not the cause. Earlier findings stay present.",
+      "example": "Does not appear consistent with lichen sclerosus -> lichen sclerosus is absent"
+    },
+    {
+      "literal": "of uncertain cause",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "BACKWARD",
+      "max_scope": 4,
+      "description": "Cause unknown is not a denial. The finding before this phrase is present or possible.",
+      "example": "Vulval ulceration of uncertain cause -> ulceration stays present or possible"
+    },
+    {
+      "literal": "uncertain cause",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "BACKWARD",
+      "max_scope": 4,
+      "description": "Short form of 'of uncertain cause'. Cause unknown is not a denial.",
+      "example": "ulceration uncertain cause -> ulceration stays present or possible"
     }
   ]
 }

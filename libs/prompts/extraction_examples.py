@@ -402,6 +402,26 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "output": '{"terms": []}',
     },
     {
+        "category": "precision:no_inferred_suspicion",
+        "model_scope": "any",
+        "description": (
+            "Breast-site symptom in a breast referral stays a symptom -- "
+            "do not infer suspected breast cancer"
+        ),
+        "input": "[s0] Thank you for seeing this woman with a rash on her left breast.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "rash on her left breast", "lookup_term": "rash", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "precision:benign_outcome",
+        "model_scope": "any",
+        "description": (
+            "Benign result with no named cancer pathway -- code the exclusion "
+            "from the result phrase, not the bare qualifier"
+        ),
+        "input": "[s0] The biopsy was reported as benign.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "reported as benign", "lookup_term": "no evidence of cancer found", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
         "category": "precision:referral_scope:short_span",
         "model_scope": "any",
         "description": "Long eye sentence -- short visual disturbance span only",
