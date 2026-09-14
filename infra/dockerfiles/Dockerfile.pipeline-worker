@@ -11,11 +11,12 @@ RUN python -m venv /venv && /venv/bin/pip install --upgrade pip setuptools wheel
 
 FROM build AS build-venv
 COPY services/pipeline_worker/requirements.txt /requirements.txt
-RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
-# VECTOR_MODEL is set in ACA; CPU torch keeps image smaller than CUDA.
+# CPU torch first. sentence-transformers otherwise pulls CUDA 13 wheels
+# and fills the GitHub Actions disk (same as Dockerfile.terminology-api).
+ENV PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
 RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir \
     torch --index-url https://download.pytorch.org/whl/cpu && \
-    /venv/bin/pip install --disable-pip-version-check --no-cache-dir "sentence-transformers>=3.0,<4"
+    /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
 RUN /venv/bin/python3 -c "import aiohttp, spacy, sentence_transformers"
 
 # Bake Bio_ClinicalBERT at build time (same pattern as Dockerfile.terminology-api).

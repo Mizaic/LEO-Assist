@@ -200,6 +200,15 @@ class TestPipelineWorkerImageContents:
         source = dockerfile.read_text()
         assert "COPY services/terminology_api/ /app/services/terminology_api/" in source
 
+    def test_pipeline_worker_pins_cpu_torch_before_requirements(self):
+        dockerfile = DOCKERFILES_DIR / "Dockerfile.pipeline-worker"
+        source = dockerfile.read_text()
+        cpu_idx = source.find("https://download.pytorch.org/whl/cpu")
+        req_idx = source.find("-r /requirements.txt")
+        assert cpu_idx != -1
+        assert req_idx != -1
+        assert cpu_idx < req_idx
+
 
 class TestTerminologyApiImageContents:
     """terminology-api must install CPU torch, not the default CUDA wheel.
@@ -214,6 +223,20 @@ class TestTerminologyApiImageContents:
         source = dockerfile.read_text()
         assert "https://download.pytorch.org/whl/cpu" in source
         assert "torch" in source
+
+
+class TestResearchWorkerImageContents:
+    """research-worker must not bake repo-root NLP wheels.
+
+    Root requirements.txt pulls sentence-transformers and CUDA torch.
+    That fills the GitHub Actions disk during docker build.
+    """
+
+    def test_research_worker_skips_root_requirements(self):
+        dockerfile = DOCKERFILES_DIR / "Dockerfile.research-worker"
+        source = dockerfile.read_text()
+        assert "COPY requirements.txt /requirements.txt" not in source
+        assert "COPY services/research_worker/requirements.txt" in source
 
 
 class TestServiceAuthSecretDeployment:
