@@ -16,9 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /venv && /venv/bin/pip install --upgrade pip setuptools wheel
 
 FROM build AS build-venv
-COPY requirements.txt /requirements.txt
 COPY services/research_worker/requirements.txt /svc-requirements.txt
-RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
 RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /svc-requirements.txt
 
 # -- Runtime: slim, non-root user --------------------------------------------
