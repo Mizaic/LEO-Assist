@@ -31,6 +31,7 @@ from .patients_epr_evidence_queries import (
 router = APIRouter()
 
 _VALID_SOURCE_TYPES = {"encounter", "document", "communication"}
+_SOURCE_RANK = {"encounter": 0, "document": 1, "communication": 2}
 
 
 class ConceptMention(BaseModel):
@@ -92,6 +93,46 @@ def _optional_str(raw: Any) -> Optional[str]:
     return text or None
 
 
+def _norm(raw: Optional[str]) -> str:
+    return (raw or "").strip().lower()
+
+
+def _mention_collapse_key(mention: ConceptMention) -> tuple[str, str, str, str]:
+    """Same assertion, value, unit, and date is one fact."""
+    date = _norm(mention.observed_at) or _norm(mention.source_date)
+    return (
+        _norm(mention.assertion),
+        _norm(mention.value),
+        _norm(mention.unit),
+        date,
+    )
+
+
+def collapse_equivalent_mentions(
+    mentions: list[ConceptMention],
+) -> list[ConceptMention]:
+    """Collapse mirrored encounter/document rows for the same reading.
+
+    Mentions that share assertion, value, unit, and observed or source
+    date are one clinical fact. Prefer the Encounter source when both
+    exist. Distinct dates or values stay as separate rows.
+    """
+    chosen: dict[tuple[str, str, str, str], ConceptMention] = {}
+    order: list[tuple[str, str, str, str]] = []
+    for mention in mentions:
+        key = _mention_collapse_key(mention)
+        existing = chosen.get(key)
+        if existing is None:
+            chosen[key] = mention
+            order.append(key)
+            continue
+        if _SOURCE_RANK.get(mention.source_type, 99) < _SOURCE_RANK.get(
+            existing.source_type, 99
+        ):
+            chosen[key] = mention
+    return [chosen[key] for key in order]
+
+
 @router.get(
     "/patients/{patient_id}/coded-entities/{concept_id}/mentions",
     response_model=list[ConceptMention],
@@ -116,7 +157,7 @@ def get_concept_mentions(
         rows = client.run(query, **params)
     finally:
         client.close()
-    return [
+    mentions = [
         ConceptMention(
             source_id=r["source_id"],
             source_type=r["source_type"],
@@ -132,6 +173,7 @@ def get_concept_mentions(
         for r in rows
         if r.get("source_id")
     ]
+    return collapse_equivalent_mentions(mentions)
 
 
 @router.get(

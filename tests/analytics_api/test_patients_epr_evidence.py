@@ -23,6 +23,9 @@ Covers:
     AC6 - Both admin and scoped Cypher variants exist and carry the org
           guard on the scoped path.
     AC7 - Cypher strings live in a separate queries module (LOC limit).
+    AC8 - Mirrored encounter and document mentions of the same reading
+          collapse to one row. The encounter source is kept. Distinct
+          dates or values stay as separate rows.
 """
 
 import pathlib
@@ -211,3 +214,101 @@ def test_ac6_mention_detail_query_filters_by_source_type_param():
     """
     queries_src = _read(QUERIES)
     assert queries_src.count("$source_type = ") >= 3
+
+
+# ---------------------------------------------------------------------------
+# AC8 - collapse mirrored encounter/document mentions of the same reading
+# ---------------------------------------------------------------------------
+
+
+def _mention(**overrides):
+    from services.analytics_api.app.routers.patients_epr_evidence import (
+        ConceptMention,
+    )
+
+    data = {
+        "source_id": "enc-1",
+        "source_type": "encounter",
+        "source_date": "2026-05-14",
+        "assertion": "present",
+        "confidence": 0.9,
+        "value": "1.66",
+        "unit": "m",
+        "observed_at": "2026-05-14",
+    }
+    data.update(overrides)
+    return ConceptMention(**data)
+
+
+def test_ac8_mentions_endpoint_collapses_equivalent_rows():
+    """get_concept_mentions must collapse mirrored UNION rows."""
+    router_src = _read(ROUTER)
+    assert "collapse_equivalent_mentions" in router_src
+    assert "return collapse_equivalent_mentions(" in router_src
+
+
+def test_ac8_collapse_prefers_encounter_over_document_same_reading():
+    from services.analytics_api.app.routers.patients_epr_evidence import (
+        collapse_equivalent_mentions,
+    )
+
+    document = _mention(
+        source_id="chunk-1",
+        source_type="document",
+        source_date="2026-05-14",
+    )
+    encounter = _mention(source_id="enc-1", source_type="encounter")
+    collapsed = collapse_equivalent_mentions([document, encounter])
+    assert len(collapsed) == 1
+    assert collapsed[0].source_type == "encounter"
+    assert collapsed[0].source_id == "enc-1"
+
+
+def test_ac8_collapse_keeps_distinct_dates_or_values():
+    from services.analytics_api.app.routers.patients_epr_evidence import (
+        collapse_equivalent_mentions,
+    )
+
+    first = _mention(
+        source_id="enc-1",
+        value="1.66",
+        observed_at="2026-05-14",
+        source_date="2026-05-14",
+    )
+    later_value = _mention(
+        source_id="enc-2",
+        value="1.68",
+        observed_at="2026-05-14",
+        source_date="2026-05-14",
+    )
+    later_date = _mention(
+        source_id="enc-3",
+        value="1.66",
+        observed_at="2026-06-01",
+        source_date="2026-06-01",
+    )
+    collapsed = collapse_equivalent_mentions([first, later_value, later_date])
+    assert len(collapsed) == 3
+    assert {row.source_id for row in collapsed} == {"enc-1", "enc-2", "enc-3"}
+
+
+def test_ac8_collapse_matches_observed_or_source_date():
+    from services.analytics_api.app.routers.patients_epr_evidence import (
+        collapse_equivalent_mentions,
+    )
+
+    encounter = _mention(
+        source_id="enc-1",
+        source_type="encounter",
+        observed_at="2026-05-14",
+        source_date="2026-08-31",
+    )
+    document = _mention(
+        source_id="chunk-1",
+        source_type="document",
+        observed_at=None,
+        source_date="2026-05-14",
+    )
+    collapsed = collapse_equivalent_mentions([document, encounter])
+    assert len(collapsed) == 1
+    assert collapsed[0].source_type == "encounter"
