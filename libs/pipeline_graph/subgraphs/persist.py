@@ -444,6 +444,7 @@ def _entity_persist_term(
         "numeric_value": entity.get("value"),
         "unit": entity.get("unit"),
         "reference_range": entity.get("reference_range"),
+        "observed_at": entity.get("observed_at"),
         "decision_tier": tier_by_index.get(idx),
         "coding": {
             "snomed_concept_id": str(concept_id),
@@ -615,6 +616,7 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                     source="pipeline",
                     run_id=run_id,
                     source_label=default_source_label(mode),
+                    patient_id=patient_id,
                 )
 
                 n = _write_coding_decisions(

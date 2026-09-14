@@ -39,6 +39,9 @@ class ConceptMention(BaseModel):
     source_date: Optional[str] = None
     assertion: Optional[str] = None
     confidence: Optional[float] = None
+    value: Optional[str] = None
+    unit: Optional[str] = None
+    observed_at: Optional[str] = None
 
 
 class ConceptMentionDetail(BaseModel):
@@ -52,6 +55,9 @@ class ConceptMentionDetail(BaseModel):
     confidence: Optional[float] = None
     evidence: Optional[str] = None
     evidence_sentence: Optional[str] = None
+    value: Optional[str] = None
+    unit: Optional[str] = None
+    observed_at: Optional[str] = None
 
 
 def _cypher_params(scope: CallerScope, patient_id: str, **extra: Any) -> dict[str, Any]:
@@ -77,6 +83,13 @@ def _assertion_from_context(context_json: Optional[str]) -> Optional[str]:
 
 def _date_only(raw: Optional[str]) -> Optional[str]:
     return raw[:10] if raw else None
+
+
+def _optional_str(raw: Any) -> Optional[str]:
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    return text or None
 
 
 @router.get(
@@ -112,6 +125,9 @@ def get_concept_mentions(
             confidence=(
                 float(r["confidence"]) if r.get("confidence") is not None else None
             ),
+            value=_optional_str(r.get("value")),
+            unit=_optional_str(r.get("unit")),
+            observed_at=_date_only(_optional_str(r.get("observed_at"))),
         )
         for r in rows
         if r.get("source_id")
@@ -166,4 +182,7 @@ def get_concept_mention_detail(
         ),
         evidence=r.get("evidence"),
         evidence_sentence=r.get("evidence_sentence"),
+        value=_optional_str(r.get("value")),
+        unit=_optional_str(r.get("unit")),
+        observed_at=_date_only(_optional_str(r.get("observed_at"))),
     )

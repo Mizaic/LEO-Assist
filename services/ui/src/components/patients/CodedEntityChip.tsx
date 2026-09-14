@@ -1,8 +1,6 @@
 /**
- * A problem-list chip that reveals its SNOMED CT code, preferred term, and
- * dated evidence on selection. Dates load first (lightweight); the
- * evidence sentence for a given date loads only once that date is
- * expanded, so opening the chip never dumps a wall of clinical text.
+ * A problem-list chip that reveals its SNOMED CT code, preferred term,
+ * assertion, and reading. Letter text stays behind See more.
  *
  * Atlas trace:
  *   DO: DO-5D3EA371
@@ -63,7 +61,7 @@ export function CodedEntityChip({ patientId, name, conceptId }: CodedEntityChipP
         onClick={handleOpen}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`${name}. View SNOMED code and evidence.`}
+        aria-label={`${name}. View term, assertion, and reading.`}
         sx={CHIP_SX}
       />
       <Popover

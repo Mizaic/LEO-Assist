@@ -2,9 +2,11 @@
 
 Atlas trace:
   DO: DO-728930A1
-  DI: DI-F71A6A69 (clinical facts storage); DI-79D15317 (deadlock retry)
-  VT: VT-53AEAC08
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
+  DI: DI-F71A6A69 (clinical facts storage); DI-79D15317 (deadlock retry);
+      DI-58596C1A (letter codes on the patient)
+  VT: VT-53AEAC08; VT-40032A1B
+  Risk: R-FD6D9DCF
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-58596C1A")
 
 Centralised from services/api/app/models/neo4j_schema.py.
 
@@ -198,6 +200,65 @@ _VALID_SOURCE_LABELS: frozenset[str] = frozenset(
 )
 
 
+def _source_match_clause(source_label: str) -> str:
+    """How persist finds the source node and the Patient for HAS_* shortcuts.
+
+    Chunk codes hang off the letter. The patient is reached via the document
+    or via ReferralRequest-[:FOR_PATIENT]->Patient. ``p`` is always a Patient
+    when present -- never the referral node. The hop stays OPTIONAL so a
+    missing document-to-patient link does not block Chunk-[:DOCUMENTS].
+    """
+    if source_label == "Encounter":
+        return "MATCH (src:Encounter {id: $source_id})" "<-[:HAS_ENCOUNTER]-(p:Patient)"
+    if source_label == "Communication":
+        return (
+            "MATCH (src:Communication {id: $source_id})"
+            "<-[:HAS_CONVERSATION]-(:CommunicationRequest)"
+            "-[:FOR_PATIENT]->(p:Patient)"
+        )
+    return (
+        "MATCH (src:Chunk {id: $source_id}) "
+        "OPTIONAL MATCH (src)<-[:HAS_CHUNK]-(dr:DocumentReference) "
+        "OPTIONAL MATCH (p_direct:Patient)"
+        "-[:HAS_DOCUMENT_REFERENCE|HAS_DOCUMENT]->(dr) "
+        "OPTIONAL MATCH (p_via_rr:Patient)<-[:FOR_PATIENT]-"
+        "(:ReferralRequest)-[:HAS_DOCUMENT]->(dr) "
+        "WITH src, coalesce(p_direct, p_via_rr) AS p"
+    )
+
+
+def _documents_set_clause() -> str:
+    """Shared :DOCUMENTS property write, including assertion."""
+    return (
+        "SET r.coded_at         = datetime(),\n"
+        "    r.evidence         = $evidence,\n"
+        "    r.confidence       = $confidence,\n"
+        "    r.domain           = $domain,\n"
+        "    r.context          = $context,\n"
+        "    r.assertion        = $assertion,\n"
+        "    r.modifiers        = $modifiers,\n"
+        "    r.body_site        = $body_site,\n"
+        "    r.body_site_concept_id = $body_site_concept_id,\n"
+        "    r.body_site_term   = $body_site_term,\n"
+        "    r.value            = $numeric_value,\n"
+        "    r.unit             = $unit,\n"
+        "    r.referenceRange   = $reference_range,\n"
+        "    r.observed_at      = $observed_at,\n"
+        "    r.source           = $source,\n"
+        "    r.model_name       = $model_name,\n"
+        "    r.model_version    = $model_version,\n"
+        "    r.contract_version = $contract_version,\n"
+        "    r.run_id           = $run_id,\n"
+        "    r.audit_flag       = $audit_flag,\n"
+        "    r.decision_tier    = $decision_tier,\n"
+        "    r.evidence_sentence = $evidence_sentence,\n"
+        "    r.evidence_start   = $evidence_start,\n"
+        "    r.evidence_end     = $evidence_end,\n"
+        "    r.sentence_index   = $sentence_index,\n"
+        "    r.holdout          = $holdout"
+    )
+
+
 def _build_upsert_query(
     label: str,
     rel_type: str,
@@ -212,7 +273,7 @@ def _build_upsert_query(
     The source can be an :Encounter (existing pattern) or a :Chunk (new in
     DI-LEO-AI-185, used when DocumentReference text is split into sentences
     that each carry their own SNOMED codes). When source_label is ``Chunk``
-    the patient is reached via the parent DocumentReference.
+    the patient is reached via the parent DocumentReference or the referral.
 
     Provenance fields (model_name, model_version, contract_version, run_id) are
     stamped on the :DOCUMENTS relationship so every persisted link can be traced
@@ -224,27 +285,7 @@ def _build_upsert_query(
             f"Allowed: {sorted(_VALID_SOURCE_LABELS)}"
         )
 
-    if source_label == "Encounter":
-        match_clause = (
-            "MATCH (src:Encounter {id: $source_id})" "<-[:HAS_ENCOUNTER]-(p:Patient)"
-        )
-    elif source_label == "Communication":
-        match_clause = (
-            "MATCH (src:Communication {id: $source_id})"
-            "<-[:HAS_CONVERSATION]-(:CommunicationRequest)"
-            "-[:FOR_PATIENT]->(p:Patient)"
-        )
-    else:
-        # For Chunk sources, the Patient-level shortcut is opportunistic:
-        # the chunk's parent DocumentReference is not always linked back
-        # to a Patient yet. Use OPTIONAL MATCH so missing shortcut paths
-        # do not block the :DOCUMENTS write.
-        match_clause = (
-            "MATCH (src:Chunk {id: $source_id}) "
-            "OPTIONAL MATCH (src)<-[:HAS_CHUNK]-(:DocumentReference)"
-            "<-[:HAS_DOCUMENT_REFERENCE|HAS_DOCUMENT]-(p)"
-        )
-
+    match_clause = _source_match_clause(source_label)
     return f"""
 {match_clause}
 MERGE (s:{label} {{conceptId: $concept_id}})
@@ -255,30 +296,7 @@ SET s.semanticTag  = $semantic_tag,
     s.updated_at   = datetime(),
     s.created_at   = coalesce(s.created_at, datetime())
 MERGE (src)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
-SET r.coded_at         = datetime(),
-    r.evidence         = $evidence,
-    r.confidence       = $confidence,
-    r.domain           = $domain,
-    r.context          = $context,
-    r.modifiers        = $modifiers,
-    r.body_site        = $body_site,
-    r.body_site_concept_id = $body_site_concept_id,
-    r.body_site_term   = $body_site_term,
-    r.value            = $numeric_value,
-    r.unit             = $unit,
-    r.referenceRange   = $reference_range,
-    r.source           = $source,
-    r.model_name       = $model_name,
-    r.model_version    = $model_version,
-    r.contract_version = $contract_version,
-    r.run_id           = $run_id,
-    r.audit_flag       = $audit_flag,
-    r.decision_tier    = $decision_tier,
-    r.evidence_sentence = $evidence_sentence,
-    r.evidence_start   = $evidence_start,
-    r.evidence_end     = $evidence_end,
-    r.sentence_index   = $sentence_index,
-    r.holdout          = $holdout
+{_documents_set_clause()}
 FOREACH (_ IN CASE WHEN p IS NOT NULL AND $assertion IN ['present', 'historical'] THEN [1] ELSE [] END |
   MERGE (p)-[:{rel_type}]->(s)
 )
@@ -305,30 +323,7 @@ SET s.semanticTag  = $semantic_tag,
     s.updated_at   = datetime(),
     s.created_at   = coalesce(s.created_at, datetime())
 MERGE (e)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
-SET r.coded_at         = datetime(),
-    r.evidence         = $evidence,
-    r.confidence       = $confidence,
-    r.domain           = $domain,
-    r.context          = $context,
-    r.modifiers        = $modifiers,
-    r.body_site        = $body_site,
-    r.body_site_concept_id = $body_site_concept_id,
-    r.body_site_term   = $body_site_term,
-    r.value            = $numeric_value,
-    r.unit             = $unit,
-    r.referenceRange   = $reference_range,
-    r.source           = $source,
-    r.model_name       = $model_name,
-    r.model_version    = $model_version,
-    r.contract_version = $contract_version,
-    r.run_id           = $run_id,
-    r.audit_flag       = $audit_flag,
-    r.decision_tier    = $decision_tier,
-    r.evidence_sentence = $evidence_sentence,
-    r.evidence_start   = $evidence_start,
-    r.evidence_end     = $evidence_end,
-    r.sentence_index   = $sentence_index,
-    r.holdout          = $holdout
+{_documents_set_clause()}
 FOREACH (_ IN CASE WHEN p IS NOT NULL AND $assertion IN ['present', 'historical'] THEN [1] ELSE [] END |
   MERGE (p)-[:{rel_type}]->(s)
 )
@@ -358,6 +353,7 @@ def upsert_encounter_documents_link(
     numeric_value: float | None = None,
     unit: str | None = None,
     reference_range: str | None = None,
+    observed_at: str | None = None,
 ) -> bool:
     """One encounter-level DOCUMENTS write plus patient HAS_* when assertion allows.
 
@@ -401,6 +397,7 @@ def upsert_encounter_documents_link(
         numeric_value=numeric_value,
         unit=unit,
         reference_range=reference_range,
+        observed_at=observed_at,
         source=source,
         model_name=model_name,
         model_version=model_version,
@@ -549,6 +546,54 @@ def locate_span_in_sentences(
     return hits[0]
 
 
+ENSURE_PATIENT_ENCOUNTER = """
+MATCH (p:Patient)
+WHERE toString(p.id) = $patient_id
+MERGE (e:Encounter {id: $encounter_id})
+SET e.source = coalesce(e.source, 'pipeline'),
+    e.updated_at = datetime(),
+    e.created_at = coalesce(e.created_at, datetime())
+MERGE (p)-[:HAS_ENCOUNTER]->(e)
+RETURN e.id AS encounter_id
+"""
+
+
+def _maybe_mirror_to_encounter(
+    pending: list[_PendingDocWrite],
+    item: _PendingDocWrite,
+    source_meta: tuple[str, str, str],
+    patient_id: str,
+    encounter_id: str,
+) -> None:
+    """Also hang the same fact on the encounter when a chunk write has a patient."""
+    write_source_label, label, rel_type = source_meta
+    if write_source_label != "Chunk" or not patient_id or not encounter_id:
+        return
+    concept_id = str(item.params.get("concept_id") or "")
+    sentence_index = int(item.params.get("sentence_index") or 0)
+    enc_params = dict(item.params)
+    enc_params["source_id"] = encounter_id
+    pending.append(
+        _PendingDocWrite(
+            sort_key=_doc_write_sort_key(concept_id, encounter_id, sentence_index),
+            query=_build_upsert_query(label, rel_type, source_label="Encounter"),
+            params=enc_params,
+        )
+    )
+
+
+def _ensure_patient_encounter(session: Any, patient_id: str, encounter_id: str) -> None:
+    """Create the referral-assessment encounter so Encounter DOCUMENTS can write."""
+    if not patient_id or not encounter_id:
+        return
+    _session_run_with_deadlock_retry(
+        session,
+        ENSURE_PATIENT_ENCOUNTER,
+        patient_id=patient_id,
+        encounter_id=encounter_id,
+    )
+
+
 def _collect_pending_document_writes(
     encounter_id: str,
     sentences_payload: list[dict[str, Any]],
@@ -560,6 +605,7 @@ def _collect_pending_document_writes(
     run_id: str,
     source_label: str,
     active_terms: set[str],
+    patient_id: str = "",
 ) -> list[_PendingDocWrite]:
     """Build DOCUMENTS upserts sorted for consistent Neo4j lock acquisition."""
     pending: list[_PendingDocWrite] = []
@@ -682,46 +728,53 @@ def _collect_pending_document_writes(
             sort_key = _doc_write_sort_key(
                 str(concept_id), write_source_id, write_sentence_index
             )
-            pending.append(
-                _PendingDocWrite(
-                    sort_key=sort_key,
-                    query=query,
-                    params={
-                        "source_id": write_source_id,
-                        "concept_id": str(concept_id),
-                        "semantic_tag": semantic_tag,
-                        "name": coding.get("snomed_term") or span_text,
-                        "read_code": coding.get("read_code"),
-                        "evidence": span_text,
-                        "confidence": float(coding.get("score") or 0.0),
-                        "domain": term.get("domain") or "clinical",
-                        "context": json.dumps(_assertion_context(term_assertion)),
-                        "modifiers": json.dumps(modifiers),
-                        "body_site": term.get("body_site"),
-                        "body_site_concept_id": term.get("body_site_concept_id"),
-                        "body_site_term": term.get("body_site_term"),
-                        "numeric_value": term.get("numeric_value") or None,
-                        "unit": term.get("unit") or None,
-                        "reference_range": term.get("reference_range") or None,
-                        "source": source,
-                        "model_name": model_name
-                        or term.get("extraction_model_name", ""),
-                        "model_version": model_version
-                        or term.get("extraction_model_version", ""),
-                        "contract_version": contract_version
-                        or term.get("contract_version", ""),
-                        "run_id": run_id,
-                        "audit_flag": bool(term.get("audit_flag", False)),
-                        "decision_tier": term.get("decision_tier"),
-                        "assertion": term_assertion,
-                        "evidence_sentence": evidence_sentence,
-                        "evidence_start": evidence_start,
-                        "evidence_end": evidence_end,
-                        "sentence_index": write_sentence_index,
-                        "holdout": False,
-                    },
-                    surface_form_span=surface_form_span,
-                )
+            write_params = {
+                "source_id": write_source_id,
+                "concept_id": str(concept_id),
+                "semantic_tag": semantic_tag,
+                "name": coding.get("snomed_term") or span_text,
+                "read_code": coding.get("read_code"),
+                "evidence": span_text,
+                "confidence": float(coding.get("score") or 0.0),
+                "domain": term.get("domain") or "clinical",
+                "context": json.dumps(_assertion_context(term_assertion)),
+                "modifiers": json.dumps(modifiers),
+                "body_site": term.get("body_site"),
+                "body_site_concept_id": term.get("body_site_concept_id"),
+                "body_site_term": term.get("body_site_term"),
+                "numeric_value": term.get("numeric_value") or None,
+                "unit": term.get("unit") or None,
+                "reference_range": term.get("reference_range") or None,
+                "observed_at": term.get("observed_at") or None,
+                "source": source,
+                "model_name": model_name or term.get("extraction_model_name", ""),
+                "model_version": model_version
+                or term.get("extraction_model_version", ""),
+                "contract_version": contract_version
+                or term.get("contract_version", ""),
+                "run_id": run_id,
+                "audit_flag": bool(term.get("audit_flag", False)),
+                "decision_tier": term.get("decision_tier"),
+                "assertion": term_assertion,
+                "evidence_sentence": evidence_sentence,
+                "evidence_start": evidence_start,
+                "evidence_end": evidence_end,
+                "sentence_index": write_sentence_index,
+                "holdout": False,
+            }
+            item = _PendingDocWrite(
+                sort_key=sort_key,
+                query=query,
+                params=write_params,
+                surface_form_span=surface_form_span,
+            )
+            pending.append(item)
+            _maybe_mirror_to_encounter(
+                pending,
+                item,
+                (write_source_label, label, rel_type),
+                patient_id,
+                encounter_id,
             )
     pending = _dedupe_pending_writes(pending)
     pending.sort(key=lambda item: item.sort_key)
@@ -765,6 +818,7 @@ def write_documents_from_sentences_payload(
     contract_version: str = "",
     run_id: str = "",
     source_label: str = "Encounter",
+    patient_id: str = "",
 ) -> int:
     """Write :DOCUMENTS and :HAS_<tag> links from a sentences_payload list.
 
@@ -812,7 +866,14 @@ def write_documents_from_sentences_payload(
         run_id=run_id,
         source_label=source_label,
         active_terms=active_terms,
+        patient_id=patient_id,
     )
+    if (
+        patient_id
+        and encounter_id
+        and any("MATCH (src:Encounter" in item.query for item in pending)
+    ):
+        _ensure_patient_encounter(session, patient_id, encounter_id)
     return _execute_pending_document_writes(session, pending, encounter_id=encounter_id)
 
 

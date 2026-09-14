@@ -224,6 +224,7 @@ def _items_to_dicts(items: list) -> list[dict[str, Any]]:
             "value": item.numeric_value or None,
             "unit": item.unit or None,
             "reference_range": item.reference_range or None,
+            "observed_at": item.observed_at or None,
             "__sentence_id": item.sentence_id,
             "__source": item.source,
             "__model_name": item.model_name,

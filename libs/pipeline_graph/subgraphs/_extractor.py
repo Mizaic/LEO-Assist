@@ -474,6 +474,7 @@ class LLMExtractorAdapter:
                     numeric_value=t.get("value") or "",
                     unit=t.get("unit") or "",
                     reference_range=t.get("reference_range") or "",
+                    observed_at=t.get("observed_at") or "",
                     source="llm",
                     model_name=self.model_name,
                     model_version=self.model_version,

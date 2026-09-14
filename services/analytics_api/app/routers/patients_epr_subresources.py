@@ -87,6 +87,7 @@ class CodedTerm(BaseModel):
     confidence: Optional[float] = None
     value: Optional[str] = None
     unit: Optional[str] = None
+    observed_at: Optional[str] = None
 
 
 class EncounterDetail(BaseModel):
@@ -251,6 +252,7 @@ def get_encounter_detail(
             ),
             value=str(t["value"]) if t.get("value") is not None else None,
             unit=t.get("unit"),
+            observed_at=t.get("observed_at"),
         )
         for t in (r.get("coded_terms") or [])
         if t and (t.get("display") or t.get("code_id"))

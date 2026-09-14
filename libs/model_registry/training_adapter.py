@@ -196,6 +196,7 @@ class TrainingAdapter:
             normalized=str(ent.get("normalized", text)),
             source_meta={"training_label": label},
             relations=[],
+            observed_at=str(ent.get("observed_at") or ""),
             source=self._source_tag,
             model_name=self._model_name,
             model_version=self._model_version,

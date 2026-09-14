@@ -57,20 +57,18 @@ def test_upsert_chunk_payload_writes_with_expected_kwargs() -> None:
 
 
 def test_build_upsert_query_encounter_path_uses_has_encounter() -> None:
-    q = _build_upsert_query(
-        "Clinical_finding", "HAS_FINDING", source_label="Encounter"
-    )
+    q = _build_upsert_query("Clinical_finding", "HAS_FINDING", source_label="Encounter")
     assert "MATCH (src:Encounter {id: $source_id})" in q
     assert "<-[:HAS_ENCOUNTER]-(p:Patient)" in q
     assert "MERGE (src)-[r:DOCUMENTS" in q
 
 
 def test_build_upsert_query_chunk_path_uses_optional_match() -> None:
-    q = _build_upsert_query(
-        "Clinical_finding", "HAS_FINDING", source_label="Chunk"
-    )
+    q = _build_upsert_query("Clinical_finding", "HAS_FINDING", source_label="Chunk")
     assert "MATCH (src:Chunk {id: $source_id})" in q
     assert "OPTIONAL MATCH" in q, "patient shortcut must be optional for chunks"
+    assert "FOR_PATIENT" in q
+    assert "p_direct:Patient" in q
     assert "MERGE (src)-[r:DOCUMENTS" in q
     assert "p IS NOT NULL" in q, "FOREACH must skip when patient missing"
 

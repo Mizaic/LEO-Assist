@@ -25,17 +25,14 @@ from libs.pipeline.blood_panel_table import (
     VALUE_PATTERN,
     has_value_unit_pair,
 )
+from libs.pipeline.observation_date import DATE_TOKEN
 
 # A cell holding nothing but a result, e.g. "124 g/L", "12.5", "<0.5".
 _VALUE_CELL_RE = re.compile(rf"{VALUE_PATTERN}(?:\s*{UNIT_PATTERN})?", re.IGNORECASE)
 
 # A cell holding nothing but a specimen date: 23.06.26, 23/06/2026,
 # 2026-06-23, or 23 Jun 2026.
-_DATE_CELL_RE = re.compile(
-    r"\d{1,2}[./-]\d{1,2}[./-]\d{2,4}"
-    r"|\d{4}-\d{2}-\d{2}"
-    r"|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{2,4}"
-)
+_DATE_CELL_RE = re.compile(DATE_TOKEN)
 
 
 def _cells(row: str) -> list[str]:

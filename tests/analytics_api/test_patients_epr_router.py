@@ -211,6 +211,14 @@ def test_coded_entities_query_uses_pipeline_relationships():
     assert "GET_CODED_ENTITIES_ADMIN" in queries_src
 
 
+def test_coded_entities_query_reads_chunk_documents():
+    """Problem list must include present/historical codes on letter chunks."""
+    queries_src = _read(QUERIES)
+    assert "-[:HAS_CHUNK]->(:Chunk)-[r:DOCUMENTS]->(n)" in queries_src
+    assert "FOR_PATIENT" in queries_src
+    assert "r.assertion IN ['present', 'historical']" in queries_src
+
+
 def test_coded_entities_query_projects_call_subquery_results():
     """CALL subquery results must be projected before outer WHERE."""
     queries_src = _read(QUERIES)
@@ -222,6 +230,13 @@ def test_coded_entities_query_projects_call_subquery_results():
     )
     assert with_idx != -1, "coded-entities query must WITH-project CALL columns"
     assert with_idx < where_idx, "WITH must precede outer WHERE after CALL subquery"
+
+
+def test_encounter_detail_projects_observable_value_unit_and_date():
+    queries_src = _read(QUERIES)
+    assert "value: rel.value" in queries_src
+    assert "unit: rel.unit" in queries_src
+    assert "observed_at: rel.observed_at" in queries_src
 
 
 def test_encounter_detail_reads_documents_relationship():
@@ -273,4 +288,7 @@ def test_timeline_query_includes_referrals_and_documents():
 def test_documents_query_returns_referral_id():
     queries_src = _read(QUERIES)
     assert "AS referral_id" in queries_src
-    assert "WITH doc, full_text, chunk_count, ep, rr, svc, head(collect(a)) AS a" in queries_src
+    assert (
+        "WITH doc, full_text, chunk_count, ep, rr, svc, head(collect(a)) AS a"
+        in queries_src
+    )

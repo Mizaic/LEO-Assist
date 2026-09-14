@@ -83,6 +83,14 @@ def test_ac2_mentions_query_covers_document_chunk_source():
     assert "-[:HAS_CHUNK]->(src:Chunk)-[r:DOCUMENTS]->(s)" in queries_src
 
 
+def test_ac2_mentions_query_covers_referral_owned_document():
+    """Letters linked only via ReferralRequest-[:HAS_DOCUMENT] must still count."""
+    queries_src = _read(QUERIES)
+    assert "(p)<-[:FOR_PATIENT]-(:ReferralRequest)" in queries_src
+    assert "ReferralRequest)-[:HAS_DOCUMENT]->" in queries_src
+    assert "(doc:DocumentReference)-[:HAS_CHUNK]->(src:Chunk)" in queries_src
+
+
 def test_ac2_mentions_query_covers_communication_source():
     queries_src = _read(QUERIES)
     assert "CommunicationRequest" in queries_src
@@ -101,7 +109,18 @@ def test_ac2_mentions_query_matches_by_concept_id():
 
 def test_ac3_mentions_ordered_most_recent_first():
     queries_src = _read(QUERIES)
-    assert "ORDER BY coalesce(source_date, coded_at) DESC" in queries_src
+    assert "ORDER BY coalesce(observed_at, source_date, coded_at) DESC" in queries_src
+
+
+def test_mentions_return_value_unit_and_observed_at():
+    """Observable readings must carry value, unit, and date for trending."""
+    queries_src = _read(QUERIES)
+    router_src = _read(ROUTER)
+    assert "r.value AS value" in queries_src
+    assert "r.unit AS unit" in queries_src
+    assert "r.observed_at AS observed_at" in queries_src
+    assert "value: Optional[" in router_src
+    assert "observed_at: Optional[str]" in router_src
 
 
 # ---------------------------------------------------------------------------
