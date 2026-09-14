@@ -31,6 +31,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from libs.pipeline.observation_date import parse_observation_date
+
 _READ_CODE_RE = re.compile(r"\([A-Za-z0-9]{3,8}\.{0,2}\)")
 _REF_RANGE_RE = re.compile(r"\[(?P<range>[^\]]+)\]")
 _VALUE_UNIT_RE = re.compile(
@@ -109,6 +111,36 @@ def _collapse_ws(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _line_at(text: str, index: int) -> str:
+    """Return the single line that holds *index*."""
+    if not text:
+        return ""
+    pos = max(0, min(index, len(text)))
+    start = text.rfind("\n", 0, pos) + 1
+    end = text.find("\n", pos)
+    if end == -1:
+        end = len(text)
+    return text[start:end]
+
+
+def _assign_observed_at(ent: dict[str, Any], parsed: dict[str, str], line: str) -> None:
+    if str(ent.get("observed_at") or "").strip():
+        return
+    observed = parsed.get("observed_at") or parse_observation_date(line)
+    if observed:
+        ent["observed_at"] = observed
+
+
+def _measurement_for_entity(original_text: str, line: str) -> dict[str, str]:
+    parsed = parse_measurement_from_text(original_text)
+    if parsed.get("numeric_value"):
+        return parsed
+    line_parsed = parse_measurement_from_text(line)
+    if line_parsed.get("numeric_value"):
+        return line_parsed
+    return parsed
+
+
 def _find_nearest_start(
     encounter_text: str,
     span_text: str,
@@ -167,6 +199,9 @@ def parse_measurement_from_text(text: str) -> dict[str, str]:
     """
     out: dict[str, str] = {}
     raw = text or ""
+    observed = parse_observation_date(raw)
+    if observed:
+        out["observed_at"] = observed
     ref_match = _REF_RANGE_RE.search(raw)
     if ref_match:
         out["reference_range"] = _collapse_ws(ref_match.group("range"))
@@ -253,8 +288,9 @@ def normalize_observable_entities(
 
         original_text = str(ent.get("text", ""))
         around = int(ent.get("start", 0) or 0)
+        line = _line_at(encounter_text, around)
 
-        parsed = parse_measurement_from_text(original_text)
+        parsed = _measurement_for_entity(original_text, line)
         existing_value = str(ent.get("value", "") or "").strip()
         existing_unit = str(ent.get("unit", "") or "").strip()
         existing_range = str(ent.get("reference_range", "") or "").strip()
@@ -275,6 +311,7 @@ def normalize_observable_entities(
             not preserve_existing_structured or not existing_range
         ):
             ent["reference_range"] = parsed["reference_range"]
+        _assign_observed_at(ent, parsed, line)
 
         # Remove code snippets and bracketed ranges from display span.
         stripped = _READ_CODE_RE.sub(" ", original_text)

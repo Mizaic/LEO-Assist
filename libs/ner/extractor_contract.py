@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
-CONTRACT_VERSION = "1.3"
+CONTRACT_VERSION = "1.4"
 
 
 @dataclass(frozen=True)
@@ -27,9 +27,10 @@ class ExtractionItem:
     this type.  Downstream code must not assume any provider-specific shape.
 
     For observable entities (semantic_tag == "observable entity"), extractors
-    should populate numeric_value, unit, and reference_range where present in
-    the source text.  These are persisted as r.value, r.unit, r.referenceRange
-    on the :DOCUMENTS relationship for direct queryability.
+    should populate numeric_value, unit, reference_range, and observed_at
+    where present in the source text.  These are persisted as r.value, r.unit,
+    r.referenceRange, and r.observed_at on the :DOCUMENTS relationship so
+    the UI can trend readings.  Do not invent a date when the letter has none.
     """
 
     sentence_id: str
@@ -54,6 +55,7 @@ class ExtractionItem:
     numeric_value: str = ""  # e.g. "145/69", "7.2", "64.5"
     unit: str = ""  # e.g. "mmHg", "%", "kg", "mmol/L"
     reference_range: str = ""  # e.g. "130-180", ">90", "3.5-5.0"
+    observed_at: str = ""  # YYYY-MM-DD from the letter; empty if unknown
 
     # Provenance — stamped at write time from the provider that produced this item
     source: str = "unknown"  # "llm" | "model"
@@ -82,6 +84,7 @@ class ExtractionItem:
             numeric_value=self.numeric_value,
             unit=self.unit,
             reference_range=self.reference_range,
+            observed_at=self.observed_at,
             source=source,
             model_name=model_name,
             model_version=model_version,

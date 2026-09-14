@@ -8,7 +8,6 @@ Atlas trace:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import logging
 from typing import Any
 
@@ -32,17 +31,16 @@ def observation_from_entity(entity: dict[str, Any]) -> dict[str, Any] | None:
     except (TypeError, ValueError):
         return None
     observed_at = (
-        entity.get("observed_at")
-        or entity.get("date")
-        or entity.get("encounter_date")
-        or datetime.now(timezone.utc).isoformat()
+        entity.get("observed_at") or entity.get("date") or entity.get("encounter_date")
     )
-    return {
+    row = {
         "observable_id": concept_id,
         "value": value,
         "unit": str(entity.get("unit") or ""),
-        "observed_at": str(observed_at),
     }
+    if observed_at:
+        row["observed_at"] = str(observed_at)
+    return row
 
 
 def observations_from_entities(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:

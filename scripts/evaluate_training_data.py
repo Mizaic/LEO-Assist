@@ -224,6 +224,7 @@ def _items_to_dicts(items: list[ExtractionItem]) -> list[dict[str, Any]]:
             "value": item.numeric_value or None,
             "unit": item.unit or None,
             "reference_range": item.reference_range or None,
+            "observed_at": item.observed_at or None,
             "__sentence_id": item.sentence_id,
             "__source": item.source,
             "__model_name": item.model_name,
@@ -254,6 +255,7 @@ def _dict_to_item(ent: dict[str, Any]) -> ExtractionItem:
         numeric_value=str(ent.get("value", "") or "").strip(),
         unit=str(ent.get("unit", "") or "").strip(),
         reference_range=str(ent.get("reference_range", "") or "").strip(),
+        observed_at=str(ent.get("observed_at", "") or "").strip(),
         source=str(ent.get("__source", "unknown")),
         model_name=str(ent.get("__model_name", "")),
         model_version=str(ent.get("__model_version", "")),
@@ -505,6 +507,7 @@ async def process_record(
             "value": item.numeric_value or None,
             "unit": item.unit or None,
             "reference_range": item.reference_range or None,
+            "observed_at": item.observed_at or None,
             # SNOMED resolution
             "snomed_concept_id": best.get("snomed_concept_id") or None,
             "snomed_term": best.get("snomed_term") or None,

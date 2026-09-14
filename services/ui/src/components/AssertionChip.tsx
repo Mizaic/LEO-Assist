@@ -86,6 +86,12 @@ interface Props {
   size?: "small" | "medium";
 }
 
+export function assertionDisplayLabel(assertion: string | undefined | null): string {
+  const key = (assertion || "").trim().toLowerCase();
+  if (!key || key === "present") return "Present";
+  return ASSERTION_META[key]?.label ?? "Assertion not recorded";
+}
+
 /**
  * Shows a coloured chip for any assertion that is not "present".
  * Returns null for present or unknown assertions so callers need no guard.

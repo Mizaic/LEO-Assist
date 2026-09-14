@@ -2,8 +2,9 @@
 
 Atlas trace:
   DO: DO-31410049
-  DI: DI-F46494AE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-31410049")
+  DI: DI-F46494AE; DI-58596C1A
+  VT: VT-40032A1B
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-58596C1A")
 
 Kept in a separate module so patients_epr.py stays within the 500-LOC limit.
 All queries accept $search, $condition_type, $has_alerts, $skip, $limit.
@@ -307,7 +308,8 @@ _ENCOUNTER_DETAIL_BODY = (
     "  assertion: rel.assertion, "
     "  confidence: rel.confidence, "
     "  value: rel.value, "
-    "  unit: rel.unit"
+    "  unit: rel.unit, "
+    "  observed_at: rel.observed_at"
     "}) AS doc_terms "
     "OPTIONAL MATCH (enc)-[:HAS_CODE]->(code:Code) "
     "WITH enc, doc_terms, collect(DISTINCT {"
@@ -542,6 +544,29 @@ PATCH_ALERT = (
 # Coded entities (patient-level SNOMED)
 # ---------------------------------------------------------------------------
 
+_PRESENT_OR_HISTORICAL = (
+    "("
+    "r.assertion IN ['present', 'historical'] "
+    'OR r.context CONTAINS \'"assertion": "present"\' '
+    'OR r.context CONTAINS \'"assertion": "historical"\''
+    ")"
+)
+
+_CHUNK_ENTITY_TYPE = (
+    "CASE "
+    "WHEN 'Disease' IN labels(n) THEN 'disorder' "
+    "WHEN 'Clinical_finding' IN labels(n) THEN 'finding' "
+    "WHEN 'Situation' IN labels(n) THEN 'situation' "
+    "WHEN 'Observable_entity' IN labels(n) THEN 'observable' "
+    "WHEN 'Procedure' IN labels(n) THEN 'procedure' "
+    "ELSE 'concept' END"
+)
+
+_CHUNK_CODED_RETURN = (
+    "RETURN " + _CHUNK_ENTITY_TYPE + " AS entity_type, n.name AS name, "
+    "toString(n.conceptId) AS concept_id "
+)
+
 _CODED_ENTITIES_BODY = (
     "CALL { "
     "  WITH p "
@@ -586,7 +611,23 @@ _CODED_ENTITIES_BODY = (
     "    END AS entity_type, "
     "    n.name AS name, "
     "    toString(n.conceptId) AS concept_id "
-    "} "
+    "  UNION "
+    "  WITH p "
+    "  MATCH (p)-[:HAS_DOCUMENT_REFERENCE|HAS_DOCUMENT]->(:DocumentReference)"
+    "        -[:HAS_CHUNK]->(:Chunk)-[r:DOCUMENTS]->(n) "
+    "  WHERE n.name IS NOT NULL AND "
+    + _PRESENT_OR_HISTORICAL
+    + " "
+    + _CHUNK_CODED_RETURN
+    + "  UNION "
+    "  WITH p "
+    "  MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)-[:HAS_DOCUMENT]->"
+    "(:DocumentReference)-[:HAS_CHUNK]->(:Chunk)-[r:DOCUMENTS]->(n) "
+    "  WHERE n.name IS NOT NULL AND "
+    + _PRESENT_OR_HISTORICAL
+    + " "
+    + _CHUNK_CODED_RETURN
+    + "} "
     "WITH entity_type, name, concept_id "
     "WHERE name IS NOT NULL AND entity_type IS NOT NULL "
     "RETURN entity_type, name, concept_id "

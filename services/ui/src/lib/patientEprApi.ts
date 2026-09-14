@@ -124,6 +124,9 @@ export interface ConceptMention {
   source_date: string | null;
   assertion: string | null;
   confidence: number | null;
+  value?: string | null;
+  unit?: string | null;
+  observed_at?: string | null;
 }
 
 /** Full evidence for a single dated mention, fetched on demand. */
@@ -138,6 +141,9 @@ export interface ConceptMentionDetail {
   confidence: number | null;
   evidence: string | null;
   evidence_sentence: string | null;
+  value?: string | null;
+  unit?: string | null;
+  observed_at?: string | null;
 }
 
 export interface PatientDetail {
@@ -190,6 +196,7 @@ export interface CodedTerm {
   confidence: number | null;
   value: string | null;
   unit: string | null;
+  observed_at?: string | null;
 }
 
 export interface EncounterDetail {

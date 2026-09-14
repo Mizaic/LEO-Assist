@@ -70,17 +70,12 @@ export function useConceptEvidence(patientId: string, conceptId: string | null) 
     try {
       const rows = await fetchConceptMentions(patientId, conceptId);
       setMentions(rows);
-      if (rows.length === 1) {
-        const [only] = rows;
-        setExpandedKey(mentionKey(only.source_type, only.source_id));
-        void loadDetail(only.source_type, only.source_id);
-      }
     } catch (err) {
       setMentionsError(errorMessage(err, "Unable to load evidence."));
     } finally {
       setMentionsLoading(false);
     }
-  }, [conceptId, mentions, patientId, loadDetail]);
+  }, [conceptId, mentions, patientId]);
 
   const toggleMention = useCallback(
     (sourceType: ConceptMentionSourceType, sourceId: string) => {

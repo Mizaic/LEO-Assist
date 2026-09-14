@@ -14,6 +14,30 @@ def test_parse_measurement_ignores_read_code_and_extracts_true_value_unit() -> N
     assert parsed["unit"] == "10^9/L"
     assert parsed["reference_range"] == "1.5 - 7.5"
     assert parsed["value_span"] == "2.41 10^9/L"
+    assert "observed_at" not in parsed
+
+
+def test_parse_measurement_keeps_the_letter_date() -> None:
+    text = "Blood Pressure | 140/80 mmHg, 24 Nov 2025 |"
+    parsed = parse_measurement_from_text(text)
+    assert parsed["numeric_value"] == "140/80"
+    assert parsed["unit"].lower() == "mmhg"
+    assert parsed["observed_at"] == "2025-11-24"
+
+
+def test_normalize_copies_date_from_the_same_line() -> None:
+    encounter = "| Heart rate | 70 bpm, 24 Nov 2025 |"
+    entities = [
+        {
+            "text": "Heart rate",
+            "label": "observable_entity",
+            "start": encounter.index("Heart rate"),
+            "end": encounter.index("Heart rate") + 10,
+        }
+    ]
+    normalized = normalize_observable_entities(encounter, entities)
+    assert normalized[0]["value"] == "70"
+    assert normalized[0]["observed_at"] == "2025-11-24"
 
 
 def test_normalize_observable_entity_splits_span_and_adds_qualifier() -> None:

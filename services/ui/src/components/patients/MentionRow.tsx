@@ -1,6 +1,6 @@
 /**
  * A single dated mention row inside the coded-entity evidence popover.
- * Collapsed by default; expands in place to show the evidence sentence.
+ * Term, assertion, and reading stay visible. Letter text is behind See more.
  *
  * Atlas trace:
  *   DO: DO-5D3EA371
@@ -9,14 +9,13 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import AssertionChip from "@/components/AssertionChip";
+import { assertionDisplayLabel } from "@/components/AssertionChip";
 import type {
   ConceptMention,
   ConceptMentionDetail,
@@ -29,7 +28,7 @@ const SOURCE_LABEL: Record<ConceptMentionSourceType, string> = {
   communication: "Message",
 };
 
-function formatDate(raw: string | null): string {
+function formatDate(raw: string | null | undefined): string {
   if (!raw) return "No date recorded";
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return raw;
@@ -38,6 +37,17 @@ function formatDate(raw: string | null): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function mentionDate(mention: ConceptMention): string | null {
+  return mention.observed_at || mention.source_date;
+}
+
+function readingLabel(mention: ConceptMention): string | null {
+  const value = (mention.value || "").trim();
+  if (!value) return null;
+  const unit = (mention.unit || "").trim();
+  return unit ? `${value} ${unit}` : value;
 }
 
 interface MentionRowProps {
@@ -57,42 +67,38 @@ export function MentionRow({
   detailError,
   onToggle,
 }: MentionRowProps) {
-  const hasDate = Boolean(mention.source_date);
+  const displayDate = mentionDate(mention);
+  const reading = readingLabel(mention);
   return (
-    <Box component="li" sx={{ listStyle: "none" }}>
-      <Box
-        component="button"
-        type="button"
-        onClick={() => onToggle(mention.source_type, mention.source_id)}
-        aria-expanded={expanded}
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 1,
-          width: "100%",
-          background: expanded ? "#F8FAFC" : "none",
-          border: "1px solid",
-          borderColor: expanded ? "#CBD5E1" : "#E2E8F0",
-          borderRadius: "6px",
-          px: 1,
-          py: 0.625,
-          cursor: "pointer",
-          font: "inherit",
-          textAlign: "left",
-          transition: "background-color 120ms ease, border-color 120ms ease",
-          "&:hover": { bgcolor: "#F8FAFC", borderColor: "#CBD5E1" },
-        }}
-      >
-        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
+    <Box
+      component="li"
+      sx={{
+        listStyle: "none",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 1,
+        px: 1,
+        py: 0.75,
+      }}
+    >
+      <Stack spacing={0.25}>
+        <Stack direction="row" spacing={1} alignItems="baseline" sx={{ minWidth: 0 }}>
+          <Typography variant="caption" fontWeight={700}>
+            {assertionDisplayLabel(mention.assertion)}
+          </Typography>
+          {reading ? (
+            <Typography variant="body2" fontWeight={700}>
+              {reading}
+            </Typography>
+          ) : null}
+        </Stack>
+        <Stack direction="row" spacing={0.75} alignItems="center">
           <Typography
             variant="caption"
-            fontWeight={hasDate ? 700 : 500}
-            color={hasDate ? "text.primary" : "text.secondary"}
-            fontStyle={hasDate ? "normal" : "italic"}
-            sx={{ whiteSpace: "nowrap" }}
+            color={displayDate ? "text.primary" : "text.secondary"}
+            fontStyle={displayDate ? "normal" : "italic"}
           >
-            {formatDate(mention.source_date)}
+            {formatDate(displayDate)}
           </Typography>
           <Chip
             label={SOURCE_LABEL[mention.source_type] ?? mention.source_type}
@@ -101,41 +107,60 @@ export function MentionRow({
               height: 16,
               fontSize: "0.625rem",
               fontWeight: 600,
-              bgcolor: "#EEF2F6",
-              color: "#64748B",
               "& .MuiChip-label": { px: 0.6 },
             }}
           />
         </Stack>
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-          <AssertionChip assertion={mention.assertion} size="small" />
-          {expanded ? (
-            <ExpandLessIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-          ) : (
-            <ExpandMoreIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-          )}
-        </Stack>
-      </Box>
-      {expanded && (
-        <Box sx={{ px: 1, py: 0.75 }}>
-          {detailLoading && (
-            <Stack direction="row" spacing={1} alignItems="center">
-              <CircularProgress size={12} aria-label="Loading" role="status" />
-              <Typography variant="caption" color="text.secondary">
-                Loading evidence...
-              </Typography>
-            </Stack>
-          )}
-          {detailError && !detail && !detailLoading && (
-            <Alert severity="error" sx={{ fontSize: 11, py: 0.25 }}>
-              {detailError}
-            </Alert>
-          )}
-          {detail && <MentionEvidence detail={detail} />}
-        </Box>
-      )}
+        <Button
+          type="button"
+          size="small"
+          variant="text"
+          onClick={() => onToggle(mention.source_type, mention.source_id)}
+          aria-expanded={expanded}
+          sx={{ alignSelf: "flex-start", minHeight: 24, px: 0 }}
+        >
+          {expanded ? "See less" : "See more"}
+        </Button>
+      </Stack>
+      {expanded ? (
+        <MentionEvidenceBody
+          detail={detail}
+          detailLoading={detailLoading}
+          detailError={detailError}
+        />
+      ) : null}
     </Box>
   );
+}
+
+function MentionEvidenceBody({
+  detail,
+  detailLoading,
+  detailError,
+}: {
+  detail?: ConceptMentionDetail;
+  detailLoading: boolean;
+  detailError: string | null;
+}) {
+  if (detailLoading) {
+    return (
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ pt: 0.5 }}>
+        <CircularProgress size={12} aria-label="Loading" role="status" />
+        <Typography variant="caption" color="text.secondary">
+          Loading letter text...
+        </Typography>
+      </Stack>
+    );
+  }
+  if (detailError && !detail) {
+    return (
+      <Alert severity="error" sx={{ fontSize: 11, py: 0.25, mt: 0.5 }}>
+        {detailError}
+      </Alert>
+    );
+  }
+  if (!detail) return null;
+  return <MentionEvidence detail={detail} />;
 }
 
 function MentionEvidence({ detail }: { detail: ConceptMentionDetail }) {
@@ -144,15 +169,15 @@ function MentionEvidence({ detail }: { detail: ConceptMentionDetail }) {
   if (!span && !sentence) {
     return (
       <Typography variant="caption" color="text.secondary" fontStyle="italic">
-        No evidence recorded.
+        No letter text recorded.
       </Typography>
     );
   }
   return (
-    <Box sx={{ borderLeft: "3px solid #CBD5E1", pl: 1, py: 0.25 }}>
+    <Box sx={{ borderLeft: "3px solid", borderColor: "divider", pl: 1, py: 0.25 }}>
       {span ? (
         <Typography variant="caption" sx={{ display: "block", lineHeight: 1.5 }}>
-          evidence: {span}
+          {span}
         </Typography>
       ) : null}
       {sentence ? (
@@ -165,7 +190,7 @@ function MentionEvidence({ detail }: { detail: ConceptMentionDetail }) {
             lineHeight: 1.5,
           }}
         >
-          evidence_sentence: &quot;{sentence}&quot;
+          &quot;{sentence}&quot;
         </Typography>
       ) : null}
     </Box>
