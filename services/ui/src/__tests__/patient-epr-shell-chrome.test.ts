@@ -52,6 +52,21 @@ describe("Patient EPR shell chrome", () => {
     expect(src).not.toMatch(/100vh/);
   });
 
+  test("TC-008: Documents tab fills the remaining column height", () => {
+    const src = readUi("components/patients/PatientShell.tsx");
+    expect(src).toMatch(/overflow:\s*wideTab\s*\?\s*["']hidden["']/);
+    expect(src).toMatch(/WIDE_TABS/);
+  });
+
+  test("TC-009: selected record tab uses brand colour so it still reads without the pill", () => {
+    const src = readFileSync(
+      join(REPO_ROOT, "services/design-system/src/primitives/SegmentedTabs.tsx"),
+      "utf8",
+    );
+    expect(src).toMatch(/color\.brand\.primary/);
+    expect(src).toMatch(/selected/);
+  });
+
   test("TC-005: PatientShell surfaces timeline and entity load failures", () => {
     const shell = readUi("components/patients/PatientShell.tsx");
     const load = readUi("components/patients/usePatientRecord.ts");

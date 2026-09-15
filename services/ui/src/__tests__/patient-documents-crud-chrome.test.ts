@@ -16,9 +16,14 @@ function readFile(relPath: string): string {
 describe("patient documents CRUD chrome", () => {
   test("TC-001: DocumentListPanel exposes add document control", () => {
     const src = readFile("services/ui/src/components/patients/DocumentListPanel.tsx");
-    expect(src).toMatch(/add-document-button/);
+    const toolbar = readFile(
+      "services/ui/src/components/patients/DocumentWorkspaceToolbar.tsx",
+    );
     expect(src).toMatch(/DocumentEditorDialog/);
     expect(src).toMatch(/JourneyBuilderPanel/);
+    expect(src).toMatch(/epr-document-workspace/);
+    expect(toolbar).toMatch(/add-document-button/);
+    expect(toolbar).toMatch(/FilterBar/);
   });
 
   test("TC-002: DocumentViewer wires edit and delete with ConfirmDialog", () => {

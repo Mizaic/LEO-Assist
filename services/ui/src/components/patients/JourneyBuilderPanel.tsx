@@ -18,9 +18,9 @@ import DialogTitle from "@mui/material/DialogTitle";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
+import { ProgressiveReveal, color, radius } from "@leo/design-system";
 import { useOrg } from "@/context/OrgContext";
 import { LeoSbarHost } from "@/components/sbar-final/LeoSbarHost";
 import { createEpisode } from "@/lib/missionControlApi";
@@ -207,110 +207,119 @@ export function JourneyBuilderPanel({
   return (
     <Box
       sx={{
-        border: "1px solid #E2E8F0",
-        borderRadius: "10px",
-        p: 1.5,
-        mb: 1.5,
-        bgcolor: "#F8FAFC",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: `${radius.md}px`,
+        px: 1.5,
+        py: 1,
+        bgcolor: color.surface.raised,
+        flexShrink: 0,
       }}
       data-testid="journey-builder-panel"
     >
-      <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 1 }}>
-        Journey builder
-      </Typography>
-      {error && (
-        <Alert severity="error" sx={{ mb: 1 }}>
-          {error}
-        </Alert>
-      )}
-      <Stack spacing={1.25}>
-        <TextField
-          size="small"
-          label="Episode id"
-          value={episodeId}
-          onChange={(e) => setEpisodeId(e.target.value)}
-          helperText={episodeId ? "Episode linked" : "Create or paste an episode id"}
-        />
-        {!episodeId && (
-          <Stack direction="row" spacing={1}>
+      <ProgressiveReveal summary="Build a journey" defaultOpen={false}>
+        {error && (
+          <Alert severity="error" sx={{ mb: 1 }}>
+            {error}
+          </Alert>
+        )}
+        <Stack spacing={1.25}>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <TextField
+              size="small"
+              label="Episode id"
+              value={episodeId}
+              onChange={(e) => setEpisodeId(e.target.value)}
+              helperText={episodeId ? "Episode linked" : "Create or paste an episode id"}
+              sx={{ minWidth: 220, flex: 1 }}
+            />
             <TextField
               size="small"
               select
-              label="Cancer type"
-              value={cancerType}
-              onChange={(e) => setCancerType(e.target.value)}
-              sx={{ minWidth: 140 }}
+              label="Milestone"
+              value={milestoneType}
+              onChange={(e) => setMilestoneType(e.target.value)}
+              sx={{ minWidth: 160 }}
             >
-              <MenuItem value="breast">Breast</MenuItem>
-              <MenuItem value="lung">Lung</MenuItem>
-              <MenuItem value="lower_gi">Lower GI</MenuItem>
+              {JOURNEY_MILESTONES.map((m) => (
+                <MenuItem key={m.id} value={m.id}>
+                  {m.label}
+                </MenuItem>
+              ))}
             </TextField>
+          </Stack>
+          {!episodeId && (
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <TextField
+                size="small"
+                select
+                label="Cancer type"
+                value={cancerType}
+                onChange={(e) => setCancerType(e.target.value)}
+                sx={{ minWidth: 140 }}
+              >
+                <MenuItem value="breast">Breast</MenuItem>
+                <MenuItem value="lung">Lung</MenuItem>
+                <MenuItem value="lower_gi">Lower GI</MenuItem>
+              </TextField>
+              <Button
+                variant="outlined"
+                startIcon={busy ? <CircularProgress size={16} /> : <AddIcon />}
+                onClick={() => void handleStartJourney()}
+                disabled={busy}
+                sx={{ textTransform: "none" }}
+              >
+                Start journey
+              </Button>
+            </Stack>
+          )}
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             <Button
-              variant="outlined"
-              startIcon={busy ? <CircularProgress size={16} /> : <AddIcon />}
-              onClick={() => void handleStartJourney()}
+              size="small"
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => void handleAddMilestoneDoc()}
               disabled={busy}
+              sx={{ textTransform: "none" }}
             >
-              Start journey
+              Add milestone document
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PlayArrowOutlinedIcon />}
+              onClick={() => void handleRunDocumentPipeline()}
+              disabled={busy}
+              sx={{ textTransform: "none" }}
+            >
+              Run document pipeline
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PlayArrowOutlinedIcon />}
+              onClick={() => void handlePlayEpisodeSbar()}
+              disabled={busy}
+              sx={{ textTransform: "none" }}
+            >
+              Play episode SBAR
             </Button>
           </Stack>
-        )}
-        <TextField
-          size="small"
-          select
-          label="Milestone"
-          value={milestoneType}
-          onChange={(e) => setMilestoneType(e.target.value)}
-        >
-          {JOURNEY_MILESTONES.map((m) => (
-            <MenuItem key={m.id} value={m.id}>
-              {m.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <Stack direction="row" spacing={1} flexWrap="wrap">
-          <Button
-            size="small"
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => void handleAddMilestoneDoc()}
-            disabled={busy}
-          >
-            Add milestone document
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<PlayArrowOutlinedIcon />}
-            onClick={() => void handleRunDocumentPipeline()}
-            disabled={busy}
-          >
-            Run document pipeline
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<PlayArrowOutlinedIcon />}
-            onClick={() => void handlePlayEpisodeSbar()}
-            disabled={busy}
-          >
-            Play episode SBAR
-          </Button>
+          {history.length > 0 && (
+            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+              {history.map((item) => (
+                <Chip
+                  key={`${item.scope}:${item.id}`}
+                  label={item.label}
+                  size="small"
+                  clickable
+                  onClick={() => setPreviewAssessmentId(item.id)}
+                />
+              ))}
+            </Stack>
+          )}
         </Stack>
-        {history.length > 0 && (
-          <Stack direction="row" spacing={0.75} flexWrap="wrap">
-            {history.map((item) => (
-              <Chip
-                key={`${item.scope}:${item.id}`}
-                label={item.label}
-                size="small"
-                clickable
-                onClick={() => setPreviewAssessmentId(item.id)}
-              />
-            ))}
-          </Stack>
-        )}
-      </Stack>
+      </ProgressiveReveal>
 
       <DocumentEditorDialog
         open={editorOpen}

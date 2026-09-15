@@ -34,6 +34,24 @@ describe("EPR document chunk pipeline chrome", () => {
     expect(sheet).toMatch(/TaskList/);
   });
 
+  test("Care reprocess does not open an SBAR drawer from the run sheet", () => {
+    const panel = readUi("components/patients/DocumentChunkPanel.tsx");
+    const sheet = readUi("app/admin/validation-lab/RunSheetDialog.tsx");
+    expect(panel).toMatch(/showSbarActions=\{false\}/);
+    expect(panel).not.toMatch(/RunSheetSbarActions/);
+    expect(sheet).toMatch(/showSbarActions/);
+  });
+
+  test("Care reprocess refreshes the document list when the run sheet is dismissed", () => {
+    const panel = readUi("components/patients/DocumentChunkPanel.tsx");
+    const viewer = readUi("components/patients/DocumentViewer.tsx");
+    const list = readUi("components/patients/DocumentListPanel.tsx");
+    expect(viewer).toMatch(/onDocumentsChanged=\{onDocumentsChanged\}/);
+    expect(panel).toMatch(/onDocumentsChanged\?/);
+    expect(panel).toMatch(/assessment:/);
+    expect(list).toMatch(/preferredId/);
+  });
+
   test("DocumentViewer renders linked SBAR on referral documents", () => {
     const src = readUi("components/patients/DocumentViewer.tsx");
     expect(src).toMatch(/hasLinkedSbarAssessment/);

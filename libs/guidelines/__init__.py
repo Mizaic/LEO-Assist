@@ -9,6 +9,8 @@ from libs.guidelines.action_already_done import (
     action_already_done,
     all_actions_already_done,
     apply_already_done_filter,
+    mark_already_done_actions,
+    split_already_actioned_rules,
 )
 from libs.guidelines.patient_fact_bundle import (
     AllergyFact,
@@ -27,4 +29,6 @@ __all__ = [
     "all_actions_already_done",
     "apply_already_done_filter",
     "empty_bundle",
+    "mark_already_done_actions",
+    "split_already_actioned_rules",
 ]

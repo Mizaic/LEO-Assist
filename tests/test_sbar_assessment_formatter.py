@@ -366,6 +366,68 @@ def test_two_actions_render_one_line_each_and_keep_rule_level_priority() -> None
     assert out.markdown.count("### Two week wait") == 1
 
 
+def test_already_actioned_rule_moves_under_already_done_heading() -> None:
+    """Completed matches stay visible under Already done, not in Primary matches."""
+    open_rule = _rule("R-1514", priority="2ww", due_days=1, name="1.5.14")
+    done_rule = _rule_with_actions(
+        "R-152",
+        priority="urgent",
+        due_days=14,
+        name="Rule: 1.5.2",
+        actions=[
+            {
+                "priority": "urgent",
+                "due_days": 14,
+                "name": "Ultrasound scan of abdomen and pelvis",
+                "already_done": True,
+            }
+        ],
+    )
+    done_rule["already_actioned"] = True
+    out = format_assessment(
+        matched_rules=[open_rule, done_rule],
+        patient_codes=["1"],
+        compliance_context={
+            "primary": {
+                "supported": True,
+                "service_name": "Sherwood gynae 2WW",
+                "guideline_ids": ["NG12"],
+                "matched_rules": [open_rule, done_rule],
+            }
+        },
+    )
+    done_at = out.markdown.find("### Already done (1)")
+    assert done_at != -1
+    assert out.markdown.find("**1.5.14**") < done_at
+    assert out.markdown.find("**Rule: 1.5.2**") > done_at
+    assert "Other guidelines that would support this request" not in out.markdown
+
+
+def test_completed_action_renders_struck_through_not_hidden() -> None:
+    """DI-B3B44F09: already-done actions stay visible and are crossed out."""
+    rule = _rule_with_actions(
+        "R-152",
+        priority="urgent",
+        due_days=14,
+        name="Rule: 1.5.2",
+        actions=[
+            {
+                "priority": "urgent",
+                "due_days": 14,
+                "name": "Ultrasound scan of abdomen and pelvis",
+                "already_done": True,
+            }
+        ],
+    )
+    out = format_assessment(matched_rules=[rule], patient_codes=["1"])
+    assert "Rule: 1.5.2" in out.markdown
+    assert (
+        "**Action:** ~~Ultrasound scan of abdomen and pelvis~~ (already done)"
+        in out.markdown
+    )
+    assert "(within 14 days)" not in out.markdown
+
+
 def test_rule_with_no_actions_renders_no_action_lines() -> None:
     """A rule with an empty actions list renders zero 'Action:' lines
     instead of raising, matching the legacy None-action behaviour."""

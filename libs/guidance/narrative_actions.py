@@ -30,9 +30,20 @@ def procedure_compliance_actions(actions: list[dict[str, Any]] | None) -> list[d
     return out
 
 
+def strike_completed_action(label: str) -> str:
+    """Return Markdown that shows a completed action as crossed out."""
+    text = (label or "").strip()
+    if not text:
+        return ""
+    return f"~~{text}~~ (already done)"
+
+
 def display_action_label(action: dict[str, Any]) -> str:
     """Prefer free-text narrative wording when present."""
     if is_narrative_action(action.get("action_kind")):
         text = (action.get("action_text") or action.get("name") or "").strip()
-        return text
-    return (action.get("name") or action.get("action_text") or "").strip()
+    else:
+        text = (action.get("name") or action.get("action_text") or "").strip()
+    if action.get("already_done"):
+        return strike_completed_action(text)
+    return text

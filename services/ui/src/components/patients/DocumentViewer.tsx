@@ -136,7 +136,7 @@ interface Props {
   doc: DocumentRow;
   patientId?: string;
   canManageDocuments?: boolean;
-  onDocumentsChanged?: () => void;
+  onDocumentsChanged?: (selectDocumentId?: string) => void;
 }
 
 function isEditableDocument(doc: DocumentRow): boolean {
@@ -358,6 +358,7 @@ export function DocumentViewer({
           doc={doc}
           open={reprocessOpen}
           onClose={() => setReprocessOpen(false)}
+          onDocumentsChanged={onDocumentsChanged}
         />
       )}
 

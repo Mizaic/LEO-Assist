@@ -44,6 +44,7 @@ interface Props {
   doc: DocumentRow;
   open: boolean;
   onClose: () => void;
+  onDocumentsChanged?: (selectDocumentId?: string) => void;
 }
 
 function chunkLabel(chunk: PatientFinderChunk): string {
@@ -87,7 +88,18 @@ export function sheetFromDocumentRun(
   };
 }
 
-export function DocumentChunkPanel({ patientId, doc, open, onClose }: Props) {
+function nextSbarDocumentId(run: DocumentRunResponse | null): string | undefined {
+  const id = (run?.assessment_id || "").trim();
+  return id ? `assessment:${id}` : undefined;
+}
+
+export function DocumentChunkPanel({
+  patientId,
+  doc,
+  open,
+  onClose,
+  onDocumentsChanged,
+}: Props) {
   const { isPlatformAdmin } = useOrg();
   const [chunks, setChunks] = useState<PatientFinderChunk[]>([]);
   const [chunkSourceId, setChunkSourceId] = useState<string>("");
@@ -168,6 +180,7 @@ export function DocumentChunkPanel({ patientId, doc, open, onClose }: Props) {
         setActiveRun,
       );
       setActiveRun(finalRun);
+      onDocumentsChanged?.(nextSbarDocumentId(finalRun));
     } catch (e) {
       setActiveRun({
         run_id: "",
@@ -289,7 +302,11 @@ export function DocumentChunkPanel({ patientId, doc, open, onClose }: Props) {
       {runOpen ? (
         <RunSheetDialog
           sheet={sheetFromDocumentRun(doc.title, activeRun)}
-          onClose={() => setRunOpen(false)}
+          showSbarActions={false}
+          onClose={() => {
+            setRunOpen(false);
+            onDocumentsChanged?.(nextSbarDocumentId(activeRun));
+          }}
         />
       ) : null}
     </>

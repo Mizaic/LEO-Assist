@@ -10,12 +10,16 @@
  */
 "use client";
 
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
+import { color } from "@leo/design-system";
+import { RecordShowMore } from "./RecordShowMore";
+import { RECORD_PAGE_SIZE, remainingCount, visibleSlice } from "./recordPage";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
@@ -100,12 +104,99 @@ function formatDate(iso: string): string {
   }
 }
 
+function TimelineRow({
+  item,
+  onItemClick,
+}: {
+  item: TimelineItem;
+  onItemClick?: (item: TimelineItem) => void;
+}) {
+  const cfg = getConfig(item.item_type);
+  const clickable = Boolean(onItemClick) && isClickableType(item.item_type);
+  return (
+    <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", pb: 1.5 }}>
+      <Box
+        aria-hidden="true"
+        sx={{
+          flexShrink: 0,
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          bgcolor: `${cfg.color}18`,
+          border: `2px solid ${cfg.color}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: cfg.color,
+          zIndex: 1,
+        }}
+      >
+        {cfg.icon}
+      </Box>
+      <Box
+        component={clickable ? "button" : "div"}
+        type={clickable ? "button" : undefined}
+        onClick={clickable ? () => onItemClick?.(item) : undefined}
+        sx={{
+          flex: 1,
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: "8px",
+          p: "10px 14px",
+          bgcolor: color.surface.alt,
+          textAlign: "left",
+          font: "inherit",
+          cursor: clickable ? "pointer" : "default",
+          "@media (hover: hover) and (pointer: fine)": clickable
+            ? {
+                "&:hover": {
+                  borderColor: color.text.caption,
+                  bgcolor: color.surface.raised,
+                },
+              }
+            : undefined,
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+          <Chip
+            label={cfg.label}
+            size="small"
+            sx={{
+              bgcolor: `${cfg.color}18`,
+              color: cfg.color,
+              fontWeight: 600,
+              fontSize: 12,
+              height: 24,
+            }}
+          />
+          <Typography variant="body2" sx={{ color: color.text.caption, fontSize: 12 }}>
+            {formatDate(item.item_date)}
+          </Typography>
+        </Stack>
+        <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
+          {item.label}
+        </Typography>
+        {item.extra && (
+          <Typography variant="caption" sx={{ color: color.text.caption }}>
+            {item.extra}
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 export function ActivityTimeline({
   items,
   loading,
   error,
   onItemClick,
 }: Props) {
+  const [shown, setShown] = useState(RECORD_PAGE_SIZE);
+  const listKey = `${items.length}:${items[0]?.item_id ?? ""}:${items[items.length - 1]?.item_id ?? ""}`;
+  useEffect(() => {
+    setShown(RECORD_PAGE_SIZE);
+  }, [listKey]);
   if (loading) {
     return (
       <Stack spacing={1.5}>
@@ -132,9 +223,10 @@ export function ActivityTimeline({
     );
   }
 
+  const visible = visibleSlice(items, shown);
+
   return (
     <Stack spacing={0} sx={{ position: "relative" }}>
-      {/* Vertical guide line */}
       <Box
         aria-hidden="true"
         sx={{
@@ -143,84 +235,23 @@ export function ActivityTimeline({
           top: 12,
           bottom: 12,
           width: 2,
-          bgcolor: "#E2E8F0",
+          bgcolor: color.surface.divider,
           borderRadius: 1,
         }}
       />
-      {items.map((item, idx) => {
-        const cfg = getConfig(item.item_type);
-        const clickable = Boolean(onItemClick) && isClickableType(item.item_type);
-        return (
-          <Box
-            key={`${item.item_type}-${item.item_id}-${idx}`}
-            sx={{ display: "flex", gap: 2, alignItems: "flex-start", pb: 1.5 }}
-          >
-            {/* Dot */}
-            <Box
-              aria-hidden="true"
-              sx={{
-                flexShrink: 0,
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                bgcolor: `${cfg.color}18`,
-                border: `2px solid ${cfg.color}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: cfg.color,
-                zIndex: 1,
-              }}
-            >
-              {cfg.icon}
-            </Box>
-            {/* Content */}
-            <Box
-              component={clickable ? "button" : "div"}
-              type={clickable ? "button" : undefined}
-              onClick={clickable ? () => onItemClick?.(item) : undefined}
-              sx={{
-                flex: 1,
-                border: "1px solid #E2E8F0",
-                borderRadius: "8px",
-                p: "10px 14px",
-                bgcolor: "#FAFAFA",
-                textAlign: "left",
-                font: "inherit",
-                cursor: clickable ? "pointer" : "default",
-                "&:hover": clickable
-                  ? { borderColor: "#94A3B8", bgcolor: "#F8FAFC" }
-                  : undefined,
-              }}
-            >
-              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                <Chip
-                  label={cfg.label}
-                  size="small"
-                  sx={{
-                    bgcolor: `${cfg.color}18`,
-                    color: cfg.color,
-                    fontWeight: 600,
-                    fontSize: 11,
-                    height: 20,
-                  }}
-                />
-                <Typography variant="body2" color="text.secondary" fontSize={12}>
-                  {formatDate(item.item_date)}
-                </Typography>
-              </Stack>
-              <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
-                {item.label}
-              </Typography>
-              {item.extra && (
-                <Typography variant="caption" color="text.secondary">
-                  {item.extra}
-                </Typography>
-              )}
-            </Box>
-          </Box>
-        );
-      })}
+      {visible.map((item, idx) => (
+        <TimelineRow
+          key={`${item.item_type}-${item.item_id}-${idx}`}
+          item={item}
+          onItemClick={onItemClick}
+        />
+      ))}
+      <Box sx={{ pl: 6, pt: 1 }}>
+        <RecordShowMore
+          remaining={remainingCount(items.length, shown)}
+          onShowMore={() => setShown((n) => n + RECORD_PAGE_SIZE)}
+        />
+      </Box>
     </Stack>
   );
 }

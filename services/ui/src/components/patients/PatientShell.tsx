@@ -101,8 +101,28 @@ export function PatientShell({
         entitiesError={record.entitiesError}
         showTimelineError={nav.activeTab === "timeline"}
       />
-      <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 2, sm: 2.5 }, minWidth: 0 }}>
-        <Box sx={{ maxWidth: wideTab ? "none" : 1120, mx: wideTab ? 0 : "auto" }}>
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: wideTab ? "hidden" : "auto",
+          p: { xs: 2, sm: 2.5 },
+        }}
+      >
+        <Box
+          sx={{
+            flex: wideTab ? 1 : undefined,
+            minHeight: wideTab ? 0 : undefined,
+            display: wideTab ? "flex" : "block",
+            flexDirection: "column",
+            width: "100%",
+            maxWidth: wideTab ? "none" : 1120,
+            mx: wideTab ? 0 : "auto",
+          }}
+        >
           <PatientRecordBody
             patientId={patientId}
             record={record}

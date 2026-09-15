@@ -6,6 +6,7 @@
  *   DI: DI-357A7468
  */
 
+import Box from "@mui/material/Box";
 import { OverviewPanel } from "./OverviewPanel";
 import { EpisodeSwimlane } from "./EpisodeSwimlane";
 import { EncounterListPanel } from "./EncounterListPanel";
@@ -54,21 +55,25 @@ export function PatientRecordBody({
   }
   if (nav.activeTab === "encounters") {
     return (
-      <EncounterListPanel
-        patientId={patientId}
-        initialEncounterId={nav.selectedEncounterId}
-        scopeEpisodeIds={scopeEpisodeIds}
-      />
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <EncounterListPanel
+          patientId={patientId}
+          initialEncounterId={nav.selectedEncounterId}
+          scopeEpisodeIds={scopeEpisodeIds}
+        />
+      </Box>
     );
   }
   if (nav.activeTab === "documents") {
     return (
-      <DocumentListPanel
-        patientId={patientId}
-        scopeEpisodeIds={scopeEpisodeIds}
-        initialDocumentId={nav.selectedDocumentId}
-        initialReferralId={nav.selectedReferralId}
-      />
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <DocumentListPanel
+          patientId={patientId}
+          scopeEpisodeIds={scopeEpisodeIds}
+          initialDocumentId={nav.selectedDocumentId}
+          initialReferralId={nav.selectedReferralId}
+        />
+      </Box>
     );
   }
   if (nav.activeTab === "alerts") {

@@ -32,6 +32,8 @@ import { fetchEprAssessments } from "@/lib/patientEprApi";
 import { LeoSbarHost } from "@/components/sbar-final";
 import { OverviewEpisodeCard } from "./OverviewEpisodeCard";
 import { ProblemListView } from "./ProblemListView";
+import { RecordShowMore } from "./RecordShowMore";
+import { EPISODE_PAGE_SIZE, remainingCount, visibleSlice } from "./recordPage";
 
 function SectionHeader({
   icon,
@@ -165,6 +167,8 @@ function EpisodesSection({
 }: {
   episodes: PatientDetail["episodes"];
 }) {
+  const [shown, setShown] = useState(EPISODE_PAGE_SIZE);
+  const visible = visibleSlice(episodes, shown);
   return (
     <Surface>
       <SectionHeader
@@ -181,13 +185,22 @@ function EpisodesSection({
           data-testid="epr-episodes-empty"
         />
       ) : (
-        <Grid container spacing={1.5}>
-          {episodes.map((ep, i) => (
-            <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={ep.episode_id ?? String(i)}>
-              <OverviewEpisodeCard ep={ep} index={i} />
-            </Grid>
-          ))}
-        </Grid>
+        <>
+          <Grid container spacing={1.5}>
+            {visible.map((ep, i) => (
+              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={ep.episode_id ?? String(i)}>
+                <OverviewEpisodeCard ep={ep} index={i} />
+              </Grid>
+            ))}
+          </Grid>
+          <Box sx={{ mt: 1.5 }}>
+            <RecordShowMore
+              remaining={remainingCount(episodes.length, shown)}
+              pageSize={EPISODE_PAGE_SIZE}
+              onShowMore={() => setShown((n) => n + EPISODE_PAGE_SIZE)}
+            />
+          </Box>
+        </>
       )}
     </Surface>
   );
