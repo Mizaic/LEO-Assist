@@ -2,9 +2,8 @@
 
 A result or finding can prove a recommended procedure is already done
 when SNOMED links them with Interprets (363714003) or Has component
-(246093002). Some UK extension pairs, notably faecal immunochemical
-testing (FIT) kit vs quantitative FIT result, are not linked that way,
-so a curated family fills the gap.
+(246093002). Shared leftover pairs live on InvestigationFamily in
+Neo4j. FIT stays as a packaged fallback until that family is seeded.
 
 Atlas trace:
   DI: DI-B3B44F09
@@ -13,7 +12,9 @@ Atlas trace:
 
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Mapping
+
+from libs.guidelines.investigation_family_catalog import family_ids_for_concept
 
 RelatedLookup = Callable[[str], dict[str, Any]]
 
@@ -63,6 +64,7 @@ def evidence_ids_for_action(
     concept_id: str,
     *,
     related: dict[str, Any] | None = None,
+    families: Mapping[str, set[str]] | None = None,
 ) -> set[str]:
     """Ids that mean this investigation has already been done."""
     cid = str(concept_id or "").strip()
@@ -70,6 +72,7 @@ def evidence_ids_for_action(
         return set()
     evidence = {cid}
     evidence |= _ids_from_related(related)
+    evidence |= family_ids_for_concept(cid, families)
     evidence |= curated_family_ids(cid)
     return evidence
 

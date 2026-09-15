@@ -177,6 +177,14 @@
       "example": "planned hysterectomy → the operation has not been performed"
     },
     {
+      "literal": "(requested)",
+      "category": "PLANNED",
+      "direction": "BACKWARD",
+      "max_scope": 4,
+      "description": "The test or scan was asked for. It has not been done yet. A FINAL report means it was done.",
+      "example": "US Pelvis (Requested) -- the scan is asked for, not completed"
+    },
+    {
       "literal": "declined",
       "category": "DECLINED",
       "direction": "BIDIRECTIONAL",

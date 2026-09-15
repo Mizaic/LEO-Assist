@@ -16,12 +16,11 @@ Atlas trace:
 
 from __future__ import annotations
 
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Fake Neo4j session helpers
 # ---------------------------------------------------------------------------
+
 
 def _fake_session_returning(related_row: dict):
     """Fake session whose .run() returns a single row matching related_row."""
@@ -95,8 +94,14 @@ class TestCompiledActionItemSnomed:
             GuidelineCompiler,
         )
 
-        item = {"concept_id": "241491008", "name": "USS abdomen pelvis", "strength": "routine"}
-        result = GuidelineCompiler._compiled_action_item(item, "241491008", session=None)
+        item = {
+            "concept_id": "241491008",
+            "name": "USS abdomen pelvis",
+            "strength": "routine",
+        }
+        result = GuidelineCompiler._compiled_action_item(
+            item, "241491008", session=None
+        )
 
         assert result["already_done_evidence_ids"] == ["241491008"]
 
@@ -107,8 +112,14 @@ class TestCompiledActionItemSnomed:
         )
 
         session = _fake_session_returning(_USS_RELATED_ROW)
-        item = {"concept_id": "241491008", "name": "USS abdomen pelvis", "strength": "routine"}
-        result = GuidelineCompiler._compiled_action_item(item, "241491008", session=session)
+        item = {
+            "concept_id": "241491008",
+            "name": "USS abdomen pelvis",
+            "strength": "routine",
+        }
+        result = GuidelineCompiler._compiled_action_item(
+            item, "241491008", session=session
+        )
 
         ids = set(result["already_done_evidence_ids"])
         assert "241491008" in ids, "procedure itself must always be in evidence ids"
@@ -116,7 +127,7 @@ class TestCompiledActionItemSnomed:
         assert "399034003" in ids, "HAS_COMPONENT observable must be in evidence ids"
 
     def test_session_failure_falls_back_to_self_only(self):
-        """SNOMED query failure is silent -- evidence ids fall back to procedure only."""
+        """SNOMED query failure falls back to the procedure id only."""
         from services.terminology_api.app.services.guideline_compiler import (
             GuidelineCompiler,
         )
@@ -132,6 +143,45 @@ class TestCompiledActionItemSnomed:
 
         assert "241491008" in result["already_done_evidence_ids"]
 
+    def test_catalog_evidence_ids_are_kept_with_snomed_neighbours(self):
+        """AppropriatenessRule already_done_evidence_ids survive compile."""
+        from services.terminology_api.app.services.guideline_compiler import (
+            GuidelineCompiler,
+        )
+
+        session = _fake_session_returning(_USS_RELATED_ROW)
+        item = {
+            "concept_id": "418394000",
+            "name": "USS abdomen pelvis",
+            "strength": "offer",
+            "already_done_evidence_ids": ["447801003"],
+        }
+        result = GuidelineCompiler._compiled_action_item(
+            item, "418394000", session=session
+        )
+        ids = set(result["already_done_evidence_ids"])
+        assert "418394000" in ids
+        assert "447801003" in ids
+
+    def test_family_index_adds_shared_members(self):
+        """InvestigationFamily members become already-done evidence ids."""
+        from services.terminology_api.app.services.guideline_compiler import (
+            GuidelineCompiler,
+        )
+
+        families = {"418394000": {"418394000", "24848001", "426491001"}}
+        item = {
+            "concept_id": "418394000",
+            "name": "USS abdomen pelvis",
+            "strength": "offer",
+        }
+        result = GuidelineCompiler._compiled_action_item(
+            item, "418394000", session=None, families=families
+        )
+        ids = set(result["already_done_evidence_ids"])
+        assert "24848001" in ids
+        assert "426491001" in ids
+
 
 # ---------------------------------------------------------------------------
 # Integration: action_already_done fires when evidence ids overlap patient
@@ -140,7 +190,7 @@ class TestCompiledActionItemSnomed:
 
 class TestAlreadyDoneFiresViaPrecompiledEvidence:
     def test_abnormal_uss_finding_suppresses_uss_recommendation(self):
-        """Pre-compiled evidence ids containing 168750003 suppress USS when patient has it."""
+        """Pre-compiled evidence ids suppress USS when the finding is present."""
         from libs.guidelines.action_already_done import action_already_done
 
         action = {

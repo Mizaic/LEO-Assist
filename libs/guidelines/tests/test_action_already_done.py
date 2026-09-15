@@ -34,6 +34,12 @@ CHEST_XRAY_ACTION = {
     "name": "Plain X-ray of chest (procedure)",
     "strength": "offer",
 }
+PELVIC_US_ACTION = {
+    "concept_id": "418394000",
+    "name": "Ultrasound scan of abdomen and pelvis (procedure)",
+    "strength": "offer",
+}
+PELVIC_US_FAMILY = {"418394000", "24848001", "426491001", "447801003"}
 
 
 def test_fit_result_stops_fit_kit_action() -> None:
@@ -135,6 +141,35 @@ def test_finding_that_interprets_procedure_counts_as_done() -> None:
             related_lookup=related_lookup,
         )
         is True
+    )
+
+
+def test_catalog_family_marks_pelvic_us_variants_already_done() -> None:
+    """Family members come from InvestigationFamily, not a Python list."""
+    families = {"418394000": set(PELVIC_US_FAMILY)}
+    assert (
+        action_already_done(PELVIC_US_ACTION, ["447801003"], [], families=families)
+        is True
+    )
+    assert (
+        action_already_done(PELVIC_US_ACTION, ["24848001"], [], families=families)
+        is True
+    )
+    assert (
+        action_already_done(PELVIC_US_ACTION, ["426491001"], [], families=families)
+        is True
+    )
+
+
+def test_pelvic_us_variant_is_not_done_without_catalog() -> None:
+    assert action_already_done(PELVIC_US_ACTION, ["24848001"], []) is False
+
+
+def test_unrelated_finding_does_not_mark_pelvic_us_done() -> None:
+    families = {"418394000": set(PELVIC_US_FAMILY)}
+    assert (
+        action_already_done(PELVIC_US_ACTION, ["73211009"], [], families=families)
+        is False
     )
 
 

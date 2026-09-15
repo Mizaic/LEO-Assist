@@ -71,7 +71,7 @@ def _collect_tree_bitmap_ids(node: dict[str, Any] | None) -> list[str]:
         bid = node.get("bitmap_id")
         return [bid] if bid else []
     out: list[str] = []
-    for child in (node.get("children") or []):
+    for child in node.get("children") or []:
         out.extend(_collect_tree_bitmap_ids(child))
     return out
 
@@ -88,7 +88,7 @@ def _collect_tree_seed_ids(node: dict[str, Any] | None) -> list[str]:
     if str(node.get("kind") or "").upper() == "CONCEPT":
         return list(node.get("seed_concept_ids") or [])
     out: list[str] = []
-    for child in (node.get("children") or []):
+    for child in node.get("children") or []:
         out.extend(_collect_tree_seed_ids(child))
     return out
 
@@ -193,6 +193,15 @@ class GuidelineEvaluator:
     def __init__(self, store: BitmapStore | None = None, neo4j_session=None) -> None:
         self._store = store or BitmapStore()
         self._neo4j_session = neo4j_session
+        self._families: dict[str, set[str]] | None = None
+
+    def _family_index(self) -> dict[str, set[str]]:
+        """Load InvestigationFamily once per evaluator instance."""
+        if self._families is None:
+            from libs.guidelines.investigation_family_catalog import load_family_index
+
+            self._families = load_family_index(self._neo4j_session)
+        return self._families
 
     def _make_related_lookup(self) -> Callable[[str], dict[str, Any]] | None:
         """Build a SNOMED concept-neighbour lookup backed by the Neo4j session.
@@ -392,6 +401,7 @@ class GuidelineEvaluator:
                 codes,
                 ctx.observations,
                 related_lookup=self._make_related_lookup(),
+                families=self._family_index(),
             )
             matches.append(payload)
         return matches
@@ -517,7 +527,13 @@ class GuidelineEvaluator:
         )
         already_actioned = bool(
             fires
-            and all_actions_already_done(rule, effective_codes, patient_observations)
+            and all_actions_already_done(
+                rule,
+                effective_codes,
+                patient_observations,
+                related_lookup=self._make_related_lookup(),
+                families=self._family_index(),
+            )
         )
 
         resolved_count = sum(
@@ -727,9 +743,7 @@ class GuidelineEvaluator:
                 "source_ids": source_ids,
             }
         if kind == "ALLERGY":
-            matched, reason, source_ids = self._allergy_matches(
-                node, allergies or []
-            )
+            matched, reason, source_ids = self._allergy_matches(node, allergies or [])
             return {
                 "kind": "ALLERGY",
                 "node_id": node_id,
@@ -896,7 +910,7 @@ class GuidelineEvaluator:
                         }
                     )
                 return
-            for child in (node.get("children") or []):
+            for child in node.get("children") or []:
                 _walk(child)
 
         _walk(rule.get("logic_tree"))
@@ -976,8 +990,10 @@ class GuidelineEvaluator:
                 continue
             if concept_id and med.get("concept_id") and med["concept_id"] != concept_id:
                 continue
-            return True, f"active {drug_class} medication matched", list(
-                med.get("source_ids") or []
+            return (
+                True,
+                f"active {drug_class} medication matched",
+                list(med.get("source_ids") or []),
             )
         return False, f"no active {drug_class} medication found -- fail closed", []
 
@@ -1011,12 +1027,13 @@ class GuidelineEvaluator:
                 continue
             concept_match = allergy.get("substance_concept_id") == substance_concept_id
             class_match = (
-                allergy_class
-                and allergy.get("allergy_class") == allergy_class
+                allergy_class and allergy.get("allergy_class") == allergy_class
             )
             if concept_match or class_match:
-                return True, f"active allergy to {substance_concept_id} matched", list(
-                    allergy.get("source_ids") or []
+                return (
+                    True,
+                    f"active allergy to {substance_concept_id} matched",
+                    list(allergy.get("source_ids") or []),
                 )
         return (
             False,
@@ -1144,9 +1161,7 @@ class GuidelineEvaluator:
                 continue
             mode = str(group.get("mode", "ALL")).upper()
             bm = (
-                bitmap_cache.get(bitmap_id)
-                if bitmap_cache is not None
-                else None
+                bitmap_cache.get(bitmap_id) if bitmap_cache is not None else None
             ) or self._store.get_bitmap(bitmap_id)
             if bm is None:
                 # A missing bitmap means Redis data is corrupt or was evicted.
@@ -1235,9 +1250,7 @@ class GuidelineEvaluator:
             )
             return matched
         if kind == "ALLERGY":
-            matched, _reason, _src = self._allergy_matches(
-                node, allergies or []
-            )
+            matched, _reason, _src = self._allergy_matches(node, allergies or [])
             return matched
         if kind == "TREATMENT_HISTORY":
             matched, _reason, _src = self._treatment_history_matches(
@@ -1314,9 +1327,7 @@ class GuidelineEvaluator:
         try:
             from libs.guidelines.soft_qualifier import apply_soft_qualifiers
         except Exception:
-            logger.exception(
-                "soft qualifier resolver unavailable -- fail closed"
-            )
+            logger.exception("soft qualifier resolver unavailable -- fail closed")
             raise
         if session is None:
             logger.error(
@@ -1491,7 +1502,9 @@ def _check_demographic_node(
             try:
                 low, high = float(value[0]), float(value[1])
             except (TypeError, ValueError):
-                logger.error("Age 'between' value not numeric (%r) — failing CLOSED.", value)
+                logger.error(
+                    "Age 'between' value not numeric (%r) — failing CLOSED.", value
+                )
                 return False
             return low <= patient_age <= high
         op_fn = _OPERATORS.get(operator)
@@ -1574,7 +1587,9 @@ def _matched_via_entry_from_annotated_leaf(
             "matched_concept_ids": hits,
         }
     if kind == "OBSERVATION":
-        term = str(node.get("observable_term") or node.get("observable_id") or "").strip()
+        term = str(
+            node.get("observable_term") or node.get("observable_id") or ""
+        ).strip()
         if not term:
             return None
         return {
@@ -1617,7 +1632,9 @@ def _matched_via_entry_from_annotated_leaf(
             "treatment_class": node.get("treatment_class"),
         }
     if kind == "RULE_FIRED":
-        label = str(node.get("display_name") or node.get("referenced_rule_id") or "").strip()
+        label = str(
+            node.get("display_name") or node.get("referenced_rule_id") or ""
+        ).strip()
         if not label:
             return None
         return {
@@ -1851,7 +1868,7 @@ def _prefetch_rule_caches(
         if tree:
             all_bitmap_ids.extend(_collect_tree_bitmap_ids(tree))
             all_seed_ids.extend(_collect_tree_seed_ids(tree))
-        for group in (rule.get("criteria_groups") or []):
+        for group in rule.get("criteria_groups") or []:
             bid = group.get("bitmap_id")
             if bid:
                 all_bitmap_ids.append(bid)

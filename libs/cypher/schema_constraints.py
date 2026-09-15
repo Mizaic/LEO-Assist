@@ -129,6 +129,8 @@ CODING_SCHEMA_CONSTRAINTS: list[str] = [
     "CREATE INDEX surface_form_task_status IF NOT EXISTS FOR (t:SurfaceFormTask) ON (t.status)",
     "CREATE CONSTRAINT uncoded_phrase_key IF NOT EXISTS FOR (u:UncodedPhrase) REQUIRE u.phrase_key IS UNIQUE",
     "CREATE INDEX uncoded_phrase_status IF NOT EXISTS FOR (u:UncodedPhrase) ON (u.status)",
+    "CREATE CONSTRAINT investigation_family_id IF NOT EXISTS FOR (f:InvestigationFamily) REQUIRE f.id IS UNIQUE",
+    "CREATE INDEX investigation_family_status IF NOT EXISTS FOR (f:InvestigationFamily) ON (f.status)",
     *EXTRACTION_SCENARIO_CONSTRAINTS,
     *NER_GUARD_RULE_CONSTRAINTS,
     *FORM_LEARNING_CONSTRAINTS,

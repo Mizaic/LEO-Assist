@@ -7,7 +7,8 @@ on the same encounter, so dropping it would hide the rule that should
 lead.
 
 A finding or observation counts as the procedure when SNOMED Interprets
-or Has component links them, or when they sit in a curated family.
+or Has component links them, or when they sit in an InvestigationFamily
+row. FIT still uses a packaged fallback until that family is seeded.
 
 Atlas trace:
   DI: DI-B3B44F09
@@ -16,7 +17,7 @@ Atlas trace:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 from libs.guidelines.investigation_family import (
     FIT_KIT_PROCEDURE_ID,
@@ -69,6 +70,7 @@ def action_already_done(
     patient_codes: list[str] | None,
     observations: list[dict[str, Any]] | None,
     related_lookup: RelatedLookup | None = None,
+    families: Mapping[str, set[str]] | None = None,
 ) -> bool:
     """Return True when this action should not be recommended again."""
     if not action or is_referral_action(action):
@@ -77,7 +79,7 @@ def action_already_done(
     facts = patient_fact_ids(patient_codes, observations)
     if not facts:
         return False
-    evidence = _action_evidence(action, concept_id, related_lookup)
+    evidence = _action_evidence(action, concept_id, related_lookup, families)
     if evidence & facts:
         return True
     if related_lookup and concept_id:
@@ -89,9 +91,10 @@ def _action_evidence(
     action: dict[str, Any],
     concept_id: str,
     related_lookup: RelatedLookup | None,
+    families: Mapping[str, set[str]] | None = None,
 ) -> set[str]:
     related = related_lookup(concept_id) if related_lookup and concept_id else None
-    evidence = evidence_ids_for_action(concept_id, related=related)
+    evidence = evidence_ids_for_action(concept_id, related=related, families=families)
     for extra in action.get("already_done_evidence_ids") or []:
         text = str(extra).strip()
         if text:
@@ -114,11 +117,14 @@ def remaining_actions(
     patient_codes: list[str] | None,
     observations: list[dict[str, Any]] | None,
     related_lookup: RelatedLookup | None = None,
+    families: Mapping[str, set[str]] | None = None,
 ) -> list[dict[str, Any]]:
     """Return actions that are still worth recommending."""
     kept: list[dict[str, Any]] = []
     for action in _rule_actions(rule):
-        if not action_already_done(action, patient_codes, observations, related_lookup):
+        if not action_already_done(
+            action, patient_codes, observations, related_lookup, families
+        ):
             kept.append(action)
     return kept
 
@@ -128,12 +134,15 @@ def all_actions_already_done(
     patient_codes: list[str] | None,
     observations: list[dict[str, Any]] | None,
     related_lookup: RelatedLookup | None = None,
+    families: Mapping[str, set[str]] | None = None,
 ) -> bool:
     """Return True when every action on the rule has already been done."""
     actions = _rule_actions(rule)
     if not actions:
         return False
-    return not remaining_actions(rule, patient_codes, observations, related_lookup)
+    return not remaining_actions(
+        rule, patient_codes, observations, related_lookup, families
+    )
 
 
 def apply_already_done_filter(
@@ -141,12 +150,15 @@ def apply_already_done_filter(
     patient_codes: list[str] | None,
     observations: list[dict[str, Any]] | None,
     related_lookup: RelatedLookup | None = None,
+    families: Mapping[str, set[str]] | None = None,
 ) -> dict[str, Any] | None:
     """Keep remaining actions, or None when nothing is left to recommend."""
     actions = _rule_actions(payload)
     if not actions:
         return payload
-    kept = remaining_actions(payload, patient_codes, observations, related_lookup)
+    kept = remaining_actions(
+        payload, patient_codes, observations, related_lookup, families
+    )
     if not kept:
         return None
     updated = dict(payload)
@@ -160,6 +172,7 @@ def mark_already_done_actions(
     patient_codes: list[str] | None,
     observations: list[dict[str, Any]] | None,
     related_lookup: RelatedLookup | None = None,
+    families: Mapping[str, set[str]] | None = None,
 ) -> dict[str, Any]:
     """Keep the match and flag completed actions instead of hiding them."""
     updated = dict(payload)
@@ -171,7 +184,7 @@ def mark_already_done_actions(
     for action in actions:
         item = dict(action)
         item["already_done"] = action_already_done(
-            action, patient_codes, observations, related_lookup
+            action, patient_codes, observations, related_lookup, families
         )
         marked.append(item)
     updated["actions"] = marked
