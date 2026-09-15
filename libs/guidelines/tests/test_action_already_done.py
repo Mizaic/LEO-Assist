@@ -10,6 +10,8 @@ from libs.guidelines.action_already_done import (
     all_actions_already_done,
     apply_already_done_filter,
     is_referral_action,
+    mark_already_done_actions,
+    split_already_actioned_rules,
 )
 from libs.guidelines.investigation_family import (
     FIT_KIT_PROCEDURE_ID,
@@ -60,6 +62,54 @@ def test_rule_with_only_fit_kit_is_dropped() -> None:
     observations = [{"observable_id": FIT_RESULT_OBSERVABLE_ID, "value": 126.0}]
     assert apply_already_done_filter(payload, [], observations) is None
     assert all_actions_already_done(payload, [], observations) is True
+
+
+def test_mark_keeps_completed_action_and_flags_it() -> None:
+    """DI-B3B44F09: completed actions stay on the rule, marked already_done."""
+    payload = {
+        "rule_id": "1.5.2",
+        "actions": [dict(FIT_KIT_ACTION)],
+        "action": dict(FIT_KIT_ACTION),
+    }
+    observations = [{"observable_id": FIT_RESULT_OBSERVABLE_ID, "value": 126.0}]
+    marked = mark_already_done_actions(payload, [], observations)
+    assert marked is not None
+    assert marked["already_actioned"] is True
+    assert marked["actions"][0]["already_done"] is True
+    assert marked["actions"][0]["name"] == FIT_KIT_ACTION["name"]
+
+
+def test_mark_leaves_outstanding_action_uncrossed() -> None:
+    payload = {
+        "rule_id": "1.5.2",
+        "actions": [dict(CHEST_XRAY_ACTION)],
+        "action": dict(CHEST_XRAY_ACTION),
+    }
+    marked = mark_already_done_actions(payload, [], [])
+    assert marked["already_actioned"] is False
+    assert marked["actions"][0]["already_done"] is False
+
+
+def test_mark_mixed_rule_crosses_only_completed_action() -> None:
+    payload = {
+        "rule_id": "mixed",
+        "actions": [dict(FIT_KIT_ACTION), dict(REFERRAL_ACTION)],
+        "action": dict(FIT_KIT_ACTION),
+    }
+    observations = [{"observable_id": FIT_RESULT_OBSERVABLE_ID, "value": 80.0}]
+    marked = mark_already_done_actions(payload, [], observations)
+    assert marked["already_actioned"] is False
+    by_name = {item["name"]: item["already_done"] for item in marked["actions"]}
+    assert by_name[FIT_KIT_ACTION["name"]] is True
+    assert by_name[REFERRAL_ACTION["name"]] is False
+
+
+def test_split_already_actioned_rules_peels_completed() -> None:
+    open_rule = {"rule_id": "1.5.14", "already_actioned": False}
+    done_rule = {"rule_id": "1.5.2", "already_actioned": True}
+    open_rules, done_rules = split_already_actioned_rules([open_rule, done_rule])
+    assert [rule["rule_id"] for rule in open_rules] == ["1.5.14"]
+    assert [rule["rule_id"] for rule in done_rules] == ["1.5.2"]
 
 
 def test_finding_that_interprets_procedure_counts_as_done() -> None:

@@ -46,6 +46,7 @@ import httpx
 import logging
 import os
 
+from libs.guidelines.action_already_done import split_already_actioned_rules
 from libs.sbar.referral_support import support_rules_for_referral
 
 logger = logging.getLogger(__name__)
@@ -233,7 +234,8 @@ def format_assessment(
         "urgent": [],
         "routine": [],
     }
-    for rule in rules_sorted:
+    open_rules, already_done_rules = split_already_actioned_rules(rules_sorted)
+    for rule in open_rules:
         prio = (_rule_raw_priority(rule) or "routine").lower()
         by_priority.setdefault(prio, []).append(rule)
 
@@ -249,8 +251,9 @@ def format_assessment(
         lines.append(f"### {_PRIORITY_LABEL.get(prio, prio)}")
         for rule in bucket:
             lines.append(_render_rule_bullet(rule))
+    lines.extend(_render_already_done_section(already_done_rules))
 
-    pathway_hints = _derive_pathway_hints(rules_sorted)
+    pathway_hints = _derive_pathway_hints(open_rules or already_done_rules)
 
     return AssessmentNarrative(
         markdown="\n".join(lines),
@@ -277,6 +280,11 @@ def _format_spoa_assessment(
         list(primary.get("matched_rules") or matched_rules or []),
         list(alternatives.get("matched_rules") or []),
     )
+    primary_rules, primary_done = split_already_actioned_rules(primary_rules)
+    alternative_rules, alternative_done = split_already_actioned_rules(
+        alternative_rules
+    )
+    already_done_rules = _dedupe_rules_by_id(primary_done + alternative_done)
     service_name = str(primary.get("service_name") or "").strip()
     service_specialty = str(primary.get("service_specialty") or "").strip()
     primary_ids = list(primary.get("guideline_ids") or guideline_ids or [])
@@ -312,6 +320,7 @@ def _format_spoa_assessment(
         lines.append("**Other guidelines that would support this request**")
         for rule in alternative_rules[:5]:
             lines.append(_render_rule_bullet(rule))
+    lines.extend(_render_already_done_section(already_done_rules))
 
     rules_for_hints = primary_rules or alternative_rules
     pathway_hints = (
@@ -326,7 +335,9 @@ def _format_spoa_assessment(
             "rtr_evidence": "No matching rules fired",
         }
     )
-    all_rules = _dedupe_rules_by_id(primary_rules + alternative_rules)
+    all_rules = _dedupe_rules_by_id(
+        primary_rules + alternative_rules + already_done_rules
+    )
     return AssessmentNarrative(
         markdown="\n".join(lines),
         rules=[_rule_snapshot(r) for r in all_rules],
@@ -367,6 +378,15 @@ def _render_rule_section(title: str, rules: list[dict[str, Any]]) -> list[str]:
     if not rules:
         return []
     lines = ["", f"**{title}**"]
+    for rule in rules:
+        lines.append(_render_rule_bullet(rule))
+    return lines
+
+
+def _render_already_done_section(rules: list[dict[str, Any]]) -> list[str]:
+    if not rules:
+        return []
+    lines = ["", f"### Already done ({len(rules)})"]
     for rule in rules:
         lines.append(_render_rule_bullet(rule))
     return lines
@@ -444,7 +464,7 @@ def _render_action_lines(rule: dict[str, Any]) -> list[str]:
         if not name:
             continue
         due_days = action.get("due_days")
-        if due_days:
+        if due_days and not action.get("already_done"):
             lines.append(f"**Action:** {name} (within {due_days} days)")
         else:
             lines.append(f"**Action:** {name}")

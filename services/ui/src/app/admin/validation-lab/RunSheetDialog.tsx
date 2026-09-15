@@ -92,6 +92,7 @@ export type RunSheetState = SingleRunSheet | MultiRunSheet;
 interface Props {
   sheet: RunSheetState | null;
   onClose: () => void;
+  showSbarActions?: boolean;
 }
 
 function CopySupportDetails({ sheet }: { sheet: SingleRunSheet }) {
@@ -335,7 +336,11 @@ function MultiBody({ sheet }: { sheet: MultiRunSheet }) {
   );
 }
 
-export default function RunSheetDialog({ sheet, onClose }: Props) {
+export default function RunSheetDialog({
+  sheet,
+  onClose,
+  showSbarActions = true,
+}: Props) {
   const { reducedMotion } = useMotion();
   const single = sheet?.mode === "single" ? sheet : null;
   const polledStages = useLabRunStagePoll(
@@ -389,7 +394,7 @@ export default function RunSheetDialog({ sheet, onClose }: Props) {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1, flexWrap: "wrap" }}>
-          {sheet.mode === "single" ? (
+          {sheet.mode === "single" && showSbarActions ? (
             <RunSheetSbarActions sheet={sheet} />
           ) : null}
           <Button

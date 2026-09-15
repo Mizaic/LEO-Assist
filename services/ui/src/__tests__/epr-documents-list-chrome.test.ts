@@ -21,17 +21,30 @@ describe("EPR documents list chrome", () => {
 
   test("DocumentListPanel merges assessments and sorts newest first", () => {
     const src = readUi("components/patients/DocumentListPanel.tsx");
+    const toolbar = readUi("components/patients/DocumentWorkspaceToolbar.tsx");
     expect(src).toMatch(/fetchEprAssessments/);
     expect(src).toMatch(/mergeDocumentsNewestFirst/);
     expect(src).toMatch(/documentFolderKey/);
     expect(src).toMatch(/DocumentFolderBlock/);
-    expect(src).toMatch(/Specialty/);
+    expect(toolbar).toMatch(/Specialty/);
     expect(src).toMatch(/Expand all/);
     expect(src).toMatch(/initialDocumentId/);
     expect(src).toMatch(/initialReferralId/);
     const filters = readUi("components/patients/documentListFilters.ts");
     expect(filters).toMatch(/clinical information/);
     expect(filters).toMatch(/2ww/);
+  });
+
+  test("Document workspace fills the tab and keeps journey builder collapsed", () => {
+    const panel = readUi("components/patients/DocumentListPanel.tsx");
+    const toolbar = readUi("components/patients/DocumentWorkspaceToolbar.tsx");
+    const builder = readUi("components/patients/JourneyBuilderPanel.tsx");
+    expect(panel).toMatch(/epr-document-workspace/);
+    expect(toolbar).toMatch(/FilterBar/);
+    expect(panel).not.toMatch(/100vh/);
+    expect(builder).toMatch(/ProgressiveReveal/);
+    expect(builder).toMatch(/Build a journey/);
+    expect(builder).toMatch(/defaultOpen=\{false\}/);
   });
 
   test("DocumentViewer renders markdown inline or embeds PDF and Word preview", () => {

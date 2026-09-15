@@ -5,6 +5,7 @@ from __future__ import annotations
 from libs.guidance.narrative_actions import (
     display_action_label,
     procedure_compliance_actions,
+    strike_completed_action,
 )
 
 
@@ -62,3 +63,39 @@ class TestDisplayLabel:
             )
             == "Urgent referral"
         )
+
+    def test_completed_action_is_struck_through(self):
+        assert (
+            display_action_label(
+                {
+                    "action_kind": "snomed_procedure",
+                    "name": "Ultrasound scan of abdomen and pelvis",
+                    "already_done": True,
+                }
+            )
+            == "~~Ultrasound scan of abdomen and pelvis~~ (already done)"
+        )
+
+    def test_outstanding_action_is_not_struck_through(self):
+        assert (
+            display_action_label(
+                {
+                    "action_kind": "snomed_procedure",
+                    "name": "Ultrasound scan of abdomen and pelvis",
+                    "already_done": False,
+                }
+            )
+            == "Ultrasound scan of abdomen and pelvis"
+        )
+
+
+class TestStrikeCompletedAction:
+    def test_wraps_label_in_markdown_strike(self):
+        assert (
+            strike_completed_action("Ultrasound scan of abdomen and pelvis")
+            == "~~Ultrasound scan of abdomen and pelvis~~ (already done)"
+        )
+
+    def test_empty_label_stays_empty(self):
+        assert strike_completed_action("") == ""
+        assert strike_completed_action("   ") == ""

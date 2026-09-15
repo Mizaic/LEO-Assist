@@ -56,7 +56,7 @@ function tabButtonStyle(
     appearance: "none",
     border: "none",
     background: "transparent",
-    color: color.text.primary,
+    color: selected ? color.brand.primary : color.text.primary,
     fontSize: dense ? 13 : 14,
     fontWeight: selected ? 700 : 600,
     padding: "0 " + paddingX + "px",

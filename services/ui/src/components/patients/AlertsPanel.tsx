@@ -19,8 +19,11 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import { ProgressiveReveal, color } from "@leo/design-system";
 import type { AlertRow } from "@/lib/patientEprApi";
 import { fetchEprAlerts, patchAlert } from "@/lib/patientEprApi";
+import { RecordShowMore } from "./RecordShowMore";
+import { RECORD_PAGE_SIZE, remainingCount, visibleSlice } from "./recordPage";
 
 const SEVERITY_CONFIG: Record<
   string,
@@ -145,17 +148,17 @@ function AlertCard({
 
         <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mb: 1 }}>
           {alert.created_at && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: color.text.caption }}>
               Raised: {fmt(alert.created_at)}
             </Typography>
           )}
           {alert.guideline_ref && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: color.text.caption }}>
               Source: {alert.guideline_ref}
             </Typography>
           )}
           {alert.condition_context && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: color.text.caption }}>
               Context: {alert.condition_context}
             </Typography>
           )}
@@ -214,6 +217,7 @@ export function AlertsPanel({ patientId }: Props) {
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [shown, setShown] = useState(RECORD_PAGE_SIZE);
 
   useEffect(() => {
     setLoading(true);
@@ -248,6 +252,7 @@ export function AlertsPanel({ patientId }: Props) {
 
   const active = alerts.filter((a) => !a.resolved_at);
   const resolved = alerts.filter((a) => Boolean(a.resolved_at));
+  const visibleActive = visibleSlice(active, shown);
 
   if (alerts.length === 0) {
     return <Alert severity="success">No safety alerts on record for this patient.</Alert>;
@@ -260,19 +265,27 @@ export function AlertsPanel({ patientId }: Props) {
           Active ({active.length})
         </Typography>
       )}
-      {active.map((a) => (
+      {visibleActive.map((a) => (
         <AlertCard key={a.alert_id} alert={a} patientId={patientId} onUpdated={handleAlertUpdated} />
       ))}
+      <RecordShowMore
+        remaining={remainingCount(active.length, shown)}
+        onShowMore={() => setShown((n) => n + RECORD_PAGE_SIZE)}
+      />
 
       {resolved.length > 0 && (
-        <>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 3, mb: 1.5 }} color="text.secondary">
-            Resolved ({resolved.length})
-          </Typography>
-          {resolved.map((a) => (
-            <AlertCard key={a.alert_id} alert={a} patientId={patientId} onUpdated={handleAlertUpdated} />
-          ))}
-        </>
+        <Box sx={{ mt: 2 }}>
+          <ProgressiveReveal summary={`Resolved (${resolved.length})`}>
+            {resolved.map((a) => (
+              <AlertCard
+                key={a.alert_id}
+                alert={a}
+                patientId={patientId}
+                onUpdated={handleAlertUpdated}
+              />
+            ))}
+          </ProgressiveReveal>
+        </Box>
       )}
     </Box>
   );

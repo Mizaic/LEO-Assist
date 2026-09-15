@@ -248,6 +248,36 @@ describe("SbarFinalView", () => {
     ).toBeNull();
   });
 
+  it("puts already-done assessment rules in a collapsed ProgressiveReveal", () => {
+    const markdown = `# SBAR
+
+## Assessment
+
+**Supported by receiving service?** yes.
+
+**Primary matches**
+- **1.5.14**
+
+### Already done (1)
+- **Rule: 1.5.2**
+  - **Action:** ~~Ultrasound scan of abdomen and pelvis~~ (already done)
+
+## Recommendation
+
+Advisory SPoA disposition: Outpatient appointment.
+`;
+    render(<SbarFinalView markdown={markdown} />);
+    const panel = screen.getByTestId(
+      "sbar-final-section-assessment-already-done",
+    );
+    const toggle = within(panel).getByRole("button");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveTextContent("Already done (1)");
+    expect(
+      screen.queryByText("Ultrasound scan of abdomen and pelvis"),
+    ).toBeNull();
+  });
+
   it("only mounts the source-records disclosure on the Background card", () => {
     render(
       <SbarFinalView

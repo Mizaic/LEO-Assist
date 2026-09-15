@@ -10,12 +10,14 @@
  */
 "use client";
 
+import { useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { FilterBar, ProgressiveReveal, color, type FilterChip } from "@leo/design-system";
 import type { EpisodeSummaryEpr, TimelineItem } from "@/lib/patientEprApi";
 import { ActivityTimeline } from "./ActivityTimeline";
 import { EpisodeLaneCard } from "./EpisodeLaneCard";
@@ -75,6 +77,25 @@ export function EpisodeSwimlane({
   onReferralClick,
   onSbarClick,
 }: SwimlaneProps) {
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const typeChips: FilterChip[] = useMemo(
+    () =>
+      [
+        { id: "all", label: "All" },
+        { id: "encounter", label: "Encounters" },
+        { id: "document", label: "Documents" },
+        { id: "sbar", label: "SBARs" },
+        { id: "alert", label: "Alerts" },
+        { id: "referral", label: "Referrals" },
+      ].map((opt) => ({
+        ...opt,
+        active: typeFilter === opt.id,
+        onToggle: () => setTypeFilter(opt.id),
+      })),
+    [typeFilter],
+  );
+
   if (loading) {
     return (
       <Stack spacing={2}>
@@ -85,7 +106,7 @@ export function EpisodeSwimlane({
     );
   }
 
-  if (!loading && episodes.length === 0 && timelineItems.length === 0) {
+  if (episodes.length === 0 && timelineItems.length === 0) {
     return (
       <Alert severity="info">No episodes or clinical activity on record.</Alert>
     );
@@ -93,52 +114,70 @@ export function EpisodeSwimlane({
 
   const activityItems = sortNewestFirst(timelineItems);
   const hasEpisodes = episodes.length > 0;
+  const q = search.trim().toLowerCase();
+  const filteredActivity = activityItems.filter((item) => {
+    if (typeFilter !== "all" && item.item_type !== typeFilter) return false;
+    if (!q) return true;
+    return (
+      item.label.toLowerCase().includes(q) ||
+      (item.extra ?? "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <Box sx={{ pb: 2 }} data-testid="epr-episode-swimlane">
       {hasEpisodes && (
-        <>
-          <Stack
-            direction="row"
-            spacing={2}
-            sx={{ mb: 2 }}
-            alignItems="center"
-            flexWrap="wrap"
+        <Box sx={{ mb: 2 }}>
+          <ProgressiveReveal
+            summary={`Pathways (${episodes.length})`}
+            defaultOpen={episodes.length <= 2}
           >
-            <Stack direction="row" spacing={0.75} alignItems="center">
-              <Box
-                sx={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: "3px",
-                  transform: "rotate(45deg)",
-                  bgcolor: "#64748B",
-                }}
-              />
-              <Typography variant="caption" color="text.secondary">
-                Clinical milestone
-              </Typography>
+            <Stack
+              direction="row"
+              spacing={2}
+              sx={{ mb: 2 }}
+              alignItems="center"
+              flexWrap="wrap"
+            >
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: "3px",
+                    transform: "rotate(45deg)",
+                    bgcolor: color.text.caption,
+                  }}
+                />
+                <Typography variant="caption" sx={{ color: color.text.caption }}>
+                  Clinical milestone
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <Box
+                  sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    bgcolor: color.text.caption,
+                  }}
+                />
+                <Typography variant="caption" sx={{ color: color.text.caption }}>
+                  Encounter
+                </Typography>
+              </Stack>
             </Stack>
-            <Stack direction="row" spacing={0.75} alignItems="center">
-              <Box
-                sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#94A3B8" }}
+            {episodes.map((ep, i) => (
+              <EpisodeLaneCard
+                key={ep.episode_id ?? String(i)}
+                patientId={patientId}
+                ep={ep}
+                encounters={encountersForEpisode(ep, timelineItems)}
+                onEncounterClick={onEncounterClick}
               />
-              <Typography variant="caption" color="text.secondary">
-                Encounter
-              </Typography>
-            </Stack>
-          </Stack>
-
-          {episodes.map((ep, i) => (
-            <EpisodeLaneCard
-              key={ep.episode_id ?? String(i)}
-              patientId={patientId}
-              ep={ep}
-              encounters={encountersForEpisode(ep, timelineItems)}
-              onEncounterClick={onEncounterClick}
-            />
-          ))}
-        </>
+            ))}
+          </ProgressiveReveal>
+        </Box>
       )}
 
       <Paper
@@ -151,14 +190,22 @@ export function EpisodeSwimlane({
         </Typography>
         <Typography
           variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", mb: 1.5 }}
+          sx={{ display: "block", mb: 1.5, color: color.text.caption }}
         >
           Referrals, documents, SBAR assessments, encounters, episodes, and alerts
           in date order. Select an item to open it.
         </Typography>
+        <Box sx={{ mb: 1.5 }}>
+          <FilterBar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search activity"
+            aria-label="Clinical activity filters"
+            chips={typeChips}
+          />
+        </Box>
         <ActivityTimeline
-          items={activityItems}
+          items={filteredActivity}
           onItemClick={(item) => {
             if (item.item_type === "encounter") {
               onEncounterClick?.(item.item_id);

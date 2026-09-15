@@ -52,6 +52,8 @@ import {
   CompletenessPill,
   type CompletenessFinding,
 } from "./CompletenessPill";
+import { AssessmentAlreadyDonePanel } from "./AssessmentAlreadyDonePanel";
+import { splitAlreadyDoneAssessment } from "./alreadyDoneDisclosure";
 import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor";
 
 export type SbarStageName =
@@ -539,6 +541,10 @@ export function SbarFinalView({
         sections.map(({ stage, body }) => {
           const theme = STAGE_THEME[stage];
           const cleanBody = stripSourceComments(body);
+          const alreadyDone =
+            stage === "assessment"
+              ? splitAlreadyDoneAssessment(cleanBody)
+              : { openBody: cleanBody, doneBody: "", count: 0 };
           const partsForStage =
             stage === "background" ? backgroundParts : [];
           return (
@@ -584,10 +590,19 @@ export function SbarFinalView({
               >
                 <MarkdownEditor
                   mode="view"
-                  initialContent={cleanBody}
+                  initialContent={alreadyDone.openBody}
                   minHeight={0}
                 />
               </Box>
+              {stage === "assessment" ? (
+                <AssessmentAlreadyDonePanel
+                  doneBody={alreadyDone.doneBody}
+                  count={alreadyDone.count}
+                  testIdPrefix={testIdPrefix}
+                  fontSize={fontSize}
+                  bodyPadding={bodyPadding}
+                />
+              ) : null}
               <SectionSourcesPanel
                 testIdPrefix={testIdPrefix}
                 stage={stage}

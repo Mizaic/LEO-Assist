@@ -32,7 +32,7 @@ from pyroaring import BitMap
 
 from libs.guidelines.action_already_done import (
     all_actions_already_done,
-    apply_already_done_filter,
+    mark_already_done_actions,
 )
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 from services.terminology_api.app.services.observation_evaluator import (
@@ -198,7 +198,7 @@ class GuidelineEvaluator:
         """Build a SNOMED concept-neighbour lookup backed by the Neo4j session.
 
         Returns None when no session is available so callers degrade gracefully.
-        The lookup is used by apply_already_done_filter at evaluation time to
+        The lookup is used by mark_already_done_actions at evaluation time to
         traverse Interprets / HAS_COMPONENT relationships for concepts that
         were not pre-compiled into already_done_evidence_ids.
         """
@@ -381,7 +381,7 @@ class GuidelineEvaluator:
                 bitmap_cache,
                 session=session,
             )
-            payload = apply_already_done_filter(
+            payload = mark_already_done_actions(
                 _format_match(
                     rule,
                     matched_via=matched_via,
@@ -393,8 +393,7 @@ class GuidelineEvaluator:
                 ctx.observations,
                 related_lookup=self._make_related_lookup(),
             )
-            if payload is not None:
-                matches.append(payload)
+            matches.append(payload)
         return matches
 
     def diagnose(
@@ -516,12 +515,10 @@ class GuidelineEvaluator:
             treatment_history=treatment_history,
             session=_diag_session,
         )
-        already_actioned = False
-        if fires and all_actions_already_done(
-            rule, effective_codes, patient_observations
-        ):
-            fires = False
-            already_actioned = True
+        already_actioned = bool(
+            fires
+            and all_actions_already_done(rule, effective_codes, patient_observations)
+        )
 
         resolved_count = sum(
             1 for c in effective_codes if self._store.get_int_id(c) is not None

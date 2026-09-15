@@ -10,23 +10,20 @@
  */
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
+import { EmptyState, color, radius } from "@leo/design-system";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
-import AddIcon from "@mui/icons-material/Add";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import type { DocumentRow } from "@/lib/patientEprApi";
 import { fetchEprAssessments, fetchEprDocuments } from "@/lib/patientEprApi";
 import { DocumentViewer } from "./DocumentViewer";
 import { DocumentEditorDialog } from "./DocumentEditorDialog";
 import { DocumentFolderBlock } from "./DocumentFolderBlock";
+import { DocumentWorkspaceToolbar } from "./DocumentWorkspaceToolbar";
 import { JourneyBuilderPanel } from "./JourneyBuilderPanel";
 import { useOrg } from "@/context/OrgContext";
 import {
@@ -34,47 +31,13 @@ import {
   folderCounts,
   matchesTypeFilter,
   sortFolderLabels,
-  TYPE_FILTER_OPTIONS,
   type DocumentTypeFilter,
 } from "./documentListFilters";
 import { mergeDocumentsNewestFirst } from "./documentFormat";
-
-const CONDITION_ACCENT: Record<string, string> = {
-  lung: "#002178",
-  breast: "#9D174D",
-  prostate: "#6D28D9",
-  colorectal: "#B45309",
-  lower_gi: "#B45309",
-  upper_gi: "#7C3AED",
-  skin: "#047857",
-  haematology: "#0369A1",
-  gynaecology: "#BE185D",
-  head_and_neck: "#0d46d6",
-  urology: "#4338CA",
-};
+import { accentFor } from "./episodeAccent";
 
 function accentForLabel(label: string): string {
-  const key = label.toLowerCase().split(" ")[0].replace(/-/g, "_");
-  return CONDITION_ACCENT[key] ?? "#475569";
-}
-
-function FilterChipRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <Stack spacing={0.5} sx={{ mb: 1 }}>
-      <Typography variant="caption" fontWeight={700} color="text.secondary">
-        {label}
-      </Typography>
-      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-        {children}
-      </Stack>
-    </Stack>
-  );
+  return accentFor(label.toLowerCase().split(" ")[0] ?? null);
 }
 
 interface Props {
@@ -108,7 +71,7 @@ export function DocumentListPanel({
   const [editorOpen, setEditorOpen] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
 
-  const reloadDocs = useCallback(() => {
+  const reloadDocs = useCallback((preferredId?: string) => {
     setLoading(true);
     setError(null);
     Promise.all([
@@ -129,6 +92,9 @@ export function DocumentListPanel({
         const merged = mergeDocumentsNewestFirst(scopedDocs, scopedAssessments);
         setDocs(merged);
         setSelectedId((prev) => {
+          if (preferredId && merged.some((d) => d.document_id === preferredId)) {
+            return preferredId;
+          }
           if (prev && merged.some((d) => d.document_id === prev)) return prev;
           return merged[0]?.document_id ?? null;
         });
@@ -243,124 +209,80 @@ export function DocumentListPanel({
   if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
-    <Box>
-      {isPlatformAdmin && (
-        <JourneyBuilderPanel
-          patientId={patientId}
-          documents={docs}
-          onDocumentsChanged={reloadDocs}
-        />
-      )}
-
-      <Box sx={{ mb: 1.5 }}>
-        <FilterChipRow label="Specialty">
-          <Chip
-            label="All specialties"
-            size="small"
-            onClick={() => setFolderFilter(null)}
-            variant={folderFilter === null ? "filled" : "outlined"}
-            color={folderFilter === null ? "primary" : "default"}
-          />
-          {folderChipOptions.map(({ label, count }) => (
-            <Chip
-              key={label}
-              label={`${label} (${count})`}
-              size="small"
-              onClick={() => setFolderFilter(folderFilter === label ? null : label)}
-              variant={folderFilter === label ? "filled" : "outlined"}
-              color={folderFilter === label ? "primary" : "default"}
-              sx={
-                folderFilter === label
-                  ? { bgcolor: accentForLabel(label), color: "#fff" }
-                  : { borderColor: accentForLabel(label), color: accentForLabel(label) }
-              }
-            />
-          ))}
-        </FilterChipRow>
-
-        <FilterChipRow label="Document type">
-          {TYPE_FILTER_OPTIONS.map((opt) => (
-            <Chip
-              key={opt.id}
-              label={opt.label}
-              size="small"
-              onClick={() => setTypeFilter(opt.id)}
-              variant={typeFilter === opt.id ? "filled" : "outlined"}
-              color={typeFilter === opt.id ? "primary" : "default"}
-            />
-          ))}
-          {isPlatformAdmin && (
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setEditorOpen(true)}
-              data-testid="add-document-button"
-              sx={{ ml: "auto" }}
-            >
-              Add document
-            </Button>
-          )}
-        </FilterChipRow>
-      </Box>
+    <Box
+      data-testid="epr-document-workspace"
+      sx={{
+        height: "100%",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.5,
+      }}
+    >
+      <DocumentWorkspaceToolbar
+        search={search}
+        onSearchChange={setSearch}
+        typeFilter={typeFilter}
+        onTypeFilter={setTypeFilter}
+        folderFilter={folderFilter}
+        onFolderFilter={setFolderFilter}
+        folderOptions={folderChipOptions}
+        canAdd={isPlatformAdmin}
+        onAdd={() => setEditorOpen(true)}
+      />
 
       <Box
         sx={{
+          flex: 1,
+          minHeight: 0,
           display: "flex",
-          border: "1px solid #E2E8F0",
-          borderRadius: "10px",
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: `${radius.md}px`,
           overflow: "hidden",
-          height: "calc(100vh - 340px)",
-          minHeight: 420,
+          bgcolor: color.surface.raised,
         }}
       >
         <Box
           sx={{
-            width: 300,
+            width: { xs: 220, sm: 280 },
             flexShrink: 0,
-            borderRight: "1px solid #E2E8F0",
+            borderRight: "1px solid",
+            borderColor: "divider",
             display: "flex",
             flexDirection: "column",
-            bgcolor: "#FFFFFF",
+            bgcolor: color.surface.alt,
           }}
         >
-          <Box sx={{ p: 1.25, borderBottom: "1px solid #E2E8F0" }}>
-            <TextField
-              size="small"
-              placeholder="Search documents..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              fullWidth
-              InputProps={{
-                startAdornment: (
-                  <DescriptionOutlinedIcon sx={{ mr: 0.5, fontSize: 16, color: "#94A3B8" }} />
-                ),
-              }}
-            />
-            {sortedFolderEntries.length > 1 && (
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() => setAllFoldersExpanded(true)}
-                  disabled={allExpanded}
-                >
-                  Expand all
-                </Button>
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() => setAllFoldersExpanded(false)}
-                  disabled={anyCollapsed}
-                >
-                  Collapse all
-                </Button>
-              </Stack>
-            )}
-          </Box>
+          {sortedFolderEntries.length > 1 && (
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ px: 1.25, py: 1, borderBottom: "1px solid", borderColor: "divider" }}
+            >
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => setAllFoldersExpanded(true)}
+                disabled={allExpanded}
+                sx={{ textTransform: "none" }}
+              >
+                Expand all
+              </Button>
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => setAllFoldersExpanded(false)}
+                disabled={anyCollapsed}
+                sx={{ textTransform: "none" }}
+              >
+                Collapse all
+              </Button>
+            </Stack>
+          )}
           <Box sx={{ flex: 1, overflowY: "auto" }}>
             {grouped.size === 0 ? (
-              <Alert severity="info" sx={{ m: 1.25, fontSize: 12 }}>
+              <Alert severity="info" sx={{ m: 1.25 }}>
                 No documents match.
               </Alert>
             ) : (
@@ -380,7 +302,7 @@ export function DocumentListPanel({
           </Box>
         </Box>
 
-        <Box sx={{ flex: 1, overflowY: "auto", bgcolor: "#FFFFFF" }}>
+        <Box sx={{ flex: 1, overflowY: "auto", bgcolor: color.surface.raised }}>
           {selected ? (
             <DocumentViewer
               doc={selected}
@@ -389,13 +311,22 @@ export function DocumentListPanel({
               onDocumentsChanged={reloadDocs}
             />
           ) : (
-            <Box sx={{ p: 4, textAlign: "center", color: "#94A3B8" }}>
-              <ArticleOutlinedIcon sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="body2">Select a document to read it.</Typography>
-            </Box>
+            <EmptyState
+              icon={<ArticleOutlinedIcon />}
+              title="Select a document"
+              body="Pick a letter or summary from the list to read it here."
+            />
           )}
         </Box>
       </Box>
+
+      {isPlatformAdmin && (
+        <JourneyBuilderPanel
+          patientId={patientId}
+          documents={docs}
+          onDocumentsChanged={reloadDocs}
+        />
+      )}
 
       <DocumentEditorDialog
         open={editorOpen}

@@ -153,3 +153,50 @@ def apply_already_done_filter(
     updated["actions"] = kept
     updated["action"] = kept[0]
     return updated
+
+
+def mark_already_done_actions(
+    payload: dict[str, Any],
+    patient_codes: list[str] | None,
+    observations: list[dict[str, Any]] | None,
+    related_lookup: RelatedLookup | None = None,
+) -> dict[str, Any]:
+    """Keep the match and flag completed actions instead of hiding them."""
+    updated = dict(payload)
+    actions = _rule_actions(payload)
+    if not actions:
+        updated["already_actioned"] = False
+        return updated
+    marked: list[dict[str, Any]] = []
+    for action in actions:
+        item = dict(action)
+        item["already_done"] = action_already_done(
+            action, patient_codes, observations, related_lookup
+        )
+        marked.append(item)
+    updated["actions"] = marked
+    updated["action"] = marked[0]
+    updated["already_actioned"] = all(item["already_done"] for item in marked)
+    return updated
+
+
+def rule_already_actioned(rule: dict[str, Any]) -> bool:
+    """True when the rule match should sit behind Already done."""
+    if rule.get("already_actioned"):
+        return True
+    actions = _rule_actions(rule)
+    return bool(actions) and all(bool(item.get("already_done")) for item in actions)
+
+
+def split_already_actioned_rules(
+    rules: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split matches into still-open rules and completed rules."""
+    open_rules: list[dict[str, Any]] = []
+    done_rules: list[dict[str, Any]] = []
+    for rule in rules:
+        if rule_already_actioned(rule):
+            done_rules.append(rule)
+        else:
+            open_rules.append(rule)
+    return open_rules, done_rules
