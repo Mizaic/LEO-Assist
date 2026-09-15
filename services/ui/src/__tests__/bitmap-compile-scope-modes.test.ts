@@ -111,6 +111,12 @@ describe("TC-004 - useBitmapLifecycle pick mode compile body", () => {
     const src = readFile(HOOK_PATH);
     expect(src).toMatch(/selectedRuleIds/);
   });
+
+  test("TC-004e: hook deps use _resolvedScope, not a missing scopeType", () => {
+    const src = readFile(HOOK_PATH);
+    expect(src).not.toMatch(/scopeType/);
+    expect(src).toMatch(/_resolvedScope/);
+  });
 });
 
 describe("TC-007 - RulePicker component exists", () => {
