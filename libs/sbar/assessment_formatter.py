@@ -96,10 +96,43 @@ class AssessmentNarrative:
 # ---------------------------------------------------------------------------
 
 
+def _resolve_evaluate_targets(
+    evaluation_scope: "EvaluationScope | None",
+    guideline_ids: "Iterable[str] | None",
+) -> list[tuple[str, str]]:
+    """Return list of (scope_type, scope_id) pairs to evaluate against.
+
+    Three modes:
+    - pick: single call with scope_type=custom, scope_id=pick_scope_id.
+    - guideline: one call per guideline_id.
+    - global (default): single call with scope_type=global, scope_id=default.
+    Legacy guideline_ids is used when evaluation_scope is None.
+    """
+    from libs.sbar.events import EvaluationScope  # local to avoid circular
+
+    if evaluation_scope is not None:
+        if evaluation_scope.mode == "pick":
+            sid = evaluation_scope.pick_scope_id or "default"
+            return [("custom", sid)]
+        if evaluation_scope.mode == "guideline":
+            ids = list(evaluation_scope.guideline_ids or [])
+            return (
+                [("guideline", gid) for gid in ids] if ids else [("global", "default")]
+            )
+        return [("global", "default")]
+
+    # Legacy path: bare guideline_ids list.
+    legacy = [str(g).strip() for g in (guideline_ids or []) if str(g).strip()]
+    if legacy:
+        return [("guideline", gid) for gid in legacy]
+    return [("global", "default")]
+
+
 async def evaluate_codes_against_guidelines(
     *,
-    patient_codes: Iterable[str],
-    guideline_ids: Iterable[str] | None = None,
+    patient_codes: "Iterable[str]",
+    guideline_ids: "Iterable[str] | None" = None,
+    evaluation_scope: "EvaluationScope | None" = None,
     patient_age: float | None = None,
     patient_sex: str | None = None,
     observations: list[dict[str, Any]] | None = None,
@@ -110,34 +143,32 @@ async def evaluate_codes_against_guidelines(
 ) -> dict[str, Any]:
     """POST patient codes to the terminology API and return matched rules.
 
-    When ``guideline_ids`` is empty, evaluates against the global scope.
-    When one or more guideline ids are passed, makes one POST per
-    guideline and merges the results (rule_id-deduped).
+    Supports three scope modes via ``evaluation_scope`` (EvaluationScope):
+    - global:    single call against all active rules.
+    - guideline: one call per guideline ID, results merged.
+    - pick:      single call against a named custom compiled bitmap.
 
-    A single AsyncClient is reused across all per-guideline requests so
-    the underlying TCP connection is kept warm.
+    Falls back to the legacy ``guideline_ids`` list when
+    ``evaluation_scope`` is None (backwards compatible).
 
-    Sprint 1: ``observations``, ``active_medications``, ``allergies``, and
-    ``treatment_history`` are passed through to the evaluate endpoint when
-    provided. This ensures the SBAR formatter and the evaluator use the
-    same fact inputs (DI-2687230E / DI-2199E670).
+    ``observations``, ``active_medications``, ``allergies``, and
+    ``treatment_history`` are passed through to the evaluate endpoint
+    (DI-2687230E / DI-2199E670).
     """
     code_list = sorted({str(c).strip() for c in patient_codes if str(c).strip()})
     if not code_list:
         return {"matched_rules": [], "active_version": None, "scope": "none"}
 
-    targets = list(guideline_ids or [])
-    if not targets:
-        targets = [None]
+    targets = _resolve_evaluate_targets(evaluation_scope, guideline_ids)
 
     merged: dict[str, dict[str, Any]] = {}
     active_version: str | None = None
     async with httpx.AsyncClient(timeout=timeout_s) as http:
-        for gid in targets:
+        for scope_type, scope_id in targets:
             body: dict[str, Any] = {
                 "patient_codes": code_list,
-                "scope_type": "guideline" if gid else "global",
-                "scope_id": gid or "default",
+                "scope_type": scope_type,
+                "scope_id": scope_id,
             }
             if patient_age is not None:
                 body["patient_age"] = patient_age
@@ -160,9 +191,10 @@ async def evaluate_codes_against_guidelines(
                 payload = resp.json()
             except httpx.HTTPError as exc:
                 logger.warning(
-                    "evaluate_codes_against_guidelines: %s for guideline=%s",
+                    "evaluate_codes_against_guidelines: %s scope=%s/%s",
                     exc,
-                    gid or "global",
+                    scope_type,
+                    scope_id,
                 )
                 continue
             active_version = payload.get("active_version") or active_version
@@ -172,10 +204,15 @@ async def evaluate_codes_against_guidelines(
                     continue
                 merged[rid] = rule
 
+    scope_label = (
+        "pick"
+        if evaluation_scope and evaluation_scope.mode == "pick"
+        else ("guideline" if targets and targets[0][0] == "guideline" else "global")
+    )
     return {
         "matched_rules": list(merged.values()),
         "active_version": active_version,
-        "scope": "guideline" if (guideline_ids or []) else "global",
+        "scope": scope_label,
     }
 
 
@@ -537,7 +574,7 @@ def _render_unverified_qualifiers(kinds: list[str] | None) -> list[str]:
             continue
         lines.append(
             f"The guideline also asks for {asked}. We could not confirm "
-            f"that from this letter. We have still offered the scan so a "
+            f"that from this letter. We have still shown this match so a "
             f"possible cancer is not missed. Please check whether this is "
             f"{check}."
         )
@@ -707,6 +744,9 @@ def _rule_snapshot(rule: dict[str, Any]) -> dict[str, Any]:
     matched_via = rule.get("matched_via")
     if matched_via:
         snapshot["matched_via"] = list(matched_via)
+    excluded_present = rule.get("excluded_present")
+    if excluded_present:
+        snapshot["excluded_present"] = list(excluded_present)
     return snapshot
 
 

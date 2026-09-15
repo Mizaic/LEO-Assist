@@ -482,6 +482,7 @@ class GuidelineCompiler:
         scope: CompileScope | None = None,
         policy_mode: Literal["advisory", "strict"] = "advisory",
         include_rule_statuses: list[str] | None = None,
+        include_rule_ids: list[str] | None = None,
         policy_domain_id: str | None = None,
         policy_subdomain_name: str | None = None,
         policy_include_descendants: bool = True,
@@ -522,6 +523,7 @@ class GuidelineCompiler:
             enforce_action_scope,
             distance_child_override,
             distance_parent_override,
+            include_rule_ids,
         )
         ruleset["version"] = version
         ruleset["compile_timestamp"] = datetime.now(timezone.utc).isoformat()
@@ -575,47 +577,85 @@ class GuidelineCompiler:
         enforce_action_scope: bool,
         distance_child_override: int | None,
         distance_parent_override: int | None,
+        include_rule_ids: list[str] | None = None,
     ) -> dict:
         """Synchronous ruleset compilation -- runs in thread pool."""
+        rule_ids_param = list(include_rule_ids) if include_rule_ids is not None else None
+        domain_id = (
+            scope.scope_id.split(":", 1)[0]
+            if scope.scope_type == "subdomain"
+            else scope.scope_id
+        )
         driver = _kg_driver()
         try:
             with driver.session() as session:
+                base_params: dict = {
+                    "statuses": statuses,
+                    "scope_id": scope.scope_id,
+                    "scope_domain_id": domain_id,
+                }
+                if rule_ids_param is not None:
+                    base_params["rule_ids"] = rule_ids_param
                 records = list(
                     session.run(
-                        self._build_fetch_active_rules_query(scope),
-                        statuses=statuses,
-                        scope_id=scope.scope_id,
-                        scope_domain_id=(
-                            scope.scope_id.split(":", 1)[0]
-                            if scope.scope_type == "subdomain"
-                            else scope.scope_id
+                        self._build_fetch_active_rules_query(
+                            scope, include_rule_ids=include_rule_ids
                         ),
+                        **base_params,
                     )
                 )
-                applies_to_records = list(
-                    session.run(
-                        self._build_fetch_applies_to_query(scope),
-                        statuses=statuses,
-                        scope_id=scope.scope_id,
-                        scope_domain_id=(
-                            scope.scope_id.split(":", 1)[0]
-                            if scope.scope_type == "subdomain"
-                            else scope.scope_id
-                        ),
+                # Safety guard: filter in Python as well so tests and any edge
+                # case where $rule_ids binding is skipped stay consistent.
+                if rule_ids_param is not None:
+                    allowed = frozenset(rule_ids_param)
+                    records = [
+                        r for r in records
+                        if (r.get("rule_id") if isinstance(r, dict) else r["rule_id"])
+                        in allowed
+                    ]
+                    applies_to_records = list(
+                        session.run(
+                            self._build_fetch_applies_to_query(
+                                scope, include_rule_ids=include_rule_ids
+                            ),
+                            **base_params,
+                        )
                     )
-                )
-                action_records = list(
-                    session.run(
-                        self._build_fetch_actions_query(scope),
-                        statuses=statuses,
-                        scope_id=scope.scope_id,
-                        scope_domain_id=(
-                            scope.scope_id.split(":", 1)[0]
-                            if scope.scope_type == "subdomain"
-                            else scope.scope_id
-                        ),
+                    applies_to_records = [
+                        r for r in applies_to_records
+                        if (r.get("rule_id") if isinstance(r, dict) else r["rule_id"])
+                        in allowed
+                    ]
+                    action_records = list(
+                        session.run(
+                            self._build_fetch_actions_query(
+                                scope, include_rule_ids=include_rule_ids
+                            ),
+                            **base_params,
+                        )
                     )
-                )
+                    action_records = [
+                        r for r in action_records
+                        if (r.get("rule_id") if isinstance(r, dict) else r["rule_id"])
+                        in allowed
+                    ]
+                else:
+                    applies_to_records = list(
+                        session.run(
+                            self._build_fetch_applies_to_query(
+                                scope, include_rule_ids=None
+                            ),
+                            **base_params,
+                        )
+                    )
+                    action_records = list(
+                        session.run(
+                            self._build_fetch_actions_query(
+                                scope, include_rule_ids=None
+                            ),
+                            **base_params,
+                        )
+                    )
                 policy = self._build_policy(
                     session,
                     scope,
@@ -638,12 +678,18 @@ class GuidelineCompiler:
         finally:
             driver.close()
 
-    def _build_fetch_active_rules_query(self, scope: CompileScope) -> str:
+    def _build_fetch_active_rules_query(
+        self,
+        scope: CompileScope,
+        include_rule_ids: list[str] | None = None,
+    ) -> str:
         where = ["coalesce(rule.status, 'active') IN $statuses"]
         if scope.scope_type == "guideline":
             where.append("g.id = $scope_id")
         elif scope.scope_type in {"domain", "subdomain"}:
             where.append("dom.id = $scope_domain_id")
+        if include_rule_ids is not None:
+            where.append("rule.id IN $rule_ids")
         where_clause = " AND ".join(where)
         # Dual-graph tolerance: see DUAL-GRAPH NOTE above _FETCH_ACTIVE_RULES.
         return f"""
@@ -678,12 +724,18 @@ RETURN
 ORDER BY rule.id, grp.id, coalesce(concept.id, concept.conceptId)
 """
 
-    def _build_fetch_applies_to_query(self, scope: CompileScope) -> str:
+    def _build_fetch_applies_to_query(
+        self,
+        scope: CompileScope,
+        include_rule_ids: list[str] | None = None,
+    ) -> str:
         where = ["coalesce(rule.status, 'active') IN $statuses"]
         if scope.scope_type == "guideline":
             where.append("g.id = $scope_id")
         elif scope.scope_type in {"domain", "subdomain"}:
             where.append("dom.id = $scope_domain_id")
+        if include_rule_ids is not None:
+            where.append("rule.id IN $rule_ids")
         where_clause = " AND ".join(where)
         # Dual-graph tolerance: see DUAL-GRAPH NOTE above _FETCH_ACTIVE_RULES.
         return f"""
@@ -704,13 +756,19 @@ RETURN
 ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
 """
 
-    def _build_fetch_actions_query(self, scope: CompileScope) -> str:
+    def _build_fetch_actions_query(
+        self,
+        scope: CompileScope,
+        include_rule_ids: list[str] | None = None,
+    ) -> str:
         """Same scope filter as the other fetch queries; see _FETCH_ACTIONS."""
         where = ["coalesce(rule.status, 'active') IN $statuses"]
         if scope.scope_type == "guideline":
             where.append("g.id = $scope_id")
         elif scope.scope_type in {"domain", "subdomain"}:
             where.append("dom.id = $scope_domain_id")
+        if include_rule_ids is not None:
+            where.append("rule.id IN $rule_ids")
         where_clause = " AND ".join(where)
         # Dual-graph tolerance: see DUAL-GRAPH NOTE above _FETCH_ACTIVE_RULES.
         return f"""

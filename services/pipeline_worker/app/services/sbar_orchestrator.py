@@ -77,6 +77,11 @@ from libs.sbar.orchestrator_gate3 import (
     situation_extra_context,
 )
 from libs.sbar.pii_guard import strip_dob_citations
+from libs.sbar.source_conflicts import (
+    attach_conflicts,
+    conflicts_from_excluded_facts,
+    merge_source_conflicts,
+)
 from libs.sbar.source_resolver import (
     aggregate_codes,
     resolve_background_sources,
@@ -337,9 +342,16 @@ class SBAROrchestrator:
                     "error": friendly["message"],
                     "error_code": friendly["code"],
                     "parts": [],
+                    "conflicts": [],
                 }
             else:
                 bg_result = bg_raw
+            source_conflicts = merge_source_conflicts(
+                [
+                    bg_result.get("conflicts"),
+                    (bg_result.get("raw") or {}).get("conflicts"),
+                ]
+            )
             background_md = bg_result.get("markdown") or ""
             background_md, bg_dob_stripped = strip_dob_citations(
                 background_md, resolved_situation.patient_summary.get("birth_date")
@@ -439,9 +451,7 @@ class SBAROrchestrator:
                             "referral_reason": extra.get("referral_reason"),
                             "entities": extra.get("entities"),
                             "section_hits": extra.get("section_hits"),
-                            "form_clinical_section": extra.get(
-                                "form_clinical_section"
-                            ),
+                            "form_clinical_section": extra.get("form_clinical_section"),
                         },
                     )
                     if spoa_code == "further_information_required":
@@ -459,6 +469,7 @@ class SBAROrchestrator:
                     eval_payload = await self._evaluate(
                         patient_codes=eval_codes,
                         guideline_ids=payload.guideline_ids or None,
+                        evaluation_scope=payload.evaluation_scope or None,
                         patient_age=demographics.get("patient_age"),
                         patient_sex=demographics.get("patient_sex"),
                     )
@@ -485,6 +496,13 @@ class SBAROrchestrator:
                         "rtr_evidence": str(exc),
                     },
                 )
+            source_conflicts = merge_source_conflicts(
+                [
+                    source_conflicts,
+                    conflicts_from_excluded_facts(narrative.rules),
+                ]
+            )
+            narrative.markdown = attach_conflicts(narrative.markdown, source_conflicts)
             self._run_cypher(
                 client,
                 SET_ASSESSMENT_NARRATIVE,
@@ -539,6 +557,7 @@ class SBAROrchestrator:
                     policy_runtime=self._policy_runtime,
                     spoa_disposition=narrative.spoa_disposition,
                     spoa_disposition_evidence=narrative.spoa_disposition_evidence,
+                    conflicts=source_conflicts,
                 )
             except Exception as exc:
                 logger.exception("SBAR recommendation call failed")

@@ -13,9 +13,15 @@ from __future__ import annotations
 from libs.sbar.assessment_formatter import format_assessment
 
 
-def _rule(rid: str, *, priority: str, due_days: int | None = None,
-          name: str = "Rule", strength: str = "strong",
-          guideline_id: str = "G-1") -> dict:
+def _rule(
+    rid: str,
+    *,
+    priority: str,
+    due_days: int | None = None,
+    name: str = "Rule",
+    strength: str = "strong",
+    guideline_id: str = "G-1",
+) -> dict:
     return {
         "rule_id": rid,
         "name": name,
@@ -254,6 +260,13 @@ def test_matched_via_preserved_in_rule_snapshot() -> None:
     assert out.rules[0]["matched_via"][0]["matched_concept_ids"] == ["2"]
 
 
+def test_excluded_present_preserved_in_rule_snapshot() -> None:
+    rule = _rule("R-1", priority="urgent")
+    rule["excluded_present"] = ["65576009"]
+    out = format_assessment(matched_rules=[rule], patient_codes=["74285003"])
+    assert out.rules[0]["excluded_present"] == ["65576009"]
+
+
 def test_no_matched_via_keeps_legacy_markdown_behaviour() -> None:
     """Rules without matched_via omit the Matched on landmark (back-compat)."""
     rule = _rule("R-1", priority="urgent")
@@ -357,8 +370,7 @@ def test_two_actions_render_one_line_each_and_keep_rule_level_priority() -> None
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
 
     assert (
-        "**Action:** Suspected cancer pathway referral (within 14 days)"
-        in out.markdown
+        "**Action:** Suspected cancer pathway referral (within 14 days)" in out.markdown
     )
     assert "**Action:** Full blood count (within 14 days)" in out.markdown
     assert out.markdown.count("**Action:**") == 2
@@ -444,7 +456,8 @@ def test_unverified_first_presentation_is_named_in_assessment() -> None:
     md = out.markdown
     assert "first presentation" in md
     assert "could not confirm that from this letter" in md
-    assert "still offered the scan so a possible cancer is not missed" in md
+    assert "still shown this match so a possible cancer is not missed" in md
+    assert "offered the scan" not in md
     assert "check whether this is a first episode" in md
     assert "qualifier" not in md.lower()
     assert "benefit of the doubt" not in md.lower()

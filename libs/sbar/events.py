@@ -485,6 +485,26 @@ class SBARBackgroundSourceRef(BaseModel):
     id: str = Field(..., min_length=1)
 
 
+class EvaluationScope(BaseModel):
+    """Typed evaluation scope for the SBAR assessment bitmap lookup.
+
+    Three modes:
+    - global:    evaluate against all active rules (default).
+    - guideline: evaluate against one or more named NICE guidelines,
+                 one POST per guideline_id (existing loop behaviour).
+    - pick:      evaluate against a named pick-and-mix compiled bitmap
+                 stored under scope_type=custom, scope_id=pick_scope_id.
+                 Single evaluate call, no loop.
+
+    When evaluation_scope is set on SBARRequestPayload it takes precedence
+    over the legacy guideline_ids field.
+    """
+
+    mode: Literal["global", "guideline", "pick"] = "global"
+    guideline_ids: list[str] = Field(default_factory=list)
+    pick_scope_id: str | None = None
+
+
 class SBARRequestPayload(BaseModel):
     """Body of a ``sbar_requested`` pipeline-jobs message."""
 
@@ -502,9 +522,13 @@ class SBARRequestPayload(BaseModel):
     # keep prompt cost bounded; UI enforces the same limit.
     concern: str | None = Field(default=None, max_length=500)
 
-    # Optional restriction to a subset of guidelines for the Assessment
-    # roaring-bitmap evaluation. Empty -> evaluate against the global scope.
+    # Legacy: restrict evaluation to a subset of guidelines by ID.
+    # Still honoured when evaluation_scope is None.
+    # Empty -> evaluate against the global scope.
     guideline_ids: list[str] = Field(default_factory=list)
+
+    # Typed scope (takes precedence over guideline_ids when set).
+    evaluation_scope: EvaluationScope | None = None
 
     # Optional client-provided assessment id. If omitted the orchestrator
     # generates one (uuid4 hex). Useful for retries / idempotency tests.

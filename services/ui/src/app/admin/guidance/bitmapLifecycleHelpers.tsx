@@ -106,15 +106,16 @@ export function formatVersionMeta(v: VersionEntry): string {
   return parts.join(" · ");
 }
 
-export type ScopeType = "global" | "guideline" | "domain" | "subdomain" | "custom";
+export type CompileMode = "global" | "guideline" | "pick";
 export type PolicyMode = "advisory" | "strict";
 
-export const SCOPE_OPTIONS: ReadonlyArray<{ value: ScopeType; label: string }> = [
-  { value: "global", label: "Global" },
-  { value: "guideline", label: "Guideline" },
-  { value: "domain", label: "Domain" },
-  { value: "subdomain", label: "Subdomain" },
-  { value: "custom", label: "Custom" },
+export const COMPILE_MODE_OPTIONS: ReadonlyArray<{
+  value: CompileMode;
+  label: string;
+}> = [
+  { value: "global", label: "All guidelines" },
+  { value: "guideline", label: "One guideline" },
+  { value: "pick", label: "Pick rules" },
 ];
 
 export const POLICY_OPTIONS: ReadonlyArray<{ value: PolicyMode; label: string }> = [

@@ -85,6 +85,9 @@ HARD RULES (10)
    reasons across the parts (for example, "the patient's eGFR has
    been declining" unless one of the input bullets already says
    exactly that). You are an editor, not a clinician.
+   NO COMMENTARY. Do not add clinical meaning or phrases such as
+   "which is a risk factor" unless an input bullet already uses
+   those exact words.
 10. Output MUST be a single JSON object conforming to the supplied
     output schema -- no prose outside JSON, no code fences.
 

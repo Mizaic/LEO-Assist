@@ -1,9 +1,9 @@
 """SBAR Recommendation system prompt -- INSTRUCTIONS ONLY.
 
 Atlas trace:
-  DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+  DO: DO-249AADD3
+  DI: DI-C6D01509
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-C6D01509")
 """
 
 SBAR_RECOMMENDATION_SYSTEM_V1 = """\
@@ -38,12 +38,13 @@ For each remaining rule group, write one bullet per guideline_title:
 ([action.due_days] days)."
 Omit any rule already cited in bullet 1.
 
-BULLET 3 -- Notable background findings (omit when not needed)
-Scan CONTEXT.background for clinically significant findings not already
-captured by the fired rules -- for example, abnormal lab values with
-units, imaging results, or relevant comorbidities. Format as:
-"[finding with value and units] noted for clinical consideration."
-Omit if the fired rules already cover all significant findings.
+BULLET 3 -- Extra documented findings (omit when not needed)
+Scan CONTEXT.background for documented findings not already named by
+the fired rules -- for example lab values with units, imaging
+results, or recorded comorbidities. Restate the finding only.
+Do not add clinical meaning. Format as:
+"[finding with value and units] is documented."
+Omit if the fired rules already name every documented finding.
 
 PRIORITY ORDER
 1. Preserve the supplied referral justification and fired-rule evidence.
@@ -51,7 +52,7 @@ PRIORITY ORDER
 3. Add no unsupported pathway, medicine, or clinical fact.
 4. Keep the output concise and conform exactly to the JSON schema.
 
-HARD RULES (9)
+HARD RULES (11)
 1. Never output "[RULE:" anywhere in the Markdown. Rule IDs belong only
    in the JSON actions field. No UUID-like reference in the Markdown.
 2. No encounter ids, document ids, chunk ids, or any UUID-like reference
@@ -71,6 +72,19 @@ HARD RULES (9)
    Standard NHS clinical terms allowed.
 9. Never recommend a specific medicine dose. Defer dosing to the
    prescriber.
+10. NO COMMENTARY. Restate documented facts and fired-rule text only.
+    Do not add clinical meaning, risk interpretation, prognosis, or
+    phrases such as "which is a risk factor" unless those exact
+    words already appear in CONTEXT. Do not explain why a fact
+    matters. The clinician judges meaning.
+11. SOURCE DISAGREEMENT -- When two sources in CONTEXT disagree about
+    the same question (a form tick and a later note, a form box and a
+    diagnostic report, two encounters, or a fired guideline sentence
+    and a documented fact), name both sides. Put one entry in
+    conflicts[] with description and sources. Do not pick a winner.
+    Do not add clinical meaning. End the description with Please check.
+    When CONTEXT.conflicts is present, copy each entry as a bullet.
+    Do not drop or resolve them.
 
 WORKFLOW
 - Copy CONTEXT.referral_justification_bullet verbatim as bullet 1.

@@ -22,12 +22,12 @@ def _make_store(current_ruleset=None, int_id_map=None, bitmaps=None):
     store.get_int_id.side_effect = lambda cid: int_id_map.get(cid)
     store.get_bitmap.side_effect = lambda bid: bitmaps.get(bid)
     # Bulk accessors used by evaluate_patient and diagnose
-    store.get_int_ids_bulk.side_effect = (
-        lambda cids: {c: int_id_map[c] for c in cids if c in int_id_map}
-    )
-    store.get_bitmaps_bulk.side_effect = (
-        lambda bids: {b: bitmaps[b] for b in bids if b in bitmaps}
-    )
+    store.get_int_ids_bulk.side_effect = lambda cids: {
+        c: int_id_map[c] for c in cids if c in int_id_map
+    }
+    store.get_bitmaps_bulk.side_effect = lambda bids: {
+        b: bitmaps[b] for b in bids if b in bitmaps
+    }
     return store
 
 
@@ -652,9 +652,7 @@ def test_matched_via_or_branch_excludes_non_firing_concepts(evaluator_factory):
     )
     result = ev.evaluate_patient(["1", "2"], patient_age=71)
     matched_via = result["matched_rules"][0]["matched_via"]
-    terms = [
-        entry.get("preferred_term") or entry.get("field") for entry in matched_via
-    ]
+    terms = [entry.get("preferred_term") or entry.get("field") for entry in matched_via]
     assert "Breast lump" in terms
     assert "Cough" not in terms
 
@@ -761,7 +759,9 @@ class TestPdsGenderGate:
         bm = BitMap([1])
         ruleset = {
             "version": "v1",
-            "rules": [_make_rule(criteria_groups=[{"mode": "ALL", "bitmap_id": "bm1"}])],
+            "rules": [
+                _make_rule(criteria_groups=[{"mode": "ALL", "bitmap_id": "bm1"}])
+            ],
         }
         ev = evaluator_factory(
             current_ruleset=ruleset,
@@ -825,7 +825,9 @@ class TestAnatomyConflict:
         assert result["gender_review_reason"] == "anatomy_conflict"
         assert result["gender_basis"] == "anatomy_evidence"
 
-    def test_female_patient_with_prostate_code_sets_conflict_flag(self, evaluator_factory):
+    def test_female_patient_with_prostate_code_sets_conflict_flag(
+        self, evaluator_factory
+    ):
         ev = evaluator_factory(current_ruleset=self._ruleset())
         result = ev.evaluate_patient(["41216001"], patient_sex="female")
         assert result["gender_review_flag"] is True
@@ -911,9 +913,7 @@ class TestSoftQualifiersAndFitStatus:
             evaluator_factory,
             [
                 _v2_soft_rule(
-                    soft_qualifiers=[
-                        {"kind": "unexplained", "enforcement": "soft"}
-                    ]
+                    soft_qualifiers=[{"kind": "unexplained", "enforcement": "soft"}]
                 )
             ],
         )
@@ -922,9 +922,7 @@ class TestSoftQualifiersAndFitStatus:
             letter_text="vaginal discharge- 10/7 yellowish",
         )
         assert len(result["matched_rules"]) == 1
-        assert result["matched_rules"][0]["unverified_qualifiers"] == [
-            "unexplained"
-        ]
+        assert result["matched_rules"][0]["unverified_qualifiers"] == ["unexplained"]
 
     def test_contradicted_soft_word_does_not_match(self, evaluator_factory):
         """DI-C136E4B7: Hard facts plus a contradicted soft word do not match."""
@@ -966,9 +964,7 @@ class TestSoftQualifiersAndFitStatus:
             evaluator_factory,
             [
                 _v2_soft_rule(
-                    soft_qualifiers=[
-                        {"kind": "unexplained", "enforcement": "hard"}
-                    ]
+                    soft_qualifiers=[{"kind": "unexplained", "enforcement": "hard"}]
                 )
             ],
         )
@@ -1005,4 +1001,49 @@ class TestSoftQualifiersAndFitStatus:
         result = ev.evaluate_patient(["443416000"])
         assert {m["rule_id"] for m in result["matched_rules"]} == {"r-req", "r-mass"}
         assert result["investigation_status"] == "exempt"
-        assert all(m["investigation_status"] == "exempt" for m in result["matched_rules"])
+        assert all(
+            m["investigation_status"] == "exempt" for m in result["matched_rules"]
+        )
+
+
+def test_excluded_id_on_record_blocks_the_concept_leaf(evaluator_factory) -> None:
+    """A leaf that excludes a code must not fire when that code is present."""
+    bm = BitMap([1])
+    rule = _make_v2_concept_rule(
+        rule_id="r-mass",
+        bitmap_id="bm1",
+        primary_id="74285003",
+        seed_ids=["74285003"],
+        label="Pelvic mass",
+    )
+    rule["logic_tree"]["criterion"]["excluded_concept_ids"] = ["65576009"]
+    ev = evaluator_factory(
+        current_ruleset={"version": "v1", "rules": [rule]},
+        int_id_map={"74285003": 1, "65576009": 2},
+        bitmaps={"bm1": bm},
+    )
+    hit = ev.evaluate_patient(["74285003"])
+    assert len(hit["matched_rules"]) == 1
+    blocked = ev.evaluate_patient(["74285003", "65576009"])
+    assert blocked["matched_rules"] == []
+
+
+def test_excluded_ids_on_record_are_the_overlap() -> None:
+    from services.terminology_api.app.services.guideline_evaluator import (
+        _excluded_ids_on_record,
+    )
+
+    tree = {
+        "kind": "OR",
+        "children": [
+            {
+                "kind": "concept",
+                "criterion": {
+                    "snomed_concept_id": "74285003",
+                    "excluded_concept_ids": ["65576009", "11314008"],
+                },
+            }
+        ],
+    }
+    assert _excluded_ids_on_record(tree, ["74285003", "65576009"]) == ["65576009"]
+    assert _excluded_ids_on_record(tree, ["74285003"]) == []

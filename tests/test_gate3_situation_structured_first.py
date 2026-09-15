@@ -104,6 +104,48 @@ def test_form_chrome_lump_does_not_become_headline_when_letter_denies() -> None:
     assert "discrete hard lump" not in result.headline.lower()
 
 
+def test_undenied_form_ticks_lead_over_historical_hemorrhage() -> None:
+    """Two referral-reason ticks must both lead. Hemorrhage must not.
+
+    Atlas: DI-ED65569C / DO-FE774247 / VT-6CA911CF
+    """
+    from libs.sbar.situation_headline import headline_from_coded_facts
+
+    headline = headline_from_coded_facts(
+        [
+            {
+                "text": "Suspicious pelvic mass on ultrasound",
+                "assertion": "present",
+                "term": "Mass of pelvic structure (finding)",
+                "label": "finding",
+                "concept_id": "74285003",
+                "__source": "form_schema_checkbox",
+            },
+            {
+                "text": "Unexpected or prolonged bleeding after stopping HRT",
+                "assertion": "present",
+                "term": "Postmenopausal bleeding (finding)",
+                "label": "finding",
+                "concept_id": "76742009",
+                "__source": "form_schema_checkbox",
+            },
+            {
+                "text": "bleeding",
+                "assertion": "present",
+                "term": "Hemorrhage (morphologic abnormality)",
+                "label": "finding",
+                "concept_id": "50960005",
+            },
+        ],
+        clinic_type="2WW_GYNAECOLOGY",
+    )
+    assert headline is not None
+    low = headline.lower()
+    assert "pelvic" in low
+    assert "postmenopausal bleeding" in low
+    assert "hemorrhage" not in low
+
+
 def test_placeholder_reason_loses_to_coded_exam_lump() -> None:
     """UBRN 000486035327: exam lump must lead, not A1 and not 'no details'.
 

@@ -12,18 +12,29 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   BitmapStatus,
   CandidateTestSummary,
+  CompileMode,
   PolicyMode,
-  ScopeType,
   VersionEntry,
 } from "./bitmapLifecycleHelpers";
+
+export interface ActiveRule {
+  rule_id: string;
+  name: string;
+  guideline_id: string;
+  guideline_title: string;
+  strength: string;
+}
 
 interface UseBitmapLifecycleArgs {
   onVersionActivated?: () => void;
 }
 
 export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArgs) {
-  const [scopeType, setScopeType] = useState<ScopeType>("global");
+  const [compileMode, setCompileMode] = useState<CompileMode>("global");
   const [scopeId, setScopeId] = useState("default");
+  const [pickScopeId, setPickScopeId] = useState("");
+  const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(new Set());
+  const [activeRules, setActiveRules] = useState<ActiveRule[]>([]);
   const [policyMode, setPolicyMode] = useState<PolicyMode>("advisory");
   const [distanceChild, setDistanceChild] = useState("");
   const [distanceParent, setDistanceParent] = useState("");
@@ -46,15 +57,47 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
   const [shadowing, setShadowing] = useState(false);
   const [shadowSummary, setShadowSummary] = useState<string | null>(null);
 
+  // Reset scopeId when switching away from guideline mode.
   useEffect(() => {
-    if (scopeType === "global" && scopeId !== "default") setScopeId("default");
-  }, [scopeId, scopeType]);
+    if (compileMode !== "guideline" && scopeId !== "default") setScopeId("default");
+  }, [compileMode, scopeId]);
+
+  // Load active rules when entering pick mode.
+  useEffect(() => {
+    if (compileMode !== "pick" || activeRules.length > 0) return;
+    fetch("/api/terminology/guidelines/rules/active")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: ActiveRule[]) => setActiveRules(rows))
+      .catch(() => {/* keep empty */});
+  }, [compileMode, activeRules.length]);
+
+  const toggleRuleId = useCallback((ruleId: string) => {
+    setSelectedRuleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(ruleId)) next.delete(ruleId);
+      else next.add(ruleId);
+      return next;
+    });
+  }, []);
+
+  const clearRuleIds = useCallback(() => setSelectedRuleIds(new Set()), []);
+
+  const _resolvedScope = useCallback((): {
+    scope_type: string;
+    scope_id: string;
+  } => {
+    if (compileMode === "guideline") {
+      return { scope_type: "guideline", scope_id: scopeId || "default" };
+    }
+    if (compileMode === "pick") {
+      return { scope_type: "custom", scope_id: pickScopeId || "pick-default" };
+    }
+    return { scope_type: "global", scope_id: "default" };
+  }, [compileMode, scopeId, pickScopeId]);
 
   const fetchStatus = useCallback(async (): Promise<BitmapStatus | null> => {
-    const qs = new URLSearchParams({
-      scope_type: scopeType,
-      scope_id: scopeId || "default",
-    }).toString();
+    const { scope_type, scope_id } = _resolvedScope();
+    const qs = new URLSearchParams({ scope_type, scope_id }).toString();
     try {
       const [statusResp, compiledResp] = await Promise.all([
         fetch(`/api/terminology/guidelines/bitmap/status?${qs}`),
@@ -100,17 +143,22 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
     setError(null);
     setShadowSummary(null);
     try {
+      const { scope_type, scope_id } = _resolvedScope();
+      const compileBody: Record<string, unknown> = {
+        scope_type,
+        scope_id,
+        policy_mode: policyMode,
+        activate: false,
+        distance_child_override: distanceChild === "" ? null : Number(distanceChild),
+        distance_parent_override: distanceParent === "" ? null : Number(distanceParent),
+      };
+      if (compileMode === "pick") {
+        compileBody.include_rule_ids = [...selectedRuleIds];
+      }
       const resp = await fetch("/api/terminology/guidelines/bitmap/compile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scope_type: scopeType,
-          scope_id: scopeId || "default",
-          policy_mode: policyMode,
-          activate: false,
-          distance_child_override: distanceChild === "" ? null : Number(distanceChild),
-          distance_parent_override: distanceParent === "" ? null : Number(distanceParent),
-        }),
+        body: JSON.stringify(compileBody),
       });
       if (!resp.ok) throw new Error(await resp.text());
       const started = (await resp.json()) as { job_id: string; version: string };
@@ -146,10 +194,11 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
         // Job state is in-memory -- lost on API reload. If the candidate
         // version is already listed, compile succeeded even when the job
         // endpoint 404s or never flips to done.
+        const { scope_type: pst, scope_id: psi } = _resolvedScope();
         const versionsResp = await fetch(
           `/api/terminology/guidelines/compiled?scope_type=${encodeURIComponent(
-            scopeType,
-          )}&scope_id=${encodeURIComponent(scopeId || "default")}`,
+            pst,
+          )}&scope_id=${encodeURIComponent(psi)}`,
         );
         if (versionsResp.ok) {
           const listed = (await versionsResp.json()) as {
@@ -171,7 +220,7 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
       setError("Could not start the compile. Please try again.");
       setCompiling(false);
     }
-  }, [distanceChild, distanceParent, policyMode, scopeId, scopeType]);
+  }, [_resolvedScope, compileMode, distanceChild, distanceParent, policyMode, selectedRuleIds]);
 
   const handleTestOnLabPatients = useCallback(() => {
     if (!versions.length) return;
@@ -201,14 +250,15 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
         setShadowSummary("No real patients available yet for a historic comparison.");
         return;
       }
+      const { scope_type: hst, scope_id: hsi } = _resolvedScope();
       const resp = await fetch("/api/guidance/shadow/diff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           candidate_version: candidateVersion,
-          scope_type: scopeType,
-          scope_id: scopeId || "default",
-          guideline_id: scopeType === "guideline" ? scopeId : null,
+          scope_type: hst,
+          scope_id: hsi,
+          guideline_id: compileMode === "guideline" ? scopeId : null,
           source_patient_ids: sourceIds,
         }),
       });
@@ -234,15 +284,13 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
       setActivatingVersion(version);
       setError(null);
       try {
+        const { scope_type: ast, scope_id: asi } = _resolvedScope();
         const resp = await fetch(
           `/api/terminology/guidelines/bitmap/versions/${encodeURIComponent(version)}/activate`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              scope_type: scopeType,
-              scope_id: scopeId || "default",
-            }),
+            body: JSON.stringify({ scope_type: ast, scope_id: asi }),
           },
         );
         if (!resp.ok) throw new Error(await resp.text());
@@ -264,13 +312,11 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
     setRollingBack(true);
     setError(null);
     try {
+      const { scope_type: rst, scope_id: rsi } = _resolvedScope();
       const resp = await fetch("/api/terminology/guidelines/bitmap/rollback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scope_type: scopeType,
-          scope_id: scopeId || "default",
-        }),
+        body: JSON.stringify({ scope_type: rst, scope_id: rsi }),
       });
       if (!resp.ok) throw new Error(await resp.text());
       setRefreshKey((n) => n + 1);
@@ -282,10 +328,16 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
   }, [scopeId, scopeType]);
 
   return {
-    scopeType,
-    setScopeType,
+    compileMode,
+    setCompileMode,
     scopeId,
     setScopeId,
+    pickScopeId,
+    setPickScopeId,
+    selectedRuleIds,
+    toggleRuleId,
+    clearRuleIds,
+    activeRules,
     policyMode,
     setPolicyMode,
     distanceChild,

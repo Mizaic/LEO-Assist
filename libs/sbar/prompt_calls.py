@@ -33,6 +33,7 @@ from libs.sbar.background_partitioner import (
     partition_background_sources,
 )
 from libs.sbar.error_messages import translate_error
+from libs.sbar.source_conflicts import merge_source_conflicts
 from libs.sbar.situation_headline import sanitize_situation_markdown
 from libs.sbar.source_resolver import (
     ResolvedCode,
@@ -232,6 +233,7 @@ def _serialise_recommendation_context(
     guidelines: list[str],
     spoa_disposition: str | None = None,
     spoa_disposition_evidence: str | None = None,
+    conflicts: list[dict[str, Any]] | None = None,
 ) -> str:
     primary_rule_id = _select_primary_rule_id(assessment_rules)
     referral_justification_bullet = build_referral_justification_bullet(
@@ -248,6 +250,7 @@ def _serialise_recommendation_context(
         "guidelines": guidelines,
         "spoa_disposition": spoa_disposition,
         "spoa_disposition_evidence": spoa_disposition_evidence,
+        "conflicts": list(conflicts or []),
         "advisory_note": (
             "The SPoA disposition is advisory. Do not state that booking, routing, "
             "letters, or eRS actions were completed."
@@ -734,6 +737,7 @@ async def call_background(
             "error_code": only["error_code"],
             "raw": only["raw"],
             "parts": parts_summary,
+            "conflicts": list(only.get("conflicts") or []),
         }
 
     # Multi-partition path: deterministic stitch, always. Each part
@@ -755,6 +759,9 @@ async def call_background(
         "error": error_message,
         "error_code": error_code,
         "parts": parts_summary,
+        "conflicts": merge_source_conflicts(
+            [p.get("conflicts") for p in part_results]
+        ),
     }
 
 
@@ -831,6 +838,7 @@ async def call_recommendation(
     policy_runtime: Any | None = None,
     spoa_disposition: str | None = None,
     spoa_disposition_evidence: str | None = None,
+    conflicts: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     fetcher = _resolve_prompt_fetcher(prompt_fetcher)
     if policy_runtime is not None and prompt_fetcher is None:
@@ -855,6 +863,7 @@ async def call_recommendation(
         guidelines=guidelines,
         spoa_disposition=spoa_disposition,
         spoa_disposition_evidence=spoa_disposition_evidence,
+        conflicts=conflicts,
     )
     raw = await llm(
         system,
