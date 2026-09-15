@@ -39,6 +39,7 @@ import type {
 } from "../data/types";
 import { LEO_EVENT_NAMES } from "../data/types";
 import { MIZAIC_MARK_SVG } from "../branding/tokens";
+import { splitAlreadyDoneAssessment } from "./alreadyDone";
 import { splitFinalSbar, stripSourceComments } from "./split";
 import { attachDisclosureHandlers, renderDisclosureHtml } from "./disclosure";
 import { renderMarkdownToHtml } from "./markdown";
@@ -83,12 +84,37 @@ function _escape(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
+function _renderAlreadyDoneDisclosure(body: string): string {
+  const split = splitAlreadyDoneAssessment(body);
+  if (!split.doneBody || split.count < 1) {
+    return renderMarkdownToHtml(body);
+  }
+  const openHtml = renderMarkdownToHtml(split.openBody);
+  const doneHtml = renderMarkdownToHtml(split.doneBody);
+  return (
+    openHtml +
+    `<div class="leo-disclosure" data-leo-disclosure="already-done" ` +
+    `data-stage="assessment" data-open="false" ` +
+    `data-testid="leo-disclosure-assessment-already-done">` +
+    `<button type="button" class="leo-disclosure-toggle" ` +
+    `data-leo-toggle="assessment" aria-expanded="false" ` +
+    `data-testid="leo-disclosure-assessment-already-done-toggle">` +
+    `Already done (${split.count})</button>` +
+    `<div class="leo-disclosure-panel" hidden>${doneHtml}</div>` +
+    `</div>`
+  );
+}
+
 function _renderStage(
   section: SbarSection,
   partsByStage: Record<SbarStageName, SbarBackgroundPart[]>,
   chipHtml = "",
 ): string {
-  const rendered = renderMarkdownToHtml(stripSourceComments(section.body));
+  const clean = stripSourceComments(section.body);
+  const rendered =
+    section.stage === "assessment"
+      ? _renderAlreadyDoneDisclosure(clean)
+      : renderMarkdownToHtml(clean);
   const disclosure = renderDisclosureHtml({
     stage: section.stage,
     parts: partsByStage[section.stage] ?? [],

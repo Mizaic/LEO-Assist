@@ -254,13 +254,24 @@ em, i { font-style: italic; }
  * !important rules below are defence-in-depth on top of the closed
  * shadow root (web component) and the cross-origin frame (iframe).
  */
-.leo-disclosure[data-leo-disclosure="source-records"] {
+.leo-disclosure[data-leo-disclosure="source-records"],
+.leo-disclosure[data-leo-disclosure="already-done"] {
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
   transform: none !important;
   pointer-events: auto !important;
   padding: 6px 14px 10px 14px;
+}
+
+.leo-disclosure[data-leo-disclosure="already-done"] {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.leo-stage-body--md del {
+  text-decoration: line-through;
+  opacity: 0.75;
 }
 
 .leo-disclosure-toggle {

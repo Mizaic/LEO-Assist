@@ -1728,6 +1728,8 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                     "strength": item.get("strength") or "unspecified",
                     "priority": priority,
                     "due_days": due_days,
+                    "already_done_evidence_ids": item.get("already_done_evidence_ids")
+                    or [],
                 }
             )
         return out
@@ -1747,6 +1749,9 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
         does not fall through to the actionJson source).
         """
         source = rule_data.get("actions") or self._actions_from_action_json(rule_data)
+        from libs.guidelines.investigation_family_catalog import load_family_index
+
+        families = load_family_index(session) if session is not None else {}
         actions: list[dict[str, Any]] = []
         for item in source:
             concept_id = item.get("concept_id")
@@ -1766,7 +1771,14 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                         rule_data.get("rule_id"),
                     )
                 continue
-            actions.append(self._compiled_action_item(item, str(concept_id), session=session))
+            actions.append(
+                self._compiled_action_item(
+                    item,
+                    str(concept_id),
+                    session=session,
+                    families=families,
+                )
+            )
         return actions
 
     @staticmethod
@@ -1777,7 +1789,9 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
         etc.) so it can be passed directly to evidence_ids_for_action(related=...).
         Returns None on any failure so callers degrade gracefully.
         """
-        from services.terminology_api.app.queries.terminology import RELATED_CONCEPTS_QUERY
+        from services.terminology_api.app.queries.terminology import (
+            RELATED_CONCEPTS_QUERY,
+        )
 
         try:
             rows = list(session.run(RELATED_CONCEPTS_QUERY, concept_id=concept_id))
@@ -1787,13 +1801,18 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
             return dict(row) if not isinstance(row, dict) else row
         except Exception:
             logger.warning(
-                "_snomed_related_dict: lookup failed for concept %s", concept_id, exc_info=True
+                "_snomed_related_dict: lookup failed for concept %s",
+                concept_id,
+                exc_info=True,
             )
             return None
 
     @staticmethod
     def _compiled_action_item(
-        item: dict[str, Any], concept_id: str, session=None
+        item: dict[str, Any],
+        concept_id: str,
+        session=None,
+        families=None,
     ) -> dict[str, Any]:
         """Build one compiled action, including already-done evidence ids.
 
@@ -1809,15 +1828,20 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
             if session is not None
             else None
         )
+        evidence = evidence_ids_for_action(
+            concept_id, related=related, families=families
+        )
+        for extra in item.get("already_done_evidence_ids") or []:
+            text = str(extra).strip()
+            if text:
+                evidence.add(text)
         return {
             "concept_id": concept_id,
             "name": item.get("name"),
             "strength": item.get("strength") or "unspecified",
             "priority": item.get("priority") or "routine",
             "due_days": item.get("due_days"),
-            "already_done_evidence_ids": sorted(
-                evidence_ids_for_action(concept_id, related=related)
-            ),
+            "already_done_evidence_ids": sorted(evidence),
         }
 
     def _compile_schema_v2_rule(

@@ -155,7 +155,7 @@ export function renderDisclosureHtml({ stage, parts }: DisclosureProps): string 
     `data-leo-toggle="${stage}" aria-expanded="false" ` +
     `data-testid="leo-disclosure-${stage}-toggle">` +
     `Show source records (${totalIds})</button>` +
-    `<div class="leo-disclosure-panel">${partRows}</div>` +
+    `<div class="leo-disclosure-panel" hidden>${partRows}</div>` +
     "</div>"
   );
 }
@@ -312,6 +312,8 @@ export function attachDisclosureHandlers(
       const next = !isOpen;
       wrapper.setAttribute("data-open", next ? "true" : "false");
       toggle.setAttribute("aria-expanded", next ? "true" : "false");
+      const panel = wrapper.querySelector<HTMLElement>(".leo-disclosure-panel");
+      if (panel) panel.hidden = !next;
       const label = next
         ? toggle.textContent?.replace(/^Show /, "Hide ")
         : toggle.textContent?.replace(/^Hide /, "Show ");

@@ -34,6 +34,7 @@ function inlineMarkdown(raw: string): string {
   return s
     .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/~~(.+?)~~/g, "<del>$1</del>")
     .replace(/_([^_\s][^_]*[^_\s]|[^_\s])_/g, "<em>$1</em>")
     .replace(/\*([^*\s][^*]*[^*\s]|[^*\s])\*/g, "<em>$1</em>");
 }
