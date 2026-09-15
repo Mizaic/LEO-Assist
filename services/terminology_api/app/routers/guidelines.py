@@ -171,6 +171,9 @@ class CompileRequest(BaseModel):
     scope_id: str = "default"
     policy_mode: Literal["advisory", "strict"] = "advisory"
     include_rule_statuses: list[str] = ["active"]
+    # Optional: compile only these rule IDs (pick-and-mix mode).
+    # None means compile all rules for the scope. [] compiles zero rules.
+    include_rule_ids: list[str] | None = None
     policy_domain_id: str | None = None
     policy_subdomain_name: str | None = None
     policy_include_descendants: bool = True
@@ -421,6 +424,37 @@ def delete_scope(scope_type: str, scope_id: str) -> dict:
     }
 
 
+_FETCH_ACTIVE_RULES_LITE = """
+MATCH (g:Guideline)-[:HAS_RECOMMENDATION]->(rec:Recommendation)
+      -[:HAS_RULE]->(rule:AppropriatenessRule {status: 'active'})
+RETURN DISTINCT
+    rule.id              AS rule_id,
+    coalesce(rule.name, rule.id) AS name,
+    g.id                 AS guideline_id,
+    g.title              AS guideline_title,
+    coalesce(rule.strength, 'unspecified') AS strength
+ORDER BY g.title, rule.name
+"""
+
+
+@router.get("/guidelines/rules/active")
+def list_active_rules() -> list[dict]:
+    """Return a lightweight list of all active rules for the rule picker.
+
+    Returns one entry per rule: rule_id, name, guideline_id,
+    guideline_title, strength. No criteria or action expansion.
+    """
+    from services.terminology_api.app.services.guideline_compiler import _kg_driver
+
+    driver = _kg_driver()
+    try:
+        with driver.session() as session:
+            rows = list(session.run(_FETCH_ACTIVE_RULES_LITE))
+        return [dict(r) for r in rows]
+    finally:
+        driver.close()
+
+
 @router.post(
     "/guidelines/bitmap/compile",
     status_code=202,
@@ -634,6 +668,10 @@ async def _run_compile(job_id: str, version: str, request_body: dict) -> None:
         scope = CompileScope.from_values(
             request_body.get("scope_type"), request_body.get("scope_id")
         )
+        raw_rule_ids = request_body.get("include_rule_ids")
+        include_rule_ids = (
+            [str(r) for r in raw_rule_ids] if raw_rule_ids is not None else None
+        )
         summary = await compiler.compile_and_store(
             version,
             scope=scope,
@@ -641,6 +679,7 @@ async def _run_compile(job_id: str, version: str, request_body: dict) -> None:
             include_rule_statuses=list(
                 request_body.get("include_rule_statuses") or ["active"]
             ),
+            include_rule_ids=include_rule_ids,
             policy_domain_id=request_body.get("policy_domain_id"),
             policy_subdomain_name=request_body.get("policy_subdomain_name"),
             policy_include_descendants=bool(

@@ -773,7 +773,7 @@ resource trainingWorker 'Microsoft.App/containerApps@2024-03-01' = {
 // Message bus: sharedEnv injects AZURE_SERVICE_BUS_NAMESPACE and
 // AZURE_SERVICE_BUS_CONNECTION_STRING (same as core-api) so create_message_bus()
 // selects the Azure adapter on both publisher and consumer paths.
-resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
+resource pipelineWorker 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'pipeline-worker'
   location: location
   identity: identityConfig
@@ -839,6 +839,12 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
       scale: {
         minReplicas: 0
         maxReplicas: 3
+        // KEDA counts waiting Service Bus messages, not a locked extract.
+        // Default cooldown is 300s and will kill a replica mid-run.
+        // 3600s matches PIPELINE_STAGE_LEASE_SECONDS so idle scale-to-zero
+        // waits until a leased step can no longer still be running.
+        cooldownPeriod: 3600
+        pollingInterval: 30
         rules: [{
           name: 'pipeline-jobs-keda'
           custom: {

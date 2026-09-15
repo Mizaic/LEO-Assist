@@ -13,7 +13,7 @@ export const FIRST_PRESENTATION_ASKED =
   "The guideline also asks for a first presentation of this symptom.";
 export const COULD_NOT_CONFIRM = "We could not confirm that from this letter.";
 export const SCAN_STILL_OFFERED =
-  "We have still offered the scan so a possible cancer is not missed.";
+  "We have still shown this match so a possible cancer is not missed.";
 export const NOT_ON_FIT_LIST =
   "This letter is not on a missing faecal immunochemical test (FIT) list.";
 

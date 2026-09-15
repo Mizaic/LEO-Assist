@@ -73,26 +73,12 @@ def headline_from_coded_facts(
     entities: list[dict[str, Any]] | None,
     clinic_type: str | None = None,
 ) -> str | None:
-    """Return suspected site plus a present finding. Never name absent PMB."""
-    clinic = str(clinic_type or "")
-    suspected: list[tuple[tuple[int, int, int], str]] = []
-    findings: list[tuple[tuple[int, int, int], str]] = []
-    for entity in entities or []:
-        if str(entity.get("assertion") or "").strip().lower() in _ABSENT:
-            continue
-        if _is_form_chrome(entity):
-            continue
-        term = _short_term(entity)
-        if not term or _is_weak(term):
-            continue
-        rank = _lead_rank(term, entity, clinic)
-        if _is_suspected(term, entity):
-            suspected.append((rank, term))
-        elif _is_finding(term, entity):
-            findings.append((rank, term))
-    suspected.sort()
-    findings.sort()
-    parts = [row[1] for row in suspected[:1]] + [row[1] for row in findings[:1]]
+    """Name undenied form ticks first. Never name absent PMB."""
+    ticks, suspected, findings = _split_headline_facts(entities, clinic_type)
+    if ticks:
+        parts = [row[1] for row in ticks[:3]]
+    else:
+        parts = [row[1] for row in suspected[:1]] + [row[1] for row in findings[:1]]
     if not parts:
         return None
     return ". ".join(parts) + "."
@@ -240,17 +226,64 @@ def _pmb_is_present(present_terms: list[str] | None) -> bool:
 
 def present_finding_terms(entities: list[dict[str, Any]] | None) -> list[str]:
     """Present coded terms that may lead Situation."""
+    denied = absent_finding_terms(entities)
     out: list[str] = []
     for entity in entities or []:
         if str(entity.get("assertion") or "").strip().lower() in _ABSENT:
             continue
-        if _is_form_chrome(entity):
-            continue
         term = _short_term(entity)
         if not term or _is_weak(term) or term in out:
             continue
+        if _is_form_chrome(entity) and _tick_denied(term, denied):
+            continue
         out.append(term)
     return out[:8]
+
+
+def _split_headline_facts(
+    entities: list[dict[str, Any]] | None,
+    clinic_type: str | None,
+) -> tuple[
+    list[tuple[tuple[int, int, int], str]],
+    list[tuple[tuple[int, int, int], str]],
+    list[tuple[tuple[int, int, int], str]],
+]:
+    clinic = str(clinic_type or "")
+    denied = absent_finding_terms(entities)
+    ticks: list[tuple[tuple[int, int, int], str]] = []
+    suspected: list[tuple[tuple[int, int, int], str]] = []
+    findings: list[tuple[tuple[int, int, int], str]] = []
+    for entity in entities or []:
+        if str(entity.get("assertion") or "").strip().lower() in _ABSENT:
+            continue
+        term = _short_term(entity)
+        if not term or _is_weak(term):
+            continue
+        rank = _lead_rank(term, entity, clinic)
+        if _is_form_chrome(entity):
+            if not _tick_denied(term, denied):
+                ticks.append((rank, term))
+            continue
+        if _is_suspected(term, entity):
+            suspected.append((rank, term))
+        elif _is_finding(term, entity):
+            findings.append((rank, term))
+    ticks.sort()
+    suspected.sort()
+    findings.sort()
+    return ticks, suspected, findings
+
+
+def _content_words(term: str) -> set[str]:
+    words = set(re.findall(r"[a-z]{4,}", str(term or "").lower()))
+    return {word for word in words if word not in _SITE_SKIP}
+
+
+def _tick_denied(term: str, denied_terms: list[str]) -> bool:
+    tick_words = _content_words(term)
+    if not tick_words:
+        return False
+    return any(tick_words & _content_words(item) for item in denied_terms)
 
 
 def _is_form_chrome(entity: dict[str, Any]) -> bool:

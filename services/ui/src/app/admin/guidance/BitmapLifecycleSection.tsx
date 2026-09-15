@@ -23,27 +23,26 @@ import Typography from "@mui/material/Typography";
 import CelebrationRoundedIcon from "@mui/icons-material/CelebrationRounded";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import {
-  FilterBar,
   ProgressiveReveal,
   ProgressStrip,
   ReviewListCard,
   StatHero,
   ToolbarActions,
   useMotion,
-  type FilterChip,
   type StatTile,
 } from "@leo/design-system";
 import { celebrationPulse, popVariants } from "./motionPresets";
 import {
+  COMPILE_MODE_OPTIONS,
   COMPILE_STEPS,
   POLICY_OPTIONS,
-  SCOPE_OPTIONS,
   buildVersionItem,
   compilePhaseLabel,
   computeActiveStep,
   formatCompileElapsed,
 } from "./bitmapLifecycleHelpers";
 import CandidateLabTestDialog from "./CandidateLabTestDialog";
+import RulePicker from "./RulePicker";
 import { useBitmapLifecycle } from "./useBitmapLifecycle";
 
 interface BitmapLifecycleSectionProps {
@@ -60,11 +59,13 @@ export default function BitmapLifecycleSection({
     life.candidateVersion,
     life.versions,
   );
-  const scopeChips: FilterChip[] = SCOPE_OPTIONS.map((o) => ({
+  const modeActions = COMPILE_MODE_OPTIONS.map((o) => ({
     id: o.value,
     label: o.label,
-    active: life.scopeType === o.value,
-    onToggle: () => life.setScopeType(o.value),
+    variant: (life.compileMode === o.value ? "primary" : "secondary") as
+      | "primary"
+      | "secondary",
+    onClick: () => life.setCompileMode(o.value),
   }));
   const compileStats = life.status?.compile_stats;
   const statTiles: StatTile[] = compileStats
@@ -109,19 +110,37 @@ export default function BitmapLifecycleSection({
         </Alert>
       )}
       <Box sx={{ mt: 2, mb: 1.5 }}>
-        <FilterBar
-          search={life.scopeType === "global" ? "" : life.scopeId}
-          onSearchChange={(v) => {
-            if (life.scopeType !== "global") life.setScopeId(v);
-          }}
-          searchPlaceholder={
-            life.scopeType === "subdomain"
-              ? "cancer_audit:symptoms"
-              : "NG12 or cancer_audit"
-          }
-          aria-label="Scope filter"
-          chips={scopeChips}
-        />
+        <ToolbarActions align="start" actions={modeActions} />
+        {life.compileMode === "guideline" && (
+          <TextField
+            size="small"
+            label="Guideline ID"
+            placeholder="e.g. NG12"
+            value={life.scopeId === "default" ? "" : life.scopeId}
+            onChange={(e) => life.setScopeId(e.target.value || "default")}
+            sx={{ mt: 1, width: 220 }}
+            helperText="The NICE guideline identifier to compile."
+          />
+        )}
+        {life.compileMode === "pick" && (
+          <>
+            <TextField
+              size="small"
+              label="Scope name"
+              placeholder="e.g. lower-gi"
+              value={life.pickScopeId}
+              onChange={(e) => life.setPickScopeId(e.target.value)}
+              sx={{ mt: 1, width: 220 }}
+              helperText="A short label for this pick-and-mix set. Used as the evaluation scope ID."
+            />
+            <RulePicker
+              rules={life.activeRules}
+              selected={life.selectedRuleIds}
+              onToggle={life.toggleRuleId}
+              onClear={life.clearRuleIds}
+            />
+          </>
+        )}
       </Box>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
         <Typography variant="body2" color="text.secondary">

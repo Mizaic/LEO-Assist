@@ -106,6 +106,44 @@ def test_prompt_injection_rule_intact():
         ), f"{name}: prompt-injection rule must still be present"
 
 
+def test_source_disagreement_rule_is_generic():
+    """DI-C6D01509: any two-source clash is named, never resolved.
+
+    The same rule must work for any specialty, guideline, or form.
+    Do not name a medicine, pathway, or proforma in the prompt.
+    """
+    banned = ("HRT", "1.5.14", "endometrial", "B4")
+    for name, txt in ALL_PROMPTS.items():
+        flat = _flatten(txt)
+        assert "SOURCE DISAGREEMENT" in flat, (
+            f"{name}: must name a generic SOURCE DISAGREEMENT rule"
+        )
+        assert "do not pick a winner" in flat.lower(), (
+            f"{name}: must forbid choosing one side"
+        )
+        assert "Please check" in flat, f"{name}: must leave the clash for a person"
+        for token in banned:
+            assert token not in txt, f"{name}: must not special-case {token}"
+
+
+def test_no_commentary_or_added_meaning_rule_present():
+    """DI-C6D01509: SBAR text must restate evidence, not add meaning.
+
+    The model must not explain why a fact matters (for example calling
+    a recorded BMI a risk factor) unless those words are already in
+    CONTEXT.
+    """
+    for name, txt in ALL_PROMPTS.items():
+        flat = _flatten(txt)
+        assert "NO COMMENTARY" in flat, f"{name}: must name a NO COMMENTARY rule"
+        assert (
+            "risk factor" in flat
+        ), f"{name}: must forbid invented risk-factor wording"
+        assert (
+            "clinical meaning" in flat
+        ), f"{name}: must forbid adding clinical meaning"
+
+
 def test_legacy_fallback_pins_sbar_prompts():
     """Legacy fallback pins section prompts to v2 and recall to v1."""
     assert _LEGACY_SBAR_PROMPT_VERSIONS == {
