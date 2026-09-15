@@ -30,10 +30,12 @@ describe("EPR timeline layout chrome", () => {
     expect(card).toMatch(/Referred \$\{fmtDate/);
   });
 
-  test("PatientShell hides left episode rail on Timeline tab", () => {
-    const src = readUi("components/patients/PatientShell.tsx");
-    expect(src).toMatch(/activeTab === "timeline"/);
-    expect(src).toMatch(/EpisodeSwimlane/);
+  test("PatientShell mounts EpisodeSwimlane on the Timeline tab", () => {
+    const shell = readUi("components/patients/PatientShell.tsx");
+    const body = readUi("components/patients/PatientRecordBody.tsx");
+    expect(body).toMatch(/activeTab === "timeline"/);
+    expect(body).toMatch(/EpisodeSwimlane/);
+    expect(shell).not.toMatch(/ContextRail/);
   });
 
   test("ActivityTimeline marks encounters, documents, referrals, and SBARs clickable", () => {
@@ -57,12 +59,13 @@ describe("EPR timeline layout chrome", () => {
   });
 
   test("PatientShell wires timeline document, referral, and SBAR click-through", () => {
-    const src = readUi("components/patients/PatientShell.tsx");
-    expect(src).toMatch(/handleDocumentClick/);
-    expect(src).toMatch(/handleReferralClick/);
-    expect(src).toMatch(/handleSbarClick/);
-    expect(src).toMatch(/assessment:/);
-    expect(src).toMatch(/initialDocumentId/);
-    expect(src).toMatch(/initialReferralId/);
+    const nav = readUi("components/patients/useRecordNavigation.ts");
+    const body = readUi("components/patients/PatientRecordBody.tsx");
+    expect(nav).toMatch(/handleDocumentClick/);
+    expect(nav).toMatch(/handleReferralClick/);
+    expect(nav).toMatch(/handleSbarClick/);
+    expect(nav).toMatch(/assessment:/);
+    expect(body).toMatch(/initialDocumentId/);
+    expect(body).toMatch(/initialReferralId/);
   });
 });

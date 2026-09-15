@@ -10,6 +10,7 @@
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
+import Box from "@mui/material/Box";
 import { PatientShell } from "@/components/patients/PatientShell";
 
 interface Props {
@@ -22,9 +23,11 @@ export default function PatientShellPage({ params }: Props) {
   const patientId = decodeURIComponent(rawId);
 
   return (
-    <PatientShell
-      patientId={patientId}
-      onBack={() => router.push("/care/patients")}
-    />
+    <Box sx={{ height: { xs: "calc(100dvh - 48px)", sm: "100dvh" } }}>
+      <PatientShell
+        patientId={patientId}
+        onBack={() => router.push("/care/patients")}
+      />
+    </Box>
   );
 }

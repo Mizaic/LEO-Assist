@@ -479,11 +479,13 @@ export default function LabCasesPanel({
         data-testid="validation-lab-patient-dialog"
       >
         {viewPatientId ? (
-          <PatientShell
-            patientId={viewPatientId}
-            backLabel="Back to Validation Lab"
-            onBack={() => setViewPatientId("")}
-          />
+          <div style={{ height: "100%", minHeight: 0 }}>
+            <PatientShell
+              patientId={viewPatientId}
+              backLabel="Back to Validation Lab"
+              onBack={() => setViewPatientId("")}
+            />
+          </div>
         ) : null}
       </Dialog>
     </Box>

@@ -339,7 +339,9 @@ class TestCalibratedScoring:
             }
         }
         candidates = resolver._fuse_and_rank(merged)
-        assert candidates == [], "No lexical signal means no result (vector branch removed)"
+        assert (
+            candidates == []
+        ), "No lexical signal means no result (vector branch removed)"
 
     def test_exact_match_alone_scores_1_0(self):
         """Exact match gives 1.0 regardless of any vector_raw field in the candidate dict."""
@@ -377,12 +379,43 @@ class TestCalibratedScoring:
                 "read_codes": [],
                 "lexical_raw": 1.0,
                 "vector_raw": 0.0,
-                "had_exact_match": True,
+                "had_exact_match": False,
                 "surface_form_status": "",
             }
         }
         candidates = resolver._fuse_and_rank(merged, expected_tag="finding")
-        assert candidates[0].score == 0.5
+        # BM25=1 -> 0.50, then cross-group *0.5 -> 0.25
+        assert candidates[0].score == 0.25
+
+    def test_exact_surface_form_survives_extract_tag_mismatch(self):
+        """Approved SurfaceForm exact hit must stay above the 0.55 gate.
+
+        Atlas: DI-940E8B7D, DO-8169F2E9, VT-C2A7F515, R-61705920.
+        Lab abbreviations (Hb, Na, BMI) are curated as observable entity.
+        Extract often tags the same span as finding. The tag-group penalty
+        used to halve 1.0 to 0.50, so a human-approved mapping was dropped.
+        """
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingResolver,
+        )
+
+        resolver = CodingResolver()
+        merged = {
+            "60621009": {
+                "concept_id": "60621009",
+                "fsn": "Body mass index (observable entity)",
+                "semantic_tag": "observable entity",
+                "read_codes": [],
+                "lexical_raw": 1.2,
+                "vector_raw": 0.0,
+                "had_exact_match": True,
+                "surface_form_status": "approved",
+            }
+        }
+        candidates = resolver._fuse_and_rank(merged, expected_tag="finding")
+        assert candidates
+        assert candidates[0].score >= 0.55
+        assert candidates[0].had_exact_match is True
 
     def test_tag_match_adds_small_boost_not_inflated(self):
         from services.terminology_api.app.services.coding_resolver import (

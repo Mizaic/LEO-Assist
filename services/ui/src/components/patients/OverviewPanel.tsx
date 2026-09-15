@@ -1,8 +1,8 @@
 /**
  * OverviewPanel -- clinical summary for the Overview tab.
  *
- * Layout: compact episode strip, then Latest SBAR as the primary pane.
- * Demographics live in PatientHeader; problems/alerts live in the right rail.
+ * Order: next job (alerts), Latest SBAR, episodes, problems and medicines.
+ * Demographics live in PatientHeader.
  *
  * Atlas trace:
  *   DO: DO-5D3EA371
@@ -13,60 +13,25 @@
 import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
-import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import HealingOutlinedIcon from "@mui/icons-material/HealingOutlined";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
+import MedicationOutlinedIcon from "@mui/icons-material/MedicationOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import { EmptyState, NudgeStrip, color, radius } from "@leo/design-system";
 import type {
   PatientDetail,
-  EpisodeSummaryEpr,
   AssessmentRow,
   CodedEntityRow,
 } from "@/lib/patientEprApi";
 import { fetchEprAssessments } from "@/lib/patientEprApi";
 import { LeoSbarHost } from "@/components/sbar-final";
+import { OverviewEpisodeCard } from "./OverviewEpisodeCard";
 import { ProblemListView } from "./ProblemListView";
-
-const CONDITION_ACCENT: Record<string, string> = {
-  lung: "#002178",
-  breast: "#9D174D",
-  prostate: "#6D28D9",
-  colorectal: "#B45309",
-  lower_gi: "#B45309",
-  upper_gi: "#7C3AED",
-  skin: "#047857",
-  haematology: "#0369A1",
-  gynaecology: "#BE185D",
-  head_and_neck: "#0d46d6",
-  urology: "#4338CA",
-};
-
-function accentFor(type: string | null): string {
-  const key = (type ?? "").toLowerCase().replace(/ /g, "_");
-  return CONDITION_ACCENT[key] ?? "#475569";
-}
-
-function outcomeColor(outcome: string | null): string {
-  const o = (outcome ?? "").toLowerCase();
-  if (o === "cancer") return "#B91C1C";
-  if (o === "benign") return "#047857";
-  return "#475569";
-}
-
-function outcomeLabel(outcome: string | null): string {
-  if (!outcome) return "";
-  const o = outcome.toLowerCase();
-  if (o === "cancer") return "Cancer confirmed";
-  if (o === "benign") return "Benign";
-  if (o.includes("watch")) return "Watchful waiting";
-  return outcome;
-}
 
 function SectionHeader({
   icon,
@@ -85,87 +50,25 @@ function SectionHeader({
   );
 }
 
-function EpisodeCard({ ep }: { ep: EpisodeSummaryEpr }) {
-  const accent = accentFor(ep.condition_type);
-  const stagingText = [ep.staging_value, ep.staging_early_late]
-    .filter(Boolean)
-    .join(" - ");
-  const isActive = (ep.status ?? "").toLowerCase() === "active";
-  const statusColor = isActive ? "#047857" : "#64748B";
-
+function Surface({
+  children,
+  testId,
+}: {
+  children: React.ReactNode;
+  testId?: string;
+}) {
   return (
     <Box
+      data-testid={testId}
       sx={{
-        position: "relative",
-        border: "1px solid #E2E8F0",
-        borderRadius: "10px",
-        p: "12px 14px 12px 18px",
-        bgcolor: "#FAFAFA",
-        height: "100%",
+        p: "18px",
+        borderRadius: `${radius.md}px`,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: color.surface.raised,
       }}
     >
-      <Box
-        aria-hidden="true"
-        sx={{
-          position: "absolute",
-          left: 0,
-          top: 10,
-          bottom: 10,
-          width: 3,
-          borderRadius: 2,
-          bgcolor: accent,
-        }}
-      />
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        flexWrap="wrap"
-        sx={{ mb: 0.5 }}
-      >
-        <Typography
-          variant="body2"
-          fontWeight={700}
-          sx={{ textTransform: "capitalize" }}
-        >
-          {ep.condition_type ?? "Episode"}
-        </Typography>
-        <Chip
-          label={ep.status ?? "unknown"}
-          size="small"
-          sx={{
-            height: 18,
-            fontSize: 10,
-            bgcolor: `${statusColor}18`,
-            color: statusColor,
-            textTransform: "capitalize",
-          }}
-        />
-        {ep.inferred_outcome && (
-          <Chip
-            label={outcomeLabel(ep.inferred_outcome)}
-            size="small"
-            sx={{
-              height: 18,
-              fontSize: 10,
-              bgcolor: `${outcomeColor(ep.inferred_outcome)}15`,
-              color: outcomeColor(ep.inferred_outcome),
-            }}
-          />
-        )}
-      </Stack>
-      <Stack direction="row" spacing={1.5} flexWrap="wrap">
-        {ep.referral_date && (
-          <Typography variant="caption" color="text.secondary">
-            Referred {ep.referral_date.slice(0, 10)}
-          </Typography>
-        )}
-        {stagingText && (
-          <Typography variant="caption" color="text.secondary">
-            Stage {stagingText}
-          </Typography>
-        )}
-      </Stack>
+      {children}
     </Box>
   );
 }
@@ -173,19 +76,28 @@ function EpisodeCard({ ep }: { ep: EpisodeSummaryEpr }) {
 function SbarSummaryPanel({ patientId }: { patientId: string }) {
   const [rows, setRows] = useState<AssessmentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     fetchEprAssessments(patientId)
       .then(setRows)
-      .catch(() => {})
+      .catch((err) =>
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load the latest SBAR.",
+        ),
+      )
       .finally(() => setLoading(false));
   }, [patientId]);
 
   if (loading) return <Skeleton variant="rounded" height={120} />;
-
+  if (error) return <Alert severity="error">{error}</Alert>;
   if (rows.length === 0) {
     return (
-      <Typography variant="caption" color="text.secondary" fontStyle="italic">
+      <Typography variant="body2" sx={{ color: color.text.caption }}>
         No SBAR summaries on record.
       </Typography>
     );
@@ -194,7 +106,7 @@ function SbarSummaryPanel({ patientId }: { patientId: string }) {
   const latest = rows[0];
   if (!latest.assessment_id) {
     return (
-      <Typography variant="caption" color="text.secondary" fontStyle="italic">
+      <Typography variant="body2" sx={{ color: color.text.caption }}>
         SBAR draft in progress.
       </Typography>
     );
@@ -205,8 +117,7 @@ function SbarSummaryPanel({ patientId }: { patientId: string }) {
       {latest.created_at && (
         <Typography
           variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", mb: 1 }}
+          sx={{ display: "block", mb: 1, color: color.text.caption }}
         >
           {latest.episode_label} -- {latest.created_at.slice(0, 10)}
         </Typography>
@@ -222,17 +133,139 @@ function SbarSummaryPanel({ patientId }: { patientId: string }) {
 interface Props {
   detail: PatientDetail | null;
   loading?: boolean;
-  /** Used below xl when the right clinical-context rail is hidden. */
   entities?: CodedEntityRow[];
   entitiesLoading?: boolean;
+  onOpenAlerts?: () => void;
 }
 
-function OverviewSkeleton() {
+function NextJobNudge({
+  count,
+  onOpenAlerts,
+}: {
+  count: number;
+  onOpenAlerts?: () => void;
+}) {
+  if (count <= 0) return null;
   return (
-    <Stack spacing={2}>
-      <Skeleton variant="rounded" height={88} />
-      <Skeleton variant="rounded" height={320} />
+    <Box data-testid="epr-next-job">
+      <NudgeStrip
+        severity="warning"
+        icon={<WarningAmberOutlinedIcon fontSize="small" />}
+        message={`${count} alert${count !== 1 ? "s" : ""} need a look.`}
+        actionLabel="Open alerts"
+        actionAriaLabel="Open the Alerts tab"
+        onAction={onOpenAlerts}
+      />
+    </Box>
+  );
+}
+
+function EpisodesSection({
+  episodes,
+}: {
+  episodes: PatientDetail["episodes"];
+}) {
+  return (
+    <Surface>
+      <SectionHeader
+        icon={
+          <HealingOutlinedIcon sx={{ color: color.status.success, fontSize: 18 }} />
+        }
+        title={`Episodes (${episodes.length})`}
+      />
+      {episodes.length === 0 ? (
+        <EmptyState
+          icon={<HealingOutlinedIcon />}
+          title="No episodes recorded"
+          body="New episodes will show here when this patient is referred."
+          data-testid="epr-episodes-empty"
+        />
+      ) : (
+        <Grid container spacing={1.5}>
+          {episodes.map((ep, i) => (
+            <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={ep.episode_id ?? String(i)}>
+              <OverviewEpisodeCard ep={ep} index={i} />
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Surface>
+  );
+}
+
+function MedicinesList({
+  medicines,
+  loading,
+}: {
+  medicines: CodedEntityRow[];
+  loading: boolean;
+}) {
+  if (loading) return <Skeleton variant="rounded" height={72} />;
+  if (medicines.length === 0) {
+    return (
+      <Typography variant="body2" sx={{ color: color.text.caption }}>
+        No medicines recorded.
+      </Typography>
+    );
+  }
+  return (
+    <Stack spacing={0.75} component="ul" sx={{ m: 0, pl: 2 }}>
+      {medicines.map((e, i) => (
+        <Typography
+          key={`${e.name}-${i}`}
+          component="li"
+          variant="body2"
+          sx={{ color: color.text.secondary }}
+        >
+          {e.name}
+        </Typography>
+      ))}
     </Stack>
+  );
+}
+
+function ContextSection({
+  patientId,
+  problems,
+  medicines,
+  entitiesLoading,
+}: {
+  patientId: string;
+  problems: CodedEntityRow[];
+  medicines: CodedEntityRow[];
+  entitiesLoading: boolean;
+}) {
+  return (
+    <Grid container spacing={2} data-testid="epr-overview-context">
+      <Grid size={{ xs: 12, md: 7 }}>
+        <Surface>
+          <SectionHeader
+            icon={
+              <LocalHospitalOutlinedIcon
+                sx={{ color: color.brand.secondaryHover, fontSize: 18 }}
+              />
+            }
+            title="Problem list"
+          />
+          <ProblemListView
+            patientId={patientId}
+            entities={problems}
+            loading={entitiesLoading}
+          />
+        </Surface>
+      </Grid>
+      <Grid size={{ xs: 12, md: 5 }}>
+        <Surface testId="epr-overview-medicines">
+          <SectionHeader
+            icon={
+              <MedicationOutlinedIcon sx={{ color: color.status.info, fontSize: 18 }} />
+            }
+            title="Medicines"
+          />
+          <MedicinesList medicines={medicines} loading={entitiesLoading} />
+        </Surface>
+      </Grid>
+    </Grid>
   );
 }
 
@@ -241,95 +274,39 @@ export function OverviewPanel({
   loading,
   entities = [],
   entitiesLoading = false,
+  onOpenAlerts,
 }: Props) {
-  if (loading || !detail) return <OverviewSkeleton />;
+  if (loading || !detail) {
+    return (
+      <Stack spacing={2}>
+        <Skeleton variant="rounded" height={88} />
+        <Skeleton variant="rounded" height={320} />
+      </Stack>
+    );
+  }
 
-  const alertCount = detail.active_alert_count;
   const problems = entities.filter((e) => e.entity_type !== "medication");
+  const medicines = entities.filter((e) => e.entity_type === "medication");
 
   return (
     <Stack spacing={2} data-testid="epr-overview-panel">
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: "10px" }}>
-        <SectionHeader
-          icon={<HealingOutlinedIcon sx={{ color: "#047857", fontSize: 18 }} />}
-          title={`Episodes (${detail.episodes.length})`}
-        />
-        {detail.episodes.length === 0 ? (
-          <Alert severity="info" sx={{ fontSize: 13 }}>
-            No episodes recorded.
-          </Alert>
-        ) : (
-          <Grid container spacing={1.5}>
-            {detail.episodes.map((ep, i) => (
-              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={ep.episode_id ?? String(i)}>
-                <EpisodeCard ep={ep} />
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </Paper>
-
-      <Paper
-        variant="outlined"
-        sx={{ p: 2, borderRadius: "10px" }}
-        data-testid="epr-latest-sbar"
-      >
+      <NextJobNudge count={detail.active_alert_count} onOpenAlerts={onOpenAlerts} />
+      <Surface testId="epr-latest-sbar">
         <SectionHeader
           icon={
-            <AssessmentOutlinedIcon sx={{ color: "#047857", fontSize: 18 }} />
+            <AssessmentOutlinedIcon sx={{ color: color.status.success, fontSize: 18 }} />
           }
           title="Latest SBAR"
         />
         <SbarSummaryPanel patientId={detail.patient_id} />
-      </Paper>
-
-      {/* Visible only when the xl clinical-context rail is hidden. */}
-      <Grid
-        container
-        spacing={2}
-        sx={{ display: { xs: "flex", xl: "none" } }}
-        data-testid="epr-overview-context-fallback"
-      >
-        <Grid size={{ xs: 12, md: 7 }}>
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: "10px" }}>
-            <SectionHeader
-              icon={
-                <LocalHospitalOutlinedIcon
-                  sx={{ color: "#6D28D9", fontSize: 18 }}
-                />
-              }
-              title="Problem list"
-            />
-            <ProblemListView
-              patientId={detail.patient_id}
-              entities={problems}
-              loading={entitiesLoading}
-            />
-          </Paper>
-        </Grid>
-        <Grid size={{ xs: 12, md: 5 }}>
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: "10px" }}>
-            <SectionHeader
-              icon={
-                <WarningAmberOutlinedIcon
-                  sx={{ color: "#B45309", fontSize: 18 }}
-                />
-              }
-              title={`Alerts (${alertCount})`}
-            />
-            {alertCount === 0 ? (
-              <Alert severity="success" sx={{ fontSize: 13 }}>
-                No active alerts.
-              </Alert>
-            ) : (
-              <Alert severity="warning" sx={{ fontSize: 13 }}>
-                {alertCount} active alert{alertCount !== 1 ? "s" : ""}. Open the
-                Alerts tab to review.
-              </Alert>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
+      </Surface>
+      <EpisodesSection episodes={detail.episodes} />
+      <ContextSection
+        patientId={detail.patient_id}
+        problems={problems}
+        medicines={medicines}
+        entitiesLoading={entitiesLoading}
+      />
     </Stack>
   );
 }
