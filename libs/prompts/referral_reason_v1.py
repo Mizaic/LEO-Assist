@@ -34,8 +34,11 @@ Hard requirements:
    there is no symptom or finding present.
 5. If multiple symptoms are present, name the most clinically significant first.
 6. If investigation results are present (e.g. FIT negative), include them after
-   the symptoms.
+the symptoms.
 7. British English spelling.
+8. If the text has both an older imaging request note and a later referral
+letter, use the referral letter. Do not use a scan-report
+"Clinical Information:" line as the reason for referral.
 
 Output contract:
 Return ONLY {"reason": "<single sentence>"}. Do not add prose, markdown, code

@@ -27,6 +27,7 @@ from libs.llm_client.json_helper import JSONInvocationOptions, invoke_llm_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.prompts.registry import get_prompt
 from libs.sbar.assessment_formatter import STRENGTH_RANK, _render_matched_via
+from libs.sbar.referral_support import support_rules_for_referral
 from libs.sbar.background_partitioner import (
     Partition,
     partition_background_sources,
@@ -154,7 +155,7 @@ def build_referral_justification_bullet(rules: list[dict[str, Any]]) -> str:
     """Build bullet 1 listing every fired rule that supports the referral."""
     if not rules:
         return ""
-    ordered = sorted(rules, key=_rule_sort_key)
+    ordered = sorted(support_rules_for_referral(rules), key=_rule_sort_key)
     names = _join_rule_names([_rule_display_name(rule) for rule in ordered])
     guideline_title = (ordered[0].get("guideline_title") or "").strip()
     conditions = _combine_matched_conditions(ordered)

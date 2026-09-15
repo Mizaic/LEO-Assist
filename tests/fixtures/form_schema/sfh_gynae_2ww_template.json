@@ -130,7 +130,7 @@
         },
         {
           "pattern": "B7.",
-          "entity_text": "Unexpected bleeding that cannot be attributed to current HRT",
+          "entity_text": "Unexpected or prolonged bleeding persisting more than 4 weeks after stopping HRT",
           "semantic_tag": "finding",
           "assertion": "present",
           "procedure_snomed": "",
@@ -140,7 +140,7 @@
         },
         {
           "pattern": "B8.",
-          "entity_text": "Unexpected bleeding that cannot be attributed to current HRT",
+          "entity_text": "Bleeding persisting after 6 months of continuous combined HRT",
           "semantic_tag": "finding",
           "assertion": "present",
           "procedure_snomed": "",

@@ -63,7 +63,11 @@ _PACKED_YES = (
 
 _PACKED_NO = _PACKED_YES.replace("[X] Yes [ ] No", "[ ] Yes [X] No")
 
-_PMB_TICK = "unexpected bleeding that cannot be attributed to current hrt"
+_B7_TICK = (
+    "unexpected or prolonged bleeding persisting more than 4 weeks "
+    "after stopping hrt"
+)
+_B8_TICK = "bleeding persisting after 6 months of continuous combined hrt"
 
 
 def _schema() -> FormSchema:
@@ -155,8 +159,8 @@ def test_ticked_b7_seeds_pmb_lookup_term() -> None:
                     FormSchemaItem(
                         pattern="B7.",
                         entity_text=(
-                            "Unexpected bleeding that cannot be attributed "
-                            "to current HRT"
+                            "Unexpected or prolonged bleeding persisting "
+                            "more than 4 weeks after stopping HRT"
                         ),
                         semantic_tag="finding",
                         assertion="present",
@@ -167,13 +171,13 @@ def test_ticked_b7_seeds_pmb_lookup_term() -> None:
     )
     seeded = seed_checkbox_entities(raw, schema)
     assert len(seeded) == 1
-    assert seeded[0]["lookup_term"].lower() == _PMB_TICK
+    assert seeded[0]["lookup_term"].lower() == _B7_TICK
 
 
-def test_packed_b7_b8_yes_seeds_one_present_pmb_meaning() -> None:
+def test_packed_b7_b8_yes_seeds_distinct_present_bleed_meanings() -> None:
     seeded = seed_checkbox_entities(_PACKED_YES, _sfh_schema())
     lookups = {str(row.get("lookup_term") or "").lower() for row in seeded}
-    assert lookups == {_PMB_TICK}
+    assert lookups == {_B7_TICK, _B8_TICK}
     assert all(row.get("assertion") == "present" for row in seeded)
     assert {str(row.get("text") or "") for row in seeded} <= {"B7.", "B8."}
 
