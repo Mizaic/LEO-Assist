@@ -32,7 +32,7 @@ from libs.pipeline.coding_candidate_gate import (
     apply_draft_from_shortlist,
     filter_coding_candidates,
 )
-from libs.terminology.client import TerminologyClient
+from libs.terminology.client import TerminologyClient, TerminologyUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +143,7 @@ class TerminologyState(TypedDict, total=False):
     org_id: str
     errors: list[str]
     warnings: list[str]
+    degraded: bool
 
 
 # Leading tokens that are never useful as the core SNOMED lookup term.
@@ -439,6 +440,24 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             "resolved_entities": resolved,
             "errors": errors,
             "warnings": warnings,
+        }
+    except TerminologyUnavailable as exc:
+        # Rule 2 of .cursor/rules/fail-closed-boundary.mdc. We could not ask,
+        # so these spans must not be handed on looking like spans we asked
+        # about and found no safe code for. The run degrades to a person.
+        logger.error("Terminology lookup failed: %s", exc)
+        unlooked = [dict(e, terminology_lookup_failed=True) for e in entities]
+        warnings.append(
+            "terminology_lookup_failed: we could not reach the terminology "
+            f"service, so no clinical term was looked up for {len(unlooked)} "
+            "phrase(s). Someone needs to check this referral."
+        )
+        return {
+            "entities": unlooked,
+            "resolved_entities": unlooked,
+            "errors": errors,
+            "warnings": warnings,
+            "degraded": True,
         }
     except Exception as exc:
         logger.exception("Terminology resolution failed")

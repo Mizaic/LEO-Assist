@@ -202,7 +202,8 @@ KEEP (extract when present in sentence_subset):
 - blood-panel observables: abbrev in text (Hb, Plts, Ferritin), value in fields
 - named tests arranged or booked: urgent MRI scan of the brain, colonoscopy arranged
 - patient declined referral (clinical decision)
-- site-named suspected cancer as situation (present): "suspected breast cancer",
+- site-named suspected cancer as situation (present), when the letter states the
+  suspicion: "suspected breast cancer",
   "breast suspected cancer pathway", "suspected cancer pathway for stomach cancer",
   "gastric malignancy", "suspected lower GI cancer",
   "suspected cancer pathway for assessment of oesophageal cancer",
@@ -224,7 +225,8 @@ Default for 2WW templates: symptoms, investigation findings, labs, and site-name
 suspected-cancer / family-history situations. Pure transport remains out of scope.
 
 When sentence_subset mixes a referral header with symptoms, extract the
-symptoms/findings/investigations and any site-named suspicion -- skip transport headers.
+symptoms/findings/investigations and any site-named suspicion the letter states
+-- skip transport headers.
 
 Use the shortest faithful clinical span:
 - Prefer "visual disturbance" over a long eye-symptom sentence when that phrase appears.
@@ -241,11 +243,20 @@ Use the shortest faithful clinical span:
 Do NOT emit duplicate entities for the same fact (one procedure + one situation
 for the same referral sentence).
 
-If a completed 2WW / fast-track workup is documented as benign or no malignancy
-found after investigation, extract the exact supporting phrase as a finding
-(lookup_term: No evidence of cancer found). Do not use that for routine negative
-screening (normal smear, negative FIT kit) unless an active cancer pathway workup
-is clearly complete.
+A documented benign or negative cancer-investigation result is evidence that the
+concern was answered. Extract the result phrase as a finding (lookup_term: No
+evidence of cancer found). This holds whether or not the letter names a 2WW or
+fast-track pathway -- a benign biopsy, histology, or cytology result counts on
+its own. Use the result phrase, for example "reported as benign" or "biopsy was
+benign". Do not emit the bare word "benign" as the finding; alone it is a
+qualifier and will not resolve. Do not use this for routine negative screening
+(normal smear, negative FIT kit) unless a cancer work-up is clearly complete.
+
+Emit a suspected-cancer situation only when the letter states the suspicion.
+A symptom or sign keeps its own lookup term. Never give a symptom span a
+suspected-cancer lookup term because the referral names a cancer service or a
+body site. "Rash on her left breast" is a rash finding, not suspected breast
+cancer.
 
 ==================================================
 SEMANTIC TAG RULES

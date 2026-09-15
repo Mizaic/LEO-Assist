@@ -1,12 +1,13 @@
 """DOCUMENTS relationship and semantic link queries.
 
 Atlas trace:
-  DO: DO-728930A1
+  DO: DO-728930A1; DO-7B21CA73
   DI: DI-F71A6A69 (clinical facts storage); DI-79D15317 (deadlock retry);
-      DI-58596C1A (letter codes on the patient)
-  VT: VT-53AEAC08; VT-40032A1B
-  Risk: R-FD6D9DCF
-  Look up via: get_design_control(dc_type="design-input", dc_id="DI-58596C1A")
+      DI-58596C1A (letter codes on the patient); DI-C52645B7
+      (do not overwrite a different assertion)
+  VT: VT-53AEAC08; VT-40032A1B; VT-24330A67
+  Risk: R-FD6D9DCF; R-56E2D742
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-C52645B7")
 
 Centralised from services/api/app/models/neo4j_schema.py.
 
@@ -102,13 +103,19 @@ def _session_run_with_deadlock_retry(session: Any, query: str, **params: Any) ->
 
 
 def _dedupe_pending_writes(pending: list[_PendingDocWrite]) -> list[_PendingDocWrite]:
-    """Keep one write per (source, concept). Higher confidence wins."""
-    best: dict[tuple[str, str], _PendingDocWrite] = {}
+    """Keep one write per (source, concept, assertion). Higher confidence wins.
+
+    Assertion is part of the identity. A historical finding and a present
+    finding of the same code are two facts. Confidence must not flip one
+    into the other.
+    """
+    best: dict[tuple[str, str, str], _PendingDocWrite] = {}
     for item in pending:
         cid = str(item.params.get("concept_id") or "").strip()
         src = str(item.params.get("source_id") or "")
+        assertion = str(item.params.get("assertion") or "present")
         item.params["concept_id"] = cid
-        key = (src, cid)
+        key = (src, cid, assertion)
         prev = best.get(key)
         if prev is None:
             best[key] = item
@@ -295,7 +302,7 @@ SET s.semanticTag  = $semantic_tag,
     s.source       = $source,
     s.updated_at   = datetime(),
     s.created_at   = coalesce(s.created_at, datetime())
-MERGE (src)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
+MERGE (src)-[r:DOCUMENTS {{conceptId: $concept_id, assertion: $assertion}}]->(s)
 {_documents_set_clause()}
 FOREACH (_ IN CASE WHEN p IS NOT NULL AND $assertion IN ['present', 'historical'] THEN [1] ELSE [] END |
   MERGE (p)-[:{rel_type}]->(s)
@@ -322,7 +329,7 @@ SET s.semanticTag  = $semantic_tag,
     s.source       = $source,
     s.updated_at   = datetime(),
     s.created_at   = coalesce(s.created_at, datetime())
-MERGE (e)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
+MERGE (e)-[r:DOCUMENTS {{conceptId: $concept_id, assertion: $assertion}}]->(s)
 {_documents_set_clause()}
 FOREACH (_ IN CASE WHEN p IS NOT NULL AND $assertion IN ['present', 'historical'] THEN [1] ELSE [] END |
   MERGE (p)-[:{rel_type}]->(s)

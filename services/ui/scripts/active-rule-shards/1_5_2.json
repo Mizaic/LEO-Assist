@@ -109,7 +109,17 @@
               "semantic_tag": "finding",
               "term": "Pain in pelvis (finding)",
               "seeds": [],
-              "excluded_concept_ids": [],
+              "excluded_concept_ids": [
+                "162145001",
+                "275321000",
+                "37488003",
+                "238968009",
+                "33563008",
+                "23189007",
+                "1348331009",
+                "1348334001",
+                "313344000"
+              ],
               "primary_concept_id": ""
             }
           },

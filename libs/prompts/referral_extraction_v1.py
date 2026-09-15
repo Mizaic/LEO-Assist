@@ -44,7 +44,8 @@ HARD REQUIREMENTS
   "present", as specified below.
 
 Extract:
-- site-named suspected cancer as situation (present), for example
+- site-named suspected cancer as situation (present), when the letter states
+  the suspicion, for example
   "suspected breast cancer", "breast suspected cancer pathway",
   "suspected cancer pathway for stomach cancer", "gastric malignancy",
   "suspected cancer pathway for assessment of oesophageal cancer",
@@ -111,10 +112,21 @@ Do not extract (transport / admin only):
 - email/form headers with no site or clinical content
 
 2WW / fast track rules:
-- KEEP site-named suspected cancer as situation (present); DROP pure transport.
+- KEEP site-named suspected cancer as situation (present), and emit a
+  suspected-cancer situation only when the letter states the suspicion;
+  DROP pure transport. A symptom or sign keeps its own lookup term. Never
+  give a symptom span a suspected-cancer lookup term because the referral
+  names a cancer service or a body site. "Rash on her left breast" is a
+  rash finding, not suspected breast cancer.
 - If sentence_subset documents attendance in a fast-track clinic, extract as a finding.
-- If text explicitly says no malignancy found after completed fast-track workup,
-  extract that finding.
+- A documented benign or negative cancer-investigation result is evidence that
+  the concern was answered. Extract the result phrase as a finding
+  (lookup_term: No evidence of cancer found). This holds whether or not the
+  letter names a 2WW or fast-track pathway -- a benign biopsy, histology, or
+  cytology result counts on its own. Do not emit the bare word "benign" as the
+  finding; alone it is a qualifier and will not resolve. Do not use this for
+  routine negative screening (normal smear, negative FIT kit) unless a cancer
+  work-up is clearly complete.
 - Do not require literal words "referral", "2WW", or "pathway" before extracting
   red-flag symptoms, signs, or abnormal findings.
 - lookup_term shapes for situations:
