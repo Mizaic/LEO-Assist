@@ -116,7 +116,7 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
       setError("Could not load the current status. Please refresh the page.");
       return null;
     }
-  }, [scopeId, scopeType]);
+  }, [_resolvedScope]);
 
   useEffect(() => {
     fetchStatus();
@@ -277,7 +277,7 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
     } finally {
       setShadowing(false);
     }
-  }, [candidateVersion, scopeId, scopeType]);
+  }, [candidateVersion, compileMode, scopeId, _resolvedScope]);
 
   const handleActivate = useCallback(
     async (version: string) => {
@@ -305,7 +305,7 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
         setActivatingVersion(null);
       }
     },
-    [onVersionActivated, scopeId, scopeType],
+    [onVersionActivated, _resolvedScope],
   );
 
   const handleRollback = useCallback(async () => {
@@ -325,7 +325,7 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
     } finally {
       setRollingBack(false);
     }
-  }, [scopeId, scopeType]);
+  }, [_resolvedScope]);
 
   return {
     compileMode,
