@@ -1,7 +1,7 @@
 """HRT-bleed form ticks map to the PMB code, not to HRT or a bleed part.
 
-B7 and B8 on the Sherwood gynae 2WW form mean unexplained bleeding
-that cannot be put down to current HRT. That is 76742009.
+B7 and B8 on the Sherwood gynae 2WW form keep their own form wording.
+Both still mean postmenopausal bleeding 76742009.
 Short HRT words stay unmapped so salvage cannot return.
 
 Atlas: DI-00DFB149, DI-8BAC9BB3, VT-E053BB7C.
@@ -18,9 +18,16 @@ _FORM = Path(__file__).resolve().parents[1] / (
     "tests/fixtures/form_schema/sfh_gynae_2ww_template.json"
 )
 
+B7_ENTITY = (
+    "Unexpected or prolonged bleeding persisting more than 4 weeks "
+    "after stopping HRT"
+)
+B8_ENTITY = "Bleeding persisting after 6 months of continuous combined HRT"
+
 # Taught entity_text and the printed letter spans seen on dry-run.
 PMB_TICK_FORMS: tuple[str, ...] = (
-    "unexpected bleeding that cannot be attributed to current hrt",
+    B7_ENTITY.lower(),
+    B8_ENTITY.lower(),
     "postmenopausal bleeding in woman aged over 55 not on hrt",
     (
         "b7. hrt: unexpected or prolonged bleeding persisting "
@@ -53,16 +60,18 @@ def test_hrt_word_alone_is_not_a_pmb_surface_form() -> None:
     assert "stopping hrt" not in PMB_TICK_FORMS
 
 
-def test_sfh_b7_b8_entity_text_is_the_taught_pmb_phrase() -> None:
+def test_sfh_b7_b8_entity_text_keeps_distinct_form_wording() -> None:
     schema = json.loads(_FORM.read_text())
     items = {
-        str(item.get("pattern") or ""): str(item.get("entity_text") or "").lower()
+        str(item.get("pattern") or ""): str(item.get("entity_text") or "")
         for section in schema.get("sections") or []
         for item in section.get("items") or []
     }
-    shared = "unexpected bleeding that cannot be attributed to current hrt"
-    assert items.get("B7.", "") == shared
-    assert items.get("B8.", "") == shared
+    assert items.get("B7.") == B7_ENTITY
+    assert items.get("B8.") == B8_ENTITY
+    assert items["B7."] != items["B8."]
+    assert "cannot be attributed" not in items["B7."].lower()
+    assert "cannot be attributed" not in items["B8."].lower()
 
 
 def test_pmb_tick_phrases_target_76742009() -> None:

@@ -36,6 +36,7 @@ _REASON_PATTERNS = [
     "reason for request",
     "referral information",
     "referral criteria and clinical information",
+    "further clinical details",
     "clinical information",
     "reasons for request",
     "i am referring this patient because",
@@ -85,36 +86,46 @@ def _extract_reason(state: ReferralReasonState) -> dict[str, Any]:
         }
 
 
-async def _async_extract_reason(
-    referral_id: str,
-    chunk_ids: list[str],
-    patient_id: str,
-    run_id: str,
-    dry_run: bool = False,
-) -> dict[str, Any]:
-    from libs.cypher.chunk_queries import GET_REASON_CHUNKS_BY_IDS, SET_REFERRAL_REASON
-    from libs.llm_client.json_helper import JSONInvocationOptions, invoke_llm_json
-    from libs.llm_client.prompt_safety import INJECTION_GUARD, sanitise_for_prompt
+def _load_reason_chunks(chunk_ids: list[str]) -> list[dict[str, Any]]:
+    from libs.cypher.chunk_queries import GET_REASON_CHUNKS_BY_IDS
     from libs.neo4j_client.client import PatientGraphClient
-    from libs.prompts.referral_reason_v1 import REFERRAL_REASON_SYSTEM_V1
 
     client = PatientGraphClient()
     try:
-        rows = client.run(
-            GET_REASON_CHUNKS_BY_IDS,
-            chunk_ids=chunk_ids,
-            patterns=_REASON_PATTERNS,
+        return list(
+            client.run(
+                GET_REASON_CHUNKS_BY_IDS,
+                chunk_ids=chunk_ids,
+                patterns=_REASON_PATTERNS,
+            )
+            or []
         )
     finally:
         client.close()
+
+
+def _ranked_reason_text(rows: list[dict[str, Any]], referral_id: str) -> str | None:
+    from libs.pipeline_graph.referral_reason_chunks import select_reason_chunks
 
     if not rows:
         logger.info(
             "referral_reason: no header-matched chunks for referral %s", referral_id
         )
-        return {"referral_reason_skipped": True}
+        return None
+    ranked = select_reason_chunks(rows, limit=5)
+    if not ranked:
+        logger.info(
+            "referral_reason: only scan-report chunks for referral %s", referral_id
+        )
+        return None
+    return " ".join(str(row.get("text") or "") for row in ranked)
 
-    candidate_text = " ".join(str(r.get("text") or "") for r in rows)
+
+async def _llm_reason(candidate_text: str, patient_id: str) -> str:
+    from libs.llm_client.json_helper import JSONInvocationOptions, invoke_llm_json
+    from libs.llm_client.prompt_safety import INJECTION_GUARD, sanitise_for_prompt
+    from libs.prompts.referral_reason_v1 import REFERRAL_REASON_SYSTEM_V1
+
     result = await invoke_llm_json(
         INJECTION_GUARD + REFERRAL_REASON_SYSTEM_V1,
         sanitise_for_prompt(candidate_text, max_chars=2000),
@@ -132,9 +143,35 @@ async def _async_extract_reason(
         agent_task="referral_reason_extraction",
         patient_id=patient_id,
     )
+    if "error" in result:
+        return ""
+    return str(result.get("reason") or "").strip()
 
-    reason = str(result.get("reason") or "").strip()
-    if not reason or "error" in result:
+
+def _persist_reason(referral_id: str, reason: str) -> None:
+    from libs.cypher.chunk_queries import SET_REFERRAL_REASON
+    from libs.neo4j_client.client import PatientGraphClient
+
+    write_client = PatientGraphClient()
+    try:
+        write_client.run(SET_REFERRAL_REASON, referral_id=referral_id, reason=reason)
+    finally:
+        write_client.close()
+
+
+async def _async_extract_reason(
+    referral_id: str,
+    chunk_ids: list[str],
+    patient_id: str,
+    run_id: str,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    candidate_text = _ranked_reason_text(_load_reason_chunks(chunk_ids), referral_id)
+    if not candidate_text:
+        return {"referral_reason_skipped": True}
+
+    reason = await _llm_reason(candidate_text, patient_id)
+    if not reason:
         logger.warning(
             "referral_reason: LLM extraction failed or empty for referral %s",
             referral_id,
@@ -145,12 +182,7 @@ async def _async_extract_reason(
         logger.info("dry_run=True - skipping referral reason write")
         return {"referral_reason": reason}
 
-    write_client = PatientGraphClient()
-    try:
-        write_client.run(SET_REFERRAL_REASON, referral_id=referral_id, reason=reason)
-    finally:
-        write_client.close()
-
+    _persist_reason(referral_id, reason)
     logger.info("referral_reason: wrote reason to ReferralRequest %s", referral_id)
     return {"referral_reason": reason}
 

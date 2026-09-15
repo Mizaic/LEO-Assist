@@ -24,22 +24,13 @@ describe("EPR overview layout chrome", () => {
     expect(src).not.toMatch(/NHS number/);
   });
 
-  test("PatientShell uses clinical-context rail instead of empty guidance placeholder", () => {
-    const shell = readUi("components/patients/PatientShell.tsx");
-    const rails = readUi("components/patients/PatientContextRails.tsx");
-    expect(shell).toMatch(/ClinicalContextRail/);
-    expect(shell).toMatch(/ContextRail/);
-    expect(rails).toMatch(/epr-clinical-context-rail/);
-    expect(rails).toMatch(/Problem list/);
-    expect(rails).toMatch(/Alerts/);
-    expect(rails).not.toMatch(/Guidelines will appear here/);
-    expect(rails).not.toMatch(/Known conditions/);
-    expect(rails).not.toMatch(/GP Practice/);
-  });
-
-  test("Overview shows problem/alerts fallback below xl breakpoint", () => {
+  test("Overview always shows problem list and medicines in the reading column", () => {
     const src = readUi("components/patients/OverviewPanel.tsx");
-    expect(src).toMatch(/epr-overview-context-fallback/);
-    expect(src).toMatch(/display:\s*\{\s*xs:\s*"flex",\s*xl:\s*"none"\s*\}/);
+    expect(src).toMatch(/epr-overview-context/);
+    expect(src).toMatch(/epr-overview-medicines/);
+    expect(src).toMatch(/Problem list/);
+    expect(src).not.toMatch(/Guidelines will appear here/);
+    expect(src).not.toMatch(/Known conditions/);
+    expect(src).not.toMatch(/GP Practice/);
   });
 });

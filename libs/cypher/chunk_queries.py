@@ -135,7 +135,7 @@ MATCH (c:Chunk {id: cid})
 WHERE any(pat IN $patterns WHERE toLower(c.text) CONTAINS pat)
 RETURN c.id AS chunk_id, c.text AS text, c.ordinal AS ordinal
 ORDER BY ordinal ASC
-LIMIT 3
+LIMIT 50
 """
 
 

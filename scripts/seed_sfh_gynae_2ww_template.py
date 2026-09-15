@@ -150,11 +150,14 @@ def build_section_b() -> dict:
             ),
             _item(
                 "B7.",
-                "Unexpected bleeding that cannot be attributed to current HRT",
+                (
+                    "Unexpected or prolonged bleeding persisting more than "
+                    "4 weeks after stopping HRT"
+                ),
             ),
             _item(
                 "B8.",
-                "Unexpected bleeding that cannot be attributed to current HRT",
+                "Bleeding persisting after 6 months of continuous combined HRT",
             ),
             _item(
                 "B9.",

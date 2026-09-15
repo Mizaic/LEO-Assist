@@ -1,8 +1,9 @@
 """Lexical SNOMED/Read code resolution.
 
 Atlas trace:
-  DO: DO-E0193D2A
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E0193D2A")
+  DO: DO-E0193D2A, DO-8169F2E9
+  DI: DI-940E8B7D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8169F2E9")
 
 Ported from PCA services/api/app/services/v3/coding_resolver.py.
 Runs two retrieval branches (exact surface-form, fulltext) and fuses scores.
@@ -327,13 +328,16 @@ def _apply_tag_adjustment(
     candidate_tag: str,
     expected_tag: str,
     expected_group: str,
+    had_exact_match: bool = False,
 ) -> float:
     """Adjust calibrated confidence by tag match/mismatch.
 
     Exact tag match earns a small additive boost (+0.10, capped at 1.0)
     so tag-matching candidates win ties without inflating absolute
-    confidence. Compatible group is neutral. Cross-group earns a
-    multiplicative penalty (*0.5).
+    confidence. Compatible group is neutral. Cross-group fulltext earns
+    a multiplicative penalty (*0.5). An approved Term or SurfaceForm
+    exact hit is not halved: the mapping is curated, and a 0.50 score
+    falls under the 0.55 attach gate (DI-00DFB149 / DI-341D64E9).
     """
     if not expected_tag:
         return confidence
@@ -343,6 +347,8 @@ def _apply_tag_adjustment(
     if candidate_group and candidate_group == expected_group:
         return confidence
     if candidate_group and candidate_group != expected_group:
+        if had_exact_match:
+            return confidence
         return confidence * _TAG_PENALTY
     return confidence
 
@@ -750,7 +756,9 @@ class CodingResolver:
           2. Tag adjustment:
              - exact tag match     -> +0.10 (additive boost, capped at 1.0)
              - compatible group    -> no change
-             - cross-group         -> *0.5 (penalty)
+             - cross-group fulltext -> *0.5 (penalty)
+             - cross-group exact   -> no penalty (curated mapping stays
+               above the 0.55 attach gate)
              - non-clinical no-tag -> capped at 0.4
           3. Hard cull: scores below ``_MIN_SCORE`` (0.15) are dropped.
 
@@ -783,6 +791,7 @@ class CodingResolver:
                 candidate_tag=candidate_tag,
                 expected_tag=normalised_expected_tag,
                 expected_group=expected_group,
+                had_exact_match=bool(c.get("had_exact_match")),
             )
 
             if candidate_tag in _NON_CLINICAL_TAGS and not normalised_expected_tag:

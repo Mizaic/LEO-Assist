@@ -46,6 +46,8 @@ import httpx
 import logging
 import os
 
+from libs.sbar.referral_support import support_rules_for_referral
+
 logger = logging.getLogger(__name__)
 
 
@@ -271,8 +273,10 @@ def _format_spoa_assessment(
 ) -> AssessmentNarrative:
     primary = dict(compliance_context.get("primary") or {})
     alternatives = dict(compliance_context.get("alternatives") or {})
-    primary_rules = list(primary.get("matched_rules") or matched_rules or [])
-    alternative_rules = list(alternatives.get("matched_rules") or [])
+    primary_rules, alternative_rules = _spoa_rule_buckets(
+        list(primary.get("matched_rules") or matched_rules or []),
+        list(alternatives.get("matched_rules") or []),
+    )
     service_name = str(primary.get("service_name") or "").strip()
     service_specialty = str(primary.get("service_specialty") or "").strip()
     primary_ids = list(primary.get("guideline_ids") or guideline_ids or [])
@@ -366,6 +370,21 @@ def _render_rule_section(title: str, rules: list[dict[str, Any]]) -> list[str]:
     for rule in rules:
         lines.append(_render_rule_bullet(rule))
     return lines
+
+
+def _spoa_rule_buckets(
+    primary_rules: list[dict[str, Any]],
+    alternative_rules: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Keep 2WW support in primary; move primary-care tests to other."""
+    support = support_rules_for_referral(primary_rules)
+    support_ids = {str(rule.get("rule_id") or "") for rule in support}
+    demoted = [
+        rule
+        for rule in primary_rules
+        if str(rule.get("rule_id") or "") not in support_ids
+    ]
+    return support, _dedupe_rules_by_id(demoted + alternative_rules)
 
 
 def _dedupe_rules_by_id(rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -482,7 +501,10 @@ _UNVERIFIED_WORD: dict[str, tuple[str, str]] = {
     "unexplained": ("this symptom to be unexplained", "unexplained"),
     "unintentional": ("this change to be unintentional", "unintentional"),
     "persistent": ("this symptom to be persistent", "persistent"),
-    "repeat_or_chronic": ("this to be a repeat or long-term problem", "repeat or long-term"),
+    "repeat_or_chronic": (
+        "this to be a repeat or long-term problem",
+        "repeat or long-term",
+    ),
 }
 
 
