@@ -6,7 +6,7 @@ SNOMED puts Vulval pain under Pain in pelvis. That is too wide.
 Owner: AppropriatenessRule.logicJson excluded_concept_ids.
 Evaluate must not import this. Live match shape lives on the rule.
 
-Atlas: UN-5F3BF083, DI-185DE0CE, DO-5899D7BE, VT-2082C55B.
+Atlas trace: UN-5F3BF083, DI-185DE0CE, DO-5899D7BE, VT-2082C55B.
 """
 
 from __future__ import annotations
