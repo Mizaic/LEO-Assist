@@ -133,6 +133,41 @@ def test_multi_partition_stitches_deterministically_with_part_headings() -> None
     assert "summarised them in" in (result["notice"] or "")
 
 
+def test_list_payload_is_read_as_background_markdown() -> None:
+    """Live Azure reply can be a JSON list. That must still become Background."""
+    sources = _sources(2, text_len=200)
+
+    async def _invoker(system, user, **_kw):
+        return [{"background_markdown": "- Postmenopausal bleeding. [2026-06-23]"}]
+
+    result = asyncio.run(
+        prompt_calls.call_background(
+            sources, [], invoker=_invoker, prompt_fetcher=_prompt_fetcher
+        )
+    )
+
+    assert result.get("error") is None
+    assert "Postmenopausal bleeding" in (result["markdown"] or "")
+
+
+def test_non_object_payload_does_not_crash_call_background() -> None:
+    """A bare string reply must not raise; the section fails closed."""
+    sources = _sources(2, text_len=200)
+
+    async def _invoker(system, user, **_kw):
+        return "not a json object"
+
+    result = asyncio.run(
+        prompt_calls.call_background(
+            sources, [], invoker=_invoker, prompt_fetcher=_prompt_fetcher
+        )
+    )
+
+    assert result["markdown"] == ""
+    assert result["error_code"] in {"invalid_json", "missing_section"}
+    assert "Background" in (result["error"] or "")
+
+
 def test_per_part_failure_is_contained_and_surfaced_as_part_failed() -> None:
     """TC-003: one MAP fails -> stitch with placeholder + part_failed."""
     sources = _sources(12, text_len=4000)

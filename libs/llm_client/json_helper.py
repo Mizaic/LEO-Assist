@@ -40,18 +40,36 @@ class JSONInvocationOptions:
     verbosity: str = "low"
 
 
+def _as_json_object(value: Any) -> dict[str, Any]:
+    """Accept a dict, or a list that wraps one or more objects."""
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, list):
+        objects = [item for item in value if isinstance(item, dict)]
+        if objects:
+            for item in objects:
+                if str(item.get("background_markdown") or "").strip():
+                    return item
+            return objects[0]
+    raise json.JSONDecodeError("No JSON object found in response", str(value)[:80], 0)
+
+
 def _extract_json(text: str) -> dict[str, Any]:
     """Extract JSON from an LLM response that may contain markdown fencing."""
     text = text.strip()
-    if text.startswith("{"):
-        return json.loads(text)
+    if text.startswith("{") or text.startswith("["):
+        return _as_json_object(json.loads(text))
     m = _JSON_BLOCK_RE.search(text)
     if m:
-        return json.loads(m.group(1).strip())
-    start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end > start:
-        return json.loads(text[start : end + 1])
+        return _as_json_object(json.loads(m.group(1).strip()))
+    start_obj = text.find("{")
+    start_arr = text.find("[")
+    starts = [n for n in (start_obj, start_arr) if n != -1]
+    if starts:
+        start = min(starts)
+        end = text.rfind("}" if text[start] == "{" else "]")
+        if end > start:
+            return _as_json_object(json.loads(text[start : end + 1]))
     raise json.JSONDecodeError("No JSON object found in response", text, 0)
 
 

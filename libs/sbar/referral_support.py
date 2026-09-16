@@ -3,8 +3,9 @@
 A two-week-wait (or more urgent) rule is why a 2WW referral is
 supported. Primary-care test rules stay visible as other matches.
 
-Atlas:
+Atlas trace:
   DO: DO-B226E498
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B226E498")
 """
 
 from __future__ import annotations
