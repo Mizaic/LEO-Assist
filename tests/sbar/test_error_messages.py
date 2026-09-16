@@ -28,6 +28,14 @@ _BEDROCK_INPUT_TOO_LONG = (
         (_BEDROCK_INPUT_TOO_LONG, "input_too_long"),
         ("Context length 200000 tokens exceeded.", "input_too_long"),
         (
+            "Error code: 400 - {'error': {'message': 'Your input exceeds "
+            "the context window of this model. Please adjust your input "
+            "and try again.', 'type': 'invalid_request_error', "
+            "'param': 'input', 'code': 'context_length_exceeded'}}",
+            "input_too_long",
+        ),
+        ("context_length_exceeded", "input_too_long"),
+        (
             "An error occurred (ThrottlingException): Too many requests",
             "throttled",
         ),

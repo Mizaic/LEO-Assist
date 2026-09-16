@@ -21,9 +21,10 @@ import json
 import re
 
 from libs.sbar.background_partitioner import (
+    _estimate_tokens,
     partition_background_sources,
 )
-from libs.sbar.source_resolver import ResolvedSource
+from libs.sbar.source_resolver import ResolvedCode, ResolvedSource
 
 
 def _make_source(idx: int, *, text_len: int) -> ResolvedSource:
@@ -165,18 +166,42 @@ def test_partitioner_not_blocked_when_all_codes_exceed_budget() -> None:
 
     # 3 empty sources (e.g. un-chunked DocumentReferences)
     empty = [
-        ResolvedSource(source_label="DocumentReference", source_id=f"dr-{i}", text=None, codes=[], metadata={})
+        ResolvedSource(
+            source_label="DocumentReference",
+            source_id=f"dr-{i}",
+            text=None,
+            codes=[],
+            metadata={},
+        )
         for i in range(3)
     ]
     # 14 small-medium sources
     mid = [
-        ResolvedSource(source_label="Chunk", source_id=f"chunk-{i}", text="x" * (200 + i * 100), codes=[], metadata={})
+        ResolvedSource(
+            source_label="Chunk",
+            source_id=f"chunk-{i}",
+            text="x" * (200 + i * 100),
+            codes=[],
+            metadata={},
+        )
         for i in range(14)
     ]
     # 2 large sources near the per-source cap
     large = [
-        ResolvedSource(source_label="Chunk", source_id="chunk-large-a", text="x" * 38778, codes=[], metadata={}),
-        ResolvedSource(source_label="Chunk", source_id="chunk-large-b", text="x" * 7660, codes=[], metadata={}),
+        ResolvedSource(
+            source_label="Chunk",
+            source_id="chunk-large-a",
+            text="x" * 38778,
+            codes=[],
+            metadata={},
+        ),
+        ResolvedSource(
+            source_label="Chunk",
+            source_id="chunk-large-b",
+            text="x" * 7660,
+            codes=[],
+            metadata={},
+        ),
     ]
     sources = empty + mid + large
 
@@ -214,6 +239,55 @@ def test_partitioner_not_blocked_when_all_codes_exceed_budget() -> None:
     seen = {d.source_id for p in parts for d in p.descriptors}
     all_ids = {s.source_id for s in sources}
     assert seen == all_ids, f"Missing from partitions: {all_ids - seen}"
+
+
+def test_partitioner_splits_when_code_evidence_exceeds_part_budget() -> None:
+    """Fat code evidence must split parts, not one oversized prompt.
+
+    Live gynae 2WW packs (17 sources, 300+ codes, ~1000-char
+    evidence_sentence) serialise to ~260k tokens. The packer used to
+    ignore codes, send one part, and Azure rejected it as
+    context_length_exceeded.
+    """
+    sources = [
+        ResolvedSource(
+            source_label="Chunk",
+            source_id=f"chunk-{i}",
+            text="finding",
+            codes=[],
+            metadata={},
+        )
+        for i in range(17)
+    ]
+    long_evidence = "x" * 1000
+    codes = [
+        ResolvedCode(
+            concept_id=f"1234{i:04d}000",
+            term=f"Clinical finding {i}",
+            semantic_tag="finding",
+            assertion="present",
+            evidence=long_evidence,
+            evidence_sentence=long_evidence,
+            source_id=f"chunk-{i % 17}",
+            source_label="Chunk",
+        )
+        for i in range(358)
+    ]
+    budget = 60000
+    parts, report = partition_background_sources(
+        sources,
+        codes,
+        referring_specialty="gynaecology",
+        max_input_tokens=budget,
+    )
+
+    assert report.too_many_parts is False
+    assert len(parts) >= 2
+    seen = {d.source_id for p in parts for d in p.descriptors}
+    assert seen == {f"chunk-{i}" for i in range(17)}
+    for part in parts:
+        assert _estimate_tokens(part.user_message) <= budget
+        assert part.estimated_input_tokens <= budget
 
 
 def test_partitioner_accepts_17_large_sources_with_default_max_parts() -> None:
