@@ -1,9 +1,10 @@
 """Rank referral-reason chunks so scan indications lose to the letter.
 
-Atlas:
-  DI: DI-41542A49
+Atlas trace:
   DO: DO-4F133EE7
+  DI: DI-41542A49
   VT: VT-95532C93
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4F133EE7")
 """
 
 from __future__ import annotations

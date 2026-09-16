@@ -384,15 +384,27 @@ jobs:
           if [ -n "$HF_TOKEN" ]; then
             HF_BUILD_ARG="--build-arg HF_TOKEN=${HF_TOKEN}"
           fi
-          docker build \
-            --file "$DOCKERFILE" \
-            --tag "${IMAGE}:${TAG}" \
-            --tag "${IMAGE}:latest" \
-            --tag "${MIZAIC_IMAGE}:${TAG}" \
-            --tag "${MIZAIC_IMAGE}:latest" \
-            --cache-from "${IMAGE}:latest" \
-            ${HF_BUILD_ARG} \
-            .
+          build_ok=0
+          for attempt in 1 2 3; do
+            if docker build \
+              --file "$DOCKERFILE" \
+              --tag "${IMAGE}:${TAG}" \
+              --tag "${IMAGE}:latest" \
+              --tag "${MIZAIC_IMAGE}:${TAG}" \
+              --tag "${MIZAIC_IMAGE}:latest" \
+              --cache-from "${IMAGE}:latest" \
+              ${HF_BUILD_ARG} \
+              .; then
+              build_ok=1
+              break
+            fi
+            echo "docker build failed (attempt ${attempt}/3); retrying in 20s"
+            sleep 20
+          done
+          if [ "$build_ok" -ne 1 ]; then
+            echo "docker build failed after 3 attempts"
+            exit 1
+          fi
           docker push "${IMAGE}:${TAG}"
           docker push "${IMAGE}:latest"
           docker push "${MIZAIC_IMAGE}:${TAG}"
