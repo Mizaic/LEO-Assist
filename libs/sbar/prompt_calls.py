@@ -443,6 +443,29 @@ def _stitch_partials_deterministic(parts: list[dict[str, Any]]) -> str:
     return "\n\n".join(chunks)
 
 
+def _normalise_background_raw(raw: Any) -> dict[str, Any]:
+    """Coerce an LLM reply into one Background object.
+
+    Azure GPT-5 mini sometimes returns a JSON list. The old reader
+    called ``raw.get`` and crashed, so a good reply never landed.
+    """
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, list):
+        objects = [item for item in raw if isinstance(item, dict)]
+        if not objects:
+            return {"error": "invalid json: background reply was a list"}
+        markdowns = [
+            str(item.get("background_markdown") or "").strip() for item in objects
+        ]
+        markdowns = [text for text in markdowns if text]
+        first = dict(objects[0])
+        if markdowns:
+            first["background_markdown"] = "\n\n".join(markdowns)
+        return first
+    return {"error": "invalid json: background reply was not a JSON object"}
+
+
 async def _invoke_background_part(
     partition: Partition,
     *,
@@ -454,13 +477,15 @@ async def _invoke_background_part(
     """Run one map step. Returns a per-part dict ready for the
     deterministic stitch."""
     params = llm_params or {"max_tokens": 1024, "temperature": 0.0}
-    raw = await invoker(
-        system,
-        partition.user_message,
-        max_tokens=int(params.get("max_tokens") or 1024),
-        temperature=float(params.get("temperature") or 0.0),
-        agent_task="sbar_background",
-        patient_id=patient_id,
+    raw = _normalise_background_raw(
+        await invoker(
+            system,
+            partition.user_message,
+            max_tokens=int(params.get("max_tokens") or 1024),
+            temperature=float(params.get("temperature") or 0.0),
+            agent_task="sbar_background",
+            patient_id=patient_id,
+        )
     )
     # source_ids preserved in input order (descriptors already are);
     # de-duplicated so a record split across slices in the same part
@@ -759,9 +784,7 @@ async def call_background(
         "error": error_message,
         "error_code": error_code,
         "parts": parts_summary,
-        "conflicts": merge_source_conflicts(
-            [p.get("conflicts") for p in part_results]
-        ),
+        "conflicts": merge_source_conflicts([p.get("conflicts") for p in part_results]),
     }
 
 
