@@ -22,6 +22,7 @@ interface RulePickerProps {
   selected: Set<string>;
   onToggle: (ruleId: string) => void;
   onClear: () => void;
+  emptyMessage?: string;
 }
 
 function groupByGuideline(
@@ -101,6 +102,7 @@ export default function RulePicker({
   selected,
   onToggle,
   onClear,
+  emptyMessage = "No approved rules found. Approve some rules before compiling a pick-and-mix set.",
 }: RulePickerProps) {
   const [search, setSearch] = useState("");
 
@@ -117,7 +119,7 @@ export default function RulePicker({
   if (!rules.length) {
     return (
       <Alert severity="info" sx={{ mt: 1 }}>
-        No active rules found. Approve some rules before compiling a pick-and-mix set.
+        {emptyMessage}
       </Alert>
     );
   }

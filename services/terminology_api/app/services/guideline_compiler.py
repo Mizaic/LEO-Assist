@@ -1261,10 +1261,8 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
     ) -> dict[str, Any] | None:
         """Compile one CONCEPT leaf into a bitmap echo dict.
 
-        Implements DI-LEO-AI-509: union of every seed's IS_A closure, minus
-        ``excluded_concept_ids``. When the criterion is the legacy single-seed
-        shape, the int-id set passed to ``put_bitmap`` is identical to the
-        pre-change behaviour (no clinical-output drift on migration).
+        Union of every seed's IS_A closure, minus blocked ids and their
+        children. Authored ``excluded_concept_ids`` stay as written.
         """
         criterion = dict(node.get("criterion") or {})
         seeds = self._seeds_from_criterion(criterion)
@@ -1274,7 +1272,6 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                 criterion.get("node_id"),
             )
             return None
-
         excluded_ids = {
             str(x) for x in (criterion.get("excluded_concept_ids") or []) if x
         }
@@ -1283,28 +1280,65 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
             or criterion.get("snomed_concept_id")
             or seeds[0]["snomed_concept_id"]
         )
+        union_ids = self._seed_union_ids(
+            session,
+            seeds,
+            criterion,
+            distance_child_override,
+            distance_parent_override,
+        )
+        drop = self._expanded_excluded_ids(
+            session,
+            excluded_ids,
+            self._exclusion_child_depth(seeds, distance_child_override),
+        )
+        if excluded_ids and not (drop & union_ids):
+            logger.warning(
+                "Concept leaf %r has excluded id(s) outside the seed closure: %s",
+                criterion.get("node_id"),
+                sorted(excluded_ids),
+            )
+        union_ids -= drop
+        if policy.allowed_concept_ids:
+            union_ids = {cid for cid in union_ids if cid in policy.allowed_concept_ids}
+            if not union_ids and policy.mode == "strict":
+                return None
+            if not union_ids:
+                union_ids = {primary_id}
+        if not union_ids:
+            union_ids = {primary_id}
+        return self._concept_leaf_echo(
+            criterion, primary_id, seeds, excluded_ids, union_ids
+        )
 
+    @staticmethod
+    def _seed_child_depth(
+        seed: dict[str, Any], override: int | None
+    ) -> int:
+        if not seed.get("include_descendants"):
+            return 0
+        if override is not None:
+            return max(0, int(override))
+        raw = seed.get("distance_child")
+        return max(0, int(raw if raw is not None else 3))
+
+    def _seed_union_ids(
+        self,
+        session,
+        seeds: list[dict[str, Any]],
+        criterion: dict[str, Any],
+        child_override: int | None,
+        parent_override: int | None,
+    ) -> set[str]:
+        dp = (
+            int(parent_override)
+            if parent_override is not None
+            else int(criterion.get("distance_parent") or 0)
+        )
         union_ids: set[str] = set()
         for seed in seeds:
             seed_id = seed["snomed_concept_id"]
-            if seed["include_descendants"]:
-                rule_default = (
-                    distance_child_override
-                    if distance_child_override is not None
-                    else (
-                        seed["distance_child"]
-                        if seed["distance_child"] is not None
-                        else 3
-                    )
-                )
-                dc = max(0, int(rule_default))
-            else:
-                dc = 0
-            dp = int(
-                distance_parent_override
-                if distance_parent_override is not None
-                else (criterion.get("distance_parent") or 0)
-            )
+            dc = self._seed_child_depth(seed, child_override)
             try:
                 closure = self._closure_ids(session, seed_id, dc, dp)
             except Exception as exc:  # noqa: BLE001
@@ -1314,37 +1348,47 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                     exc,
                 )
                 closure = [seed_id]
-            for cid in closure:
-                union_ids.add(str(cid))
+            union_ids.update(str(cid) for cid in closure)
+        return union_ids
 
-        unreachable = excluded_ids - union_ids
-        if unreachable:
-            logger.warning(
-                "Concept leaf %r has %d excluded id(s) that are not in any seed closure (no-op): %s",
-                criterion.get("node_id"),
-                len(unreachable),
-                sorted(unreachable),
-            )
+    def _exclusion_child_depth(
+        self, seeds: list[dict[str, Any]], override: int | None
+    ) -> int:
+        depths = [self._seed_child_depth(seed, override) for seed in seeds]
+        return max(depths) if depths else 0
 
-        union_ids -= excluded_ids
+    def _expanded_excluded_ids(
+        self, session, excluded_ids: set[str], child_depth: int
+    ) -> set[str]:
+        """Blocked id plus its IS_A children. Parent hops stay 0."""
+        out: set[str] = set()
+        for eid in excluded_ids:
+            if child_depth <= 0:
+                out.add(eid)
+                continue
+            try:
+                out.update(
+                    str(cid) for cid in self._closure_ids(session, eid, child_depth, 0)
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Excluded concept %s closure failed; subtracting exact id only. err=%s",
+                    eid,
+                    exc,
+                )
+                out.add(eid)
+        return out
 
-        if policy.allowed_concept_ids:
-            union_ids = {cid for cid in union_ids if cid in policy.allowed_concept_ids}
-            if not union_ids:
-                if policy.mode == "strict":
-                    return None
-                # Fallback to the primary id so the leaf still compiles to a bitmap.
-                union_ids = {primary_id}
-
-        if not union_ids:
-            # Defensive: every seed's closure was empty AND every id was excluded.
-            # Fall back to the primary id so the rule does not silently disappear.
-            union_ids = {primary_id}
-
+    def _concept_leaf_echo(
+        self,
+        criterion: dict[str, Any],
+        primary_id: str,
+        seeds: list[dict[str, Any]],
+        excluded_ids: set[str],
+        union_ids: set[str],
+    ) -> dict[str, Any]:
         sorted_ids = sorted(union_ids)
         int_ids = sorted({self._store.get_or_assign_int_id(cid) for cid in sorted_ids})
-        bitmap_id = self._store.put_bitmap(int_ids)
-
         echo_seeds = [
             {
                 "snomed_concept_id": s["snomed_concept_id"],
@@ -1356,7 +1400,7 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
         return {
             "kind": "concept",
             "node_id": criterion.get("node_id"),
-            "bitmap_id": bitmap_id,
+            "bitmap_id": self._store.put_bitmap(int_ids),
             "criterion": {
                 "term": criterion.get("term"),
                 "snomed_concept_id": primary_id,

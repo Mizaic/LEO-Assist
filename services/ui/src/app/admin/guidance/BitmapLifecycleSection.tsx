@@ -42,6 +42,7 @@ import {
   formatCompileElapsed,
 } from "./bitmapLifecycleHelpers";
 import CandidateLabTestDialog from "./CandidateLabTestDialog";
+import LoadedGuidelineAutocomplete from "./LoadedGuidelineAutocomplete";
 import RulePicker from "./RulePicker";
 import { useBitmapLifecycle } from "./useBitmapLifecycle";
 
@@ -112,34 +113,49 @@ export default function BitmapLifecycleSection({
       <Box sx={{ mt: 2, mb: 1.5 }}>
         <ToolbarActions align="start" actions={modeActions} />
         {life.compileMode === "guideline" && (
-          <TextField
-            size="small"
-            label="Guideline ID"
-            placeholder="e.g. NG12"
-            value={life.scopeId === "default" ? "" : life.scopeId}
-            onChange={(e) => life.setScopeId(e.target.value || "default")}
-            sx={{ mt: 1, width: 220 }}
-            helperText="The NICE guideline identifier to compile."
-          />
+          <Box sx={{ mt: 1, maxWidth: 480 }}>
+            <LoadedGuidelineAutocomplete
+              valueCode={life.scopeId === "default" ? null : life.scopeId}
+              onChange={(next) => life.setScopeId(next?.code || "default")}
+              label="Guideline"
+              helperText="Search loaded guidelines, then compile that one."
+              testId="compile-guideline-autocomplete"
+            />
+          </Box>
         )}
         {life.compileMode === "pick" && (
-          <>
+          <Stack spacing={1.5} sx={{ mt: 1, maxWidth: 560 }}>
             <TextField
               size="small"
-              label="Scope name"
+              label="Bitmap name"
               placeholder="e.g. lower-gi"
               value={life.pickScopeId}
               onChange={(e) => life.setPickScopeId(e.target.value)}
-              sx={{ mt: 1, width: 220 }}
-              helperText="A short label for this pick-and-mix set. Used as the evaluation scope ID."
+              helperText="A short name for this pick-and-mix set. Used when you evaluate it later."
             />
-            <RulePicker
-              rules={life.activeRules}
-              selected={life.selectedRuleIds}
-              onToggle={life.toggleRuleId}
-              onClear={life.clearRuleIds}
+            <LoadedGuidelineAutocomplete
+              valueCode={life.pickGuidelineId || null}
+              onChange={(next) => life.selectPickGuideline(next?.code || "")}
+              label="Guideline"
+              helperText="Search a loaded guideline, then tick the rules to include."
+              testId="compile-pick-guideline-autocomplete"
             />
-          </>
+            {life.rulesLoadError ? (
+              <Alert severity="warning">{life.rulesLoadError}</Alert>
+            ) : (
+              <RulePicker
+                rules={life.visibleRules}
+                selected={life.selectedRuleIds}
+                onToggle={life.toggleRuleId}
+                onClear={life.clearRuleIds}
+                emptyMessage={
+                  life.pickGuidelineId
+                    ? "No approved rules in this guideline yet."
+                    : "Search a guideline first, then pick its rules."
+                }
+              />
+            )}
+          </Stack>
         )}
       </Box>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
@@ -215,10 +231,16 @@ export default function BitmapLifecycleSection({
               id: "compile",
               label: life.compiling ? "Compiling..." : "Compile candidate",
               variant: "primary",
-              onClick: life.handleCompile,
-              disabled: life.compiling,
-              loading: life.compiling,
-              title: "Build a new candidate ruleset from approved rules. It is not live yet.",
+                  onClick: life.handleCompile,
+                  disabled: !life.canCompile,
+                  loading: life.compiling,
+                  title: life.canCompile
+                    ? "Build a new candidate ruleset from approved rules. It is not live yet."
+                    : life.compileMode === "guideline"
+                      ? "Search and select a guideline first."
+                      : life.compileMode === "pick"
+                        ? "Name the bitmap and pick at least one rule."
+                        : "Build a new candidate ruleset from approved rules. It is not live yet.",
             },
             {
               id: "test-lab-patients",

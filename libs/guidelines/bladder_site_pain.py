@@ -21,7 +21,7 @@ GALLBLADDER_PAIN_ID = "102628000"
 
 _TARGET_LEAF_IDS = (ABDOMINAL_PAIN_ID, PELVIC_PAIN_ID)
 
-# Exact ids. The compiler subtracts these, not their children.
+# Authored ids. Compile also drops IS_A children of these.
 _BLADDER_SITE_EXCLUSIONS = (
     "15803009",  # Pain of urinary bladder
     "16580691000119107",  # Chronic urinary bladder pain

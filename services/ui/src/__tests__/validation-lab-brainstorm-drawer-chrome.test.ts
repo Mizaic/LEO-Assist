@@ -26,8 +26,13 @@ describe("VT-C6B93AF0 - Validation Lab brainstorm drawer chrome", () => {
     expect(src).toMatch(/Review/);
     expect(src).toMatch(/RecommendationPickerDialog/);
     expect(src).toMatch(/mode="attach"/);
-    expect(src).toMatch(/\/api\/nice\/loaded/);
+    expect(src).toMatch(/LoadedGuidelineAutocomplete/);
     expect(src).toMatch(/Guideline in knowledge graph/);
+    const loadedAuto = readFile(
+      "services/ui/src/app/admin/guidance/LoadedGuidelineAutocomplete.tsx",
+    );
+    expect(loadedAuto).toMatch(/\/api\/nice\/loaded/);
+    expect(loadedAuto).toMatch(/Search loaded guidelines/);
     expect(src).not.toMatch(/Guideline code to attach/);
     const picker = readFile(
       "services/ui/src/app/admin/guidance/RecommendationPickerDialog.tsx",

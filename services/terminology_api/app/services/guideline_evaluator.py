@@ -688,13 +688,9 @@ class GuidelineEvaluator:
                     seed_concept_ids, patient_bm
                 )
                 if matched:
-                    codes = session._ctx.codes if session is not None else None
-                    if _leaf_blocked_by_exclusion(node, codes):
-                        matched = False
-                    else:
-                        matched = self._soft_concept_allows(
-                            node, session, record_unverified=False
-                        )
+                    matched = self._soft_concept_allows(
+                        node, session, record_unverified=False
+                    )
             return {
                 "kind": "CONCEPT",
                 "node_id": node_id,
@@ -1241,9 +1237,6 @@ class GuidelineEvaluator:
                 return False
             if len(bm & patient_bm) == 0:
                 return False
-            codes = session._ctx.codes if session is not None else None
-            if _leaf_blocked_by_exclusion(node, codes):
-                return False
             return self._soft_concept_allows(node, session)
         if kind == "DEMOGRAPHIC":
             return _check_demographic_node(node, patient_age, patient_sex)
@@ -1733,42 +1726,6 @@ def _applies_to_demographic_matched_via(
             }
         )
     return out
-
-
-def _leaf_blocked_by_exclusion(node: dict[str, Any], codes: list[str] | None) -> bool:
-    """True when this leaf excludes a code that is also on the record."""
-    present = {str(cid).strip() for cid in (codes or []) if str(cid).strip()}
-    if not present:
-        return False
-    excluded = (node.get("criterion") or {}).get("excluded_concept_ids") or []
-    return any(str(raw).strip() in present for raw in excluded)
-
-
-def _excluded_ids_from_tree(node: Any) -> list[str]:
-    """Collect excluded concept ids from a compiled logic tree."""
-    if not isinstance(node, dict):
-        return []
-    found: list[str] = []
-    criterion = node.get("criterion") or {}
-    for raw in criterion.get("excluded_concept_ids") or []:
-        cid = str(raw).strip()
-        if cid:
-            found.append(cid)
-    for child in node.get("children") or []:
-        found.extend(_excluded_ids_from_tree(child))
-    return found
-
-
-def _excluded_ids_on_record(
-    logic_tree: Any, patient_codes: list[str] | None
-) -> list[str]:
-    """Excluded ids that are also present on the patient record."""
-    present = {str(cid).strip() for cid in (patient_codes or []) if str(cid).strip()}
-    if not present:
-        return []
-    return sorted(
-        {cid for cid in _excluded_ids_from_tree(logic_tree) if cid in present}
-    )
 
 
 def _format_match(

@@ -119,6 +119,31 @@ describe("TC-004 - useBitmapLifecycle pick mode compile body", () => {
   });
 });
 
+describe("TC-008 - compile is search-and-pick, not typed ids", () => {
+  test("TC-008a: one-guideline mode uses loaded-guideline autocomplete", () => {
+    const src = readFile(SECTION_PATH);
+    expect(src).toMatch(/LoadedGuidelineAutocomplete/);
+    expect(src).toMatch(/compile-guideline-autocomplete/);
+    expect(src).not.toMatch(/label="Guideline ID"/);
+    expect(src).not.toMatch(/placeholder="e\.g\. NG12"/);
+  });
+
+  test("TC-008b: pick mode names the bitmap then searches a guideline", () => {
+    const src = readFile(SECTION_PATH);
+    expect(src).toMatch(/label="Bitmap name"/);
+    expect(src).toMatch(/compile-pick-guideline-autocomplete/);
+    expect(src).not.toMatch(/label="Scope name"/);
+  });
+
+  test("TC-008c: shared loaded-guideline autocomplete searches /api/nice/loaded", () => {
+    const auto = readFile(
+      "services/ui/src/app/admin/guidance/LoadedGuidelineAutocomplete.tsx",
+    );
+    expect(auto).toMatch(/\/api\/nice\/loaded/);
+    expect(auto).toMatch(/Search loaded guidelines/);
+  });
+});
+
 describe("TC-007 - RulePicker component exists", () => {
   test("TC-007a: RulePicker.tsx file exists", () => {
     const fullPath = path.join(REPO_ROOT, PICKER_PATH);
