@@ -42,7 +42,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from libs.llm_client.prompt_safety import sanitise_for_prompt
-from libs.sbar.background_envelope import build_codes_first_envelope
+from libs.sbar.background_envelope import (
+    build_codes_first_envelope,
+    serialise_code,
+)
 from libs.sbar.source_resolver import ResolvedCode, ResolvedSource
 from libs.sbar.uncoded_coverage import CoverageReport
 
@@ -93,22 +96,24 @@ _ENV_FLOOR_TOKENS = 1000
 def _max_input_tokens() -> int:
     """Read SBAR_BACKGROUND_MAX_INPUT_TOKENS from the environment.
 
-    Default 60_000 is well below Claude 3.5 Sonnet's 200K input
-    window so we leave headroom for the response. A floor of
+    Default 200_000 leaves headroom under Azure GPT-5 mini's
+    ~272K input window. The old 60_000 default packed dense
+    coded referrals as one part that the model then rejected.
+    A floor of
     ``_ENV_FLOOR_TOKENS`` prevents an empty / nonsense env var
     from collapsing the budget; explicit ``max_input_tokens``
     arguments are respected as-is so tests can exercise extreme
     paths.
     """
-    raw = os.getenv("SBAR_BACKGROUND_MAX_INPUT_TOKENS", "60000")
+    raw = os.getenv("SBAR_BACKGROUND_MAX_INPUT_TOKENS", "200000")
     try:
         value = int(raw)
     except ValueError:
         logger.warning(
-            "SBAR_BACKGROUND_MAX_INPUT_TOKENS=%r is not an int; using 60000",
+            "SBAR_BACKGROUND_MAX_INPUT_TOKENS=%r is not an int; using 200000",
             raw,
         )
-        return 60000
+        return 200000
     return max(_ENV_FLOOR_TOKENS, value)
 
 
@@ -271,9 +276,28 @@ def _build_user_message(
     return "CONTEXT:\n```json\n" + json.dumps(body, default=str) + "\n```"
 
 
-def _slice_size(slice_: _SourceSlice) -> int:
-    """Estimate the per-slice token cost when added to a partition."""
-    return _estimate_tokens(json.dumps(_serialise_source_slice(slice_), default=str))
+def _codes_for_source(codes: list[ResolvedCode], source_id: str) -> list[ResolvedCode]:
+    return [c for c in codes if c.source_id == source_id]
+
+
+def _slice_size(slice_: _SourceSlice, codes: list[ResolvedCode] | None = None) -> int:
+    """Estimate the per-slice token cost when added to a partition.
+
+    Includes the codes-first envelope payload for this source. Ignoring
+    those codes packed one 260k-token Background prompt and Azure
+    rejected it as context_length_exceeded.
+    """
+    source_tokens = _estimate_tokens(
+        json.dumps(_serialise_source_slice(slice_), default=str)
+    )
+    if not codes:
+        return source_tokens
+    source_codes = _codes_for_source(codes, slice_.source_id)
+    if not source_codes:
+        return source_tokens
+    return source_tokens + _estimate_tokens(
+        json.dumps([serialise_code(c) for c in source_codes], default=str)
+    )
 
 
 def _split_oversize_source(
@@ -328,6 +352,7 @@ def _build_slices(
     *,
     per_part_budget_tokens: int,
     fixed_overhead_tokens: int,
+    codes: list[ResolvedCode] | None = None,
 ) -> tuple[list[_SourceSlice], list[str]]:
     """Convert each source to one or more slices, splitting oversize records.
 
@@ -337,10 +362,11 @@ def _build_slices(
     split_ids: list[str] = []
     per_slice_chars_floor = max(250, _PER_SOURCE_CHAR_CAP)
     available = max(1, per_part_budget_tokens - fixed_overhead_tokens)
+    code_list = codes or []
     for record_idx, source in enumerate(sources, start=1):
         text = sanitise_for_prompt(source.text or "")[:_PER_SOURCE_CHAR_CAP]
         whole = _SourceSlice(source=source, text=text, record_index=record_idx)
-        if _slice_size(whole) <= available:
+        if _slice_size(whole, code_list) <= available:
             slices.append(whole)
             continue
         # Single record too large even at 4000-char cap to fit inside
@@ -356,7 +382,7 @@ def _build_slices(
         # only place we ever shorten clinical text; the notice flags
         # it loudly.
         for cap in (2000, 1000, 500, 250):
-            if all(_slice_size(s) <= available for s in sub_slices):
+            if all(_slice_size(s, code_list) <= available for s in sub_slices):
                 break
             sub_slices = [
                 _SourceSlice(
@@ -379,13 +405,15 @@ def _greedy_pack(
     per_part_budget_tokens: int,
     fixed_overhead_tokens: int,
     max_parts: int,
+    codes: list[ResolvedCode] | None = None,
 ) -> list[list[_SourceSlice]] | None:
     """Greedy bin-packing. Returns None if we'd need more than max_parts."""
     available = max(1, per_part_budget_tokens - fixed_overhead_tokens)
+    code_list = codes or []
     parts: list[list[_SourceSlice]] = [[]]
     used = 0
     for slice_ in slices:
-        cost = _slice_size(slice_)
+        cost = _slice_size(slice_, code_list)
         if parts[-1] and used + cost > available:
             parts.append([])
             used = 0
@@ -503,6 +531,7 @@ def partition_background_sources(
         sources,
         per_part_budget_tokens=per_part_budget,
         fixed_overhead_tokens=fixed_overhead,
+        codes=codes,
     )
 
     packed = _greedy_pack(
@@ -510,6 +539,7 @@ def partition_background_sources(
         per_part_budget_tokens=per_part_budget,
         fixed_overhead_tokens=fixed_overhead,
         max_parts=max_parts,
+        codes=codes,
     )
     if packed is None:
         return [], PartitionReport(

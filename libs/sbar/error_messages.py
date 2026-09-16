@@ -81,8 +81,9 @@ def _is_input_too_long(raw: str) -> bool:
         "input is too long" in text
         or "input too long" in text
         or "context length" in text
-        or "max_tokens" in text
-        and "exceed" in text
+        or "context_length" in text
+        or "context window" in text
+        or ("max_tokens" in text and "exceed" in text)
     )
 
 
@@ -250,8 +251,7 @@ def _message_for(code: str, stage: str, family: str = "unclassified") -> str:
         )
     if code == "invalid_json":
         return (
-            f"The model did not return usable text for {noun}. "
-            "Try running it again."
+            f"The model did not return usable text for {noun}. " "Try running it again."
         )
     if code == "content_filter":
         return (

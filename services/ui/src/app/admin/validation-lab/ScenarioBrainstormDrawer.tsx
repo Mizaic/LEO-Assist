@@ -14,9 +14,8 @@
  * Atlas: DI-EB716E68 / DO-A0ADDB38 / VT-C6B93AF0
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
-import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
@@ -32,6 +31,9 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 
+import LoadedGuidelineAutocomplete, {
+  type LoadedGuidelineOption,
+} from "../guidance/LoadedGuidelineAutocomplete";
 import RecommendationPickerDialog, {
   type AttachedRecommendation,
 } from "../guidance/RecommendationPickerDialog";
@@ -53,26 +55,10 @@ const STEPS = ["Attach", "Clarify", "Variants", "Review"];
 /** Keep in sync with libs/validation_lab/scenario_patch.MAX_BRAINSTORM_RECOMMENDATIONS */
 const MAX_BRAINSTORM_RECOMMENDATIONS = 5;
 
-interface LoadedGuidelineOption {
-  code: string;
-  title: string;
-  guideline_source: "nice_syndication_api" | "local_guideline";
-  recommendation_count?: number;
-}
-
 interface Props {
   open: boolean;
   onClose: () => void;
   onCreated?: (caseIds: string[]) => void;
-}
-
-async function fetchLoadedGuidelines(): Promise<LoadedGuidelineOption[]> {
-  const res = await fetch("/api/nice/loaded", { credentials: "include" });
-  if (!res.ok) {
-    throw new Error("Could not load guidelines from the knowledge graph.");
-  }
-  const rows = (await res.json()) as LoadedGuidelineOption[];
-  return Array.isArray(rows) ? rows : [];
 }
 
 export default function ScenarioBrainstormDrawer({
@@ -82,11 +68,6 @@ export default function ScenarioBrainstormDrawer({
 }: Props) {
   const [step, setStep] = useState(0);
   const [scenarioText, setScenarioText] = useState("");
-  const [loadedGuidelines, setLoadedGuidelines] = useState<
-    LoadedGuidelineOption[]
-  >([]);
-  const [loadingGuidelines, setLoadingGuidelines] = useState(false);
-  const [guidelineLoadError, setGuidelineLoadError] = useState("");
   const [selectedGuideline, setSelectedGuideline] =
     useState<LoadedGuidelineOption | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -108,30 +89,6 @@ export default function ScenarioBrainstormDrawer({
     () => variants.filter((v) => selectedIds.has(v.variantId)),
     [variants, selectedIds],
   );
-
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    setLoadingGuidelines(true);
-    setGuidelineLoadError("");
-    fetchLoadedGuidelines()
-      .then((rows) => {
-        if (!cancelled) setLoadedGuidelines(rows);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setGuidelineLoadError(
-            err instanceof Error ? err.message : String(err),
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingGuidelines(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
 
   function reset() {
     setStep(0);
@@ -325,41 +282,13 @@ export default function ScenarioBrainstormDrawer({
             Attach recommendations from guidelines already in the knowledge
             graph (same list as Clinical Guidelines).
           </Typography>
-          {guidelineLoadError ? (
-            <Alert severity="warning">{guidelineLoadError}</Alert>
-          ) : null}
-          <Autocomplete
-            options={loadedGuidelines}
-            loading={loadingGuidelines}
-            value={selectedGuideline}
-            onChange={(_e, value) => setSelectedGuideline(value)}
-            getOptionKey={(opt) => opt.code}
-            getOptionLabel={(opt) =>
-              `${opt.code} -- ${opt.title || "Untitled"}`
-            }
-            isOptionEqualToValue={(a, b) => a.code === b.code}
-            filterOptions={(options, state) => {
-              const q = state.inputValue.trim().toLowerCase();
-              if (!q) return options;
-              return options.filter(
-                (opt) =>
-                  opt.code.toLowerCase().includes(q) ||
-                  (opt.title || "").toLowerCase().includes(q),
-              );
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Guideline in knowledge graph"
-                placeholder="Search loaded guidelines"
-                helperText="What is in the knowledge graph -- Clinical Guidelines"
-                inputProps={{
-                  ...params.inputProps,
-                  "data-testid": "brainstorm-guideline-lookup",
-                }}
-              />
-            )}
-            data-testid="brainstorm-guideline-autocomplete"
+          <LoadedGuidelineAutocomplete
+            valueCode={selectedGuideline?.code || null}
+            onChange={setSelectedGuideline}
+            label="Guideline in knowledge graph"
+            helperText="What is in the knowledge graph -- Clinical Guidelines"
+            testId="brainstorm-guideline-autocomplete"
+            inputTestId="brainstorm-guideline-lookup"
           />
           <Button
             variant="outlined"

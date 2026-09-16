@@ -663,6 +663,53 @@ def test_synonym_set_excluded_ids_subtracted_from_bitmap(compiler, store, mock_s
     assert leaf["criterion"]["excluded_concept_ids"] == ["1_child"]
 
 
+def test_excluded_id_also_drops_its_descendants(compiler, store, mock_session):
+    """A blocked code drops itself and its IS_A children. The rest stay.
+
+    UI Block writes one id. Compile walks that subtree. Atlas: DI-CDDA5214.
+    """
+
+    graph = {
+        "1": ["1", "1_mass", "1_cyst", "1_cyst_child"],
+        "1_cyst": ["1_cyst", "1_cyst_child"],
+    }
+
+    def fake_run(query, params=None, **kwargs):
+        bag = params if isinstance(params, dict) else kwargs
+        seed = bag.get("concept_id")
+        return [{"concept_id": cid} for cid in graph.get(seed, [seed])]
+
+    mock_session.run.side_effect = fake_run
+    rows = [
+        _v2_concept_row(
+            {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "primary_concept_id": "1",
+                    "preferred_term": "Abdominal mass",
+                    "seeds": [
+                        {
+                            "snomed_concept_id": "1",
+                            "preferred_term": "Abdominal mass",
+                            "include_descendants": True,
+                        },
+                    ],
+                    "excluded_concept_ids": ["1_cyst"],
+                },
+            }
+        )
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session)
+    leaf = ruleset["rules"][0]["logic_tree"]
+    kept = set(leaf["seed_concept_ids"])
+    assert "1_cyst" not in kept
+    assert "1_cyst_child" not in kept
+    assert "1" in kept
+    assert "1_mass" in kept
+    assert leaf["criterion"]["excluded_concept_ids"] == ["1_cyst"]
+
+
 def test_synonym_seed_with_include_descendants_false_skips_closure_lookup(
     compiler, store, mock_session
 ):

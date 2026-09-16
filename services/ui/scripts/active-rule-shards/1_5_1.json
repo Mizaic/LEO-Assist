@@ -40,7 +40,17 @@
           "semantic_tag": "finding",
           "term": "abdominal mass",
           "seeds": [],
-          "excluded_concept_ids": [],
+          "excluded_concept_ids": [
+            "65576009",
+            "289797008",
+            "129801000119109",
+            "11314008",
+            "1237359009",
+            "237071002",
+            "254880000",
+            "31258000",
+            "722223000"
+          ],
           "primary_concept_id": ""
         }
       }

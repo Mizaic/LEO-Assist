@@ -18,7 +18,7 @@ PELVIC_PAIN_ID = "30473006"
 VULVAL_PAIN_ID = "162145001"
 OVARIAN_PAIN_ID = "279028009"
 
-# Exact ids. The compiler subtracts these, not their children.
+# Authored ids. Compile also drops IS_A children of these.
 _VULVAL_SITE_EXCLUSIONS = (
     "162145001",  # Vulval pain
     "275321000",  # Vulva sore

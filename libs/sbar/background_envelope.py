@@ -20,17 +20,15 @@ from libs.sbar.uncoded_coverage import CoverageReport, SalvageSentence
 
 
 def serialise_code(code: ResolvedCode) -> dict[str, Any]:
-    patient_wording = sanitise_for_prompt(
-        code.evidence_sentence or code.evidence or ""
-    )
-    return {
+    patient_wording = sanitise_for_prompt(code.evidence_sentence or code.evidence or "")
+    evidence = sanitise_for_prompt(code.evidence or "")
+    evidence_sentence = sanitise_for_prompt(code.evidence_sentence or "")
+    payload: dict[str, Any] = {
         "concept_id": code.concept_id,
         "term": code.term,
         "patient_wording": patient_wording,
         "semantic_tag": code.semantic_tag,
         "assertion": code.assertion,
-        "evidence": sanitise_for_prompt(code.evidence or ""),
-        "evidence_sentence": sanitise_for_prompt(code.evidence_sentence or ""),
         "evidence_start": code.evidence_start,
         "evidence_end": code.evidence_end,
         "sentence_index": code.sentence_index,
@@ -39,6 +37,11 @@ def serialise_code(code: ResolvedCode) -> dict[str, Any]:
         "confidence": code.confidence,
         "source": {"type": code.source_label, "id": code.source_id},
     }
+    if evidence_sentence and evidence_sentence != patient_wording:
+        payload["evidence_sentence"] = evidence_sentence
+    if evidence and evidence not in {patient_wording, evidence_sentence}:
+        payload["evidence"] = evidence
+    return payload
 
 
 def _serialise_salvage(item: SalvageSentence) -> dict[str, Any]:

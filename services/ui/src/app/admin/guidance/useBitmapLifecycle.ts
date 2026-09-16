@@ -33,8 +33,10 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
   const [compileMode, setCompileMode] = useState<CompileMode>("global");
   const [scopeId, setScopeId] = useState("default");
   const [pickScopeId, setPickScopeId] = useState("");
+  const [pickGuidelineId, setPickGuidelineId] = useState("");
   const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(new Set());
   const [activeRules, setActiveRules] = useState<ActiveRule[]>([]);
+  const [rulesLoadError, setRulesLoadError] = useState<string | null>(null);
   const [policyMode, setPolicyMode] = useState<PolicyMode>("advisory");
   const [distanceChild, setDistanceChild] = useState("");
   const [distanceParent, setDistanceParent] = useState("");
@@ -64,12 +66,45 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
 
   // Load active rules when entering pick mode.
   useEffect(() => {
-    if (compileMode !== "pick" || activeRules.length > 0) return;
+    if (compileMode !== "pick") return;
+    let cancelled = false;
+    setRulesLoadError(null);
     fetch("/api/terminology/guidelines/rules/active")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((rows: ActiveRule[]) => setActiveRules(rows))
-      .catch(() => {/* keep empty */});
-  }, [compileMode, activeRules.length]);
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Could not load approved rules.");
+        return r.json();
+      })
+      .then((rows: ActiveRule[]) => {
+        if (!cancelled) setActiveRules(Array.isArray(rows) ? rows : []);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setActiveRules([]);
+        setRulesLoadError(
+          err instanceof Error ? err.message : "Could not load approved rules.",
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [compileMode]);
+
+  const visibleRules = activeRules.filter((rule) =>
+    pickGuidelineId ? rule.guideline_id === pickGuidelineId : false,
+  );
+
+  const selectPickGuideline = useCallback((guidelineId: string) => {
+    setPickGuidelineId(guidelineId);
+    setSelectedRuleIds(new Set());
+  }, []);
+
+  const canCompile =
+    !compiling &&
+    (compileMode === "global" ||
+      (compileMode === "guideline" && Boolean(scopeId) && scopeId !== "default") ||
+      (compileMode === "pick" &&
+        Boolean(pickScopeId.trim()) &&
+        selectedRuleIds.size > 0));
 
   const toggleRuleId = useCallback((ruleId: string) => {
     setSelectedRuleIds((prev) => {
@@ -334,10 +369,15 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
     setScopeId,
     pickScopeId,
     setPickScopeId,
+    pickGuidelineId,
+    selectPickGuideline,
     selectedRuleIds,
     toggleRuleId,
     clearRuleIds,
     activeRules,
+    visibleRules,
+    rulesLoadError,
+    canCompile,
     policyMode,
     setPolicyMode,
     distanceChild,

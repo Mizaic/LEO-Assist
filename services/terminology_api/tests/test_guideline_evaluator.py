@@ -1006,44 +1006,36 @@ class TestSoftQualifiersAndFitStatus:
         )
 
 
-def test_excluded_id_on_record_blocks_the_concept_leaf(evaluator_factory) -> None:
-    """A leaf that excludes a code must not fire when that code is present."""
+def test_excluded_id_on_record_does_not_veto_remaining_hits(
+    evaluator_factory,
+) -> None:
+    """Blocked codes drop themselves. Other hits on the same leaf still fire.
+
+    UI Blocked codes: these ids do not fire the chip. They do not turn
+    the whole leaf off. Compiler subtracts them from the bitmap. Atlas:
+    DI-CDDA5214, UN-5F3BF083.
+    """
     bm = BitMap([1])
     rule = _make_v2_concept_rule(
         rule_id="r-mass",
         bitmap_id="bm1",
-        primary_id="74285003",
-        seed_ids=["74285003"],
-        label="Pelvic mass",
+        primary_id="271860004",
+        seed_ids=["271860004"],
+        label="Abdominal mass",
     )
-    rule["logic_tree"]["criterion"]["excluded_concept_ids"] = ["65576009"]
+    rule["logic_tree"]["criterion"]["excluded_concept_ids"] = [
+        "31258000",
+        "722223000",
+    ]
     ev = evaluator_factory(
         current_ruleset={"version": "v1", "rules": [rule]},
-        int_id_map={"74285003": 1, "65576009": 2},
+        int_id_map={"271860004": 1, "31258000": 2, "722223000": 3},
         bitmaps={"bm1": bm},
     )
-    hit = ev.evaluate_patient(["74285003"])
+    hit = ev.evaluate_patient(["271860004"])
     assert len(hit["matched_rules"]) == 1
-    blocked = ev.evaluate_patient(["74285003", "65576009"])
-    assert blocked["matched_rules"] == []
+    both = ev.evaluate_patient(["271860004", "31258000", "722223000"])
+    assert len(both["matched_rules"]) == 1
+    cyst_only = ev.evaluate_patient(["31258000", "722223000"])
+    assert cyst_only["matched_rules"] == []
 
-
-def test_excluded_ids_on_record_are_the_overlap() -> None:
-    from services.terminology_api.app.services.guideline_evaluator import (
-        _excluded_ids_on_record,
-    )
-
-    tree = {
-        "kind": "OR",
-        "children": [
-            {
-                "kind": "concept",
-                "criterion": {
-                    "snomed_concept_id": "74285003",
-                    "excluded_concept_ids": ["65576009", "11314008"],
-                },
-            }
-        ],
-    }
-    assert _excluded_ids_on_record(tree, ["74285003", "65576009"]) == ["65576009"]
-    assert _excluded_ids_on_record(tree, ["74285003"]) == []
