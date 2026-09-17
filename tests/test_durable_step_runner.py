@@ -837,3 +837,98 @@ async def test_run_step_records_llm_usage_in_metrics():
     assert usage["output_tokens"] == 600
     assert usage["llm_calls"] == 1
     assert usage["cost_usd"] > 0, "cost_usd should be positive for azure/small"
+
+
+@pytest.mark.asyncio
+async def test_nested_sbar_recorder_still_writes_stage_llm_usage():
+    """SBAR's own recorder must not blank act-ref-sbar metrics_json.
+
+    DI-9456E5BE -- 16 Sep SBAR stages stored no llm_usage while Azure billed.
+    """
+    from libs.llm_client.token_tracker import track_llm_usage_sync
+    from libs.llm_client.usage_recorder import LLMUsageRecorder
+
+    current_action = _Action(action_id="act-ref-sbar", subgraph_id="sbar")
+
+    def fake_invoke(state):
+        with LLMUsageRecorder():
+            track_llm_usage_sync(
+                agent_task="sbar_background",
+                model_name="gpt-5.4-mini",
+                model_provider="azure",
+                model_tier="small",
+                input_tokens=140000,
+                output_tokens=1600,
+                cache_read_input_tokens=0,
+                cache_creation_input_tokens=0,
+                reasoning_tokens=0,
+                latency_ms=8000,
+                success=True,
+                error_message="",
+            )
+        return {"sbar_status": "completed"}
+
+    mock_bus = AsyncMock()
+    mock_graph = MagicMock()
+    mock_graph.invoke = MagicMock(side_effect=fake_invoke)
+    captured_metrics: dict = {}
+
+    def capture_complete(request, result, **kwargs):
+        captured_metrics.update(result.metrics)
+        return StageCompleteResult(outcome="completed")
+
+    store_mock = MagicMock(
+        ensure_schema=MagicMock(),
+        upsert_run=MagicMock(),
+        claim_stage=MagicMock(return_value=StageClaimResult(outcome="claimed")),
+        complete_stage=MagicMock(side_effect=capture_complete),
+        load_pending_outbox=MagicMock(return_value=[]),
+        has_pending_outbox=MagicMock(return_value=False),
+        mark_outbox_sent=MagicMock(),
+        mark_next_published=MagicMock(),
+        get_run_status=MagicMock(return_value="completed"),
+    )
+
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(current_action),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=MagicMock(close=MagicMock()),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=store_mock,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.dispatch_stage_outbox",
+            new_callable=AsyncMock,
+            return_value=0,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "p-sbar-001", "entities": []},
+        ),
+        patch(
+            "libs.pipeline_graph.registry.get_registry",
+            return_value=MagicMock(build=MagicMock(return_value=mock_graph)),
+        ),
+    ):
+        await DurableStepRunner.run_step(
+            {
+                "event_type": DURABLE_STEP_EVENT,
+                "action_id": "act-ref-sbar",
+                "step_id": "act-ref-sbar",
+                "plan_definition_id": "pd-referral-assessment",
+                "run_id": "run-sbar-nested-001",
+                "patient_id": "p-sbar-001",
+            },
+            bus=mock_bus,
+        )
+
+    usage = captured_metrics.get("llm_usage") or {}
+    assert usage.get("input_tokens") == 140000
+    assert usage.get("output_tokens") == 1600
+    assert usage.get("llm_calls") == 1

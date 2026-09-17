@@ -131,8 +131,10 @@ class LLMUsageRecorder:
     primary_provider: str = ""
 
     _token: Optional[contextvars.Token] = field(default=None, repr=False)
+    _parent: Optional["LLMUsageRecorder"] = field(default=None, repr=False)
 
     def __enter__(self) -> "LLMUsageRecorder":
+        self._parent = _ACTIVE_RECORDER.get()
         self._token = _ACTIVE_RECORDER.set(self)
         return self
 
@@ -140,9 +142,15 @@ class LLMUsageRecorder:
         if self._token is not None:
             _ACTIVE_RECORDER.reset(self._token)
             self._token = None
+        self._parent = None
 
     def record(self, call: LLMCallRecord) -> None:
-        """Add a single LLM call to this recorder."""
+        """Add a single LLM call to this recorder and any parent recorder."""
+        self._record_local(call)
+        if self._parent is not None:
+            self._parent.record(call)
+
+    def _record_local(self, call: LLMCallRecord) -> None:
         self.calls.append(call)
         self.total_latency_ms += int(call.latency_ms or 0)
         self.usage += LLMUsage(
