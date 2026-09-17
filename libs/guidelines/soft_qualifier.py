@@ -219,6 +219,18 @@ def resolve_soft_qualifier(
     min_occ = qualifier.get("min_occurrences")
     if count is not None and min_occ is not None and count >= int(min_occ):
         return "confirmed"
+    historical = {
+        str(item).strip()
+        for item in (patient_facts or {}).get("historical_concept_ids") or []
+        if str(item).strip()
+    }
+    concept_id = str(qualifier.get("concept_id") or "").strip()
+    if (
+        kind in {"unexplained", "persistent"}
+        and concept_id
+        and concept_id in historical
+    ):
+        return "contradicted"
     letter = _letter_text(patient_facts)
     if kind == "first_presentation":
         if _repeat_or_chronic_of_finding(letter, str(qualifier.get("term") or "")):

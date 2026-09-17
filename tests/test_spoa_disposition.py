@@ -72,18 +72,44 @@ def test_direct_access_endoscopy_action_maps_to_procedure() -> None:
     assert code == "procedure"
 
 
-def test_xray_action_with_procedure_semantic_tag_maps_to_straight_to_test() -> None:
-    """An imaging action tagged "(procedure)" by SNOMED is still a test."""
-    code, _ = derive_spoa_disposition(
-        primary_rules=[
-            _rule(
-                "1.1.2",
-                priority="urgent",
-                action_name="Plain X-ray of chest (procedure)",
-            )
-        ],
+def test_offer_blood_test_maps_to_discussion_with_primary_care() -> None:
+    rule = {
+        "rule_id": "1.10.4",
+        "name": "Rule: 1.10.4",
+        "strength": "offer",
+        "guideline_title": "Suspected cancer",
+        "actions": [{"priority": "routine", "name": "Bence-Jones test"}],
+    }
+    code, evidence = derive_spoa_disposition(
+        primary_rules=[rule],
         alternative_rules=[],
     )
+    assert code == "discussion_with_primary_care"
+    assert "primary-care" in (evidence or "").lower()
+
+
+def test_offer_urgent_chest_xray_maps_to_discussion_with_primary_care() -> None:
+    rule = {
+        "rule_id": "1.1.2",
+        "name": "Rule: 1.1.2",
+        "strength": "offer",
+        "guideline_title": "Suspected cancer",
+        "actions": [{"priority": "urgent", "name": "Plain X-ray of chest (procedure)"}],
+    }
+    code, _ = derive_spoa_disposition(primary_rules=[rule], alternative_rules=[])
+    assert code == "discussion_with_primary_care"
+
+
+def test_refer_2ww_xray_maps_to_straight_to_test() -> None:
+    """A two-week-wait refer imaging action stays clinic-booked straight to test."""
+    rule = {
+        "rule_id": "1.1.2-refer",
+        "name": "Rule: 1.1.2",
+        "strength": "refer",
+        "guideline_title": "Suspected cancer",
+        "actions": [{"priority": "2ww", "name": "Plain X-ray of chest (procedure)"}],
+    }
+    code, _ = derive_spoa_disposition(primary_rules=[rule], alternative_rules=[])
     assert code == "straight_to_test"
 
 

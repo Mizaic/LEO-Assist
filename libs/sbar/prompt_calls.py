@@ -157,6 +157,8 @@ def build_referral_justification_bullet(rules: list[dict[str, Any]]) -> str:
     if not rules:
         return ""
     ordered = sorted(support_rules_for_referral(rules), key=_rule_sort_key)
+    if not ordered:
+        return ""
     names = _join_rule_names([_rule_display_name(rule) for rule in ordered])
     guideline_title = (ordered[0].get("guideline_title") or "").strip()
     conditions = _combine_matched_conditions(ordered)

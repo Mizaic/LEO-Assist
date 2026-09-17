@@ -62,6 +62,9 @@ param frontendUrl = 'https://leo-ai-audit.mizaic.cloud'
 
 // Graph API sender mailbox (@mizaic.com; corporate tenant via MAIL_GRAPH_* secrets)
 param mailFromAddress = 'leo.support@mizaic.com'
+param mailAlertsFromAddress = 'leo.alerts@mizaic.com'
+param mailAlertsToAddresses = ''
+param azureOpenAiResourceId = ''
 
 // Production knowledge graph tier (shared with validation).
 // ACA Custom domains: hostname + environment certificate name (portal: Networking -> Custom domains).

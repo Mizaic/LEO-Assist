@@ -9,6 +9,7 @@ Atlas trace:
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -120,6 +121,40 @@ def _open_knowledge_session() -> Any:
         return None
 
 
+def _parse_observed_at(raw: Any) -> datetime | None:
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        try:
+            parsed = datetime.strptime(text[:10], "%Y-%m-%d")
+        except ValueError:
+            return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _concept_occurrence_facts(
+    state: ComplianceState,
+) -> tuple[dict[str, list[datetime]], list[str]]:
+    occurrences: dict[str, list[datetime]] = {}
+    historical: list[str] = []
+    for ent in state.get("entities") or []:
+        cid = str(ent.get("concept_id") or ent.get("snomed_concept_id") or "").strip()
+        if not cid:
+            continue
+        if str(ent.get("assertion") or "").lower() == "historical":
+            historical.append(cid)
+        observed = _parse_observed_at(ent.get("observed_at"))
+        if observed is None:
+            continue
+        occurrences.setdefault(cid, []).append(observed)
+    return occurrences, historical
+
+
 def _patient_eval_kwargs(
     state: ComplianceState,
     observations: list[dict[str, Any]],
@@ -127,6 +162,7 @@ def _patient_eval_kwargs(
     resolved_id: str | None,
     resolved_pathway: str | None,
 ) -> dict[str, Any]:
+    occurrences, historical = _concept_occurrence_facts(state)
     return {
         "pathway_filter": resolved_pathway,
         "patient_age": state.get("patient_age"),
@@ -141,6 +177,8 @@ def _patient_eval_kwargs(
         "active_medications": list(state.get("active_medications") or []) or None,
         "allergies": list(state.get("allergies") or []) or None,
         "treatment_history": list(state.get("treatment_history") or []) or None,
+        "concept_occurrences": occurrences,
+        "historical_concept_ids": historical,
     }
 
 
@@ -148,13 +186,13 @@ def _run_patient_eval(
     codes: list[str],
     kwargs: dict[str, Any],
 ) -> tuple[dict[str, Any], bool]:
+    session_cm = _open_knowledge_session()
+    if session_cm is None:
+        return _guideline_evaluator().evaluate_patient(codes, **kwargs), True
     from services.terminology_api.app.services.guideline_evaluator import (
         GuidelineEvaluator,
     )
 
-    session_cm = _open_knowledge_session()
-    if session_cm is None:
-        return GuidelineEvaluator().evaluate_patient(codes, **kwargs), True
     with session_cm as session:
         result = GuidelineEvaluator(neo4j_session=session).evaluate_patient(
             codes, **kwargs
@@ -298,6 +336,9 @@ def _dual_result(
     degraded = bool(
         primary_payload.get("degraded") or alt_payload.get("degraded") or not_compiled
     )
+    from libs.sbar.referral_support import support_rules_for_referral
+
+    support_rules = support_rules_for_referral(primary_rules)
     result = dict(primary_payload or {})
     result["matched_rules"] = primary_rules
     result["primary"] = {
@@ -306,7 +347,7 @@ def _dual_result(
         "service_id": state.get("healthcare_service_id"),
         "service_name": state.get("healthcare_service_name"),
         "service_specialty": state.get("healthcare_service_specialty"),
-        "supported": bool(primary_rules),
+        "supported": bool(support_rules),
         "ruleset_missing": not_compiled,
     }
     result["alternatives"] = {
@@ -314,7 +355,7 @@ def _dual_result(
         "matched_rules": alternative_rules,
     }
     result["healthcare_service_missing"] = bool(state.get("healthcare_service_missing"))
-    result["is_compliant"] = bool(primary_rules)
+    result["is_compliant"] = bool(support_rules)
     result["degraded"] = degraded
     return result
 

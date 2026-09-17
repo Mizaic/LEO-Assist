@@ -22,6 +22,28 @@ def test_patient_eval_passes_letter_text_from_encounter() -> None:
     assert kwargs["letter_text"] == "chronic recurrent vaginal discharge"
 
 
+def test_patient_eval_forwards_concept_occurrences_and_historical() -> None:
+    kwargs = _patient_eval_kwargs(
+        {
+            "encounter_text": "old fracture",
+            "entities": [
+                {
+                    "concept_id": "66308002",
+                    "assertion": "historical",
+                    "observed_at": "2019-03-12",
+                    "label": "disorder",
+                }
+            ],
+        },
+        [],
+        "guideline",
+        "NG12",
+        "NG12",
+    )
+    assert "66308002" in kwargs["historical_concept_ids"]
+    assert kwargs["concept_occurrences"]["66308002"][0].year == 2019
+
+
 def _rule(rule_id: str, guideline_id: str) -> dict:
     return {
         "rule_id": rule_id,
@@ -31,18 +53,15 @@ def _rule(rule_id: str, guideline_id: str) -> dict:
     }
 
 
-@patch("services.terminology_api.app.services.guideline_evaluator.GuidelineEvaluator")
-def test_primary_miss_runs_alternative_scan(mock_evaluator_cls: MagicMock) -> None:
-    evaluator = MagicMock()
-    mock_evaluator_cls.return_value = evaluator
-
-    def _evaluate(codes, **kwargs):
+@patch("libs.pipeline_graph.subgraphs.compliance._run_patient_eval")
+def test_primary_miss_runs_alternative_scan(mock_run: MagicMock) -> None:
+    def _evaluate(codes, kwargs):
         pathway_filter = kwargs.get("pathway_filter")
         if pathway_filter == "NG12":
-            return {"matched_rules": []}
-        return {"matched_rules": [_rule("alt-1", "NG27")]}
+            return {"matched_rules": []}, False
+        return {"matched_rules": [_rule("alt-1", "NG27")]}, False
 
-    evaluator.evaluate_patient.side_effect = _evaluate
+    mock_run.side_effect = _evaluate
     state = {
         "primary_guideline_ids": ["NG12"],
         "healthcare_service_id": "6711368",
@@ -56,13 +75,32 @@ def test_primary_miss_runs_alternative_scan(mock_evaluator_cls: MagicMock) -> No
     assert result["alternatives"]["matched_rules"][0]["rule_id"] == "alt-1"
 
 
-@patch("services.terminology_api.app.services.guideline_evaluator.GuidelineEvaluator")
-def test_primary_hit_keeps_top_level_matches(mock_evaluator_cls: MagicMock) -> None:
-    evaluator = MagicMock()
-    mock_evaluator_cls.return_value = evaluator
-    evaluator.evaluate_patient.return_value = {
-        "matched_rules": [_rule("pri-1", "NG12")]
-    }
+@patch("libs.pipeline_graph.subgraphs.compliance._run_patient_eval")
+def test_offer_only_primary_hit_is_not_supported(mock_run: MagicMock) -> None:
+    mock_run.return_value = (
+        {
+            "matched_rules": [
+                {
+                    "rule_id": "1.10.4",
+                    "guideline_id": "NG12",
+                    "name": "Rule: 1.10.4",
+                    "strength": "offer",
+                    "actions": [{"priority": "routine", "name": "Full blood count"}],
+                }
+            ]
+        },
+        False,
+    )
+    state = {"primary_guideline_ids": ["NG12"]}
+    result = _evaluate_dual_compliance(state, ["66308002"])
+    assert result["primary"]["supported"] is False
+    assert result["is_compliant"] is False
+    assert result["matched_rules"][0]["rule_id"] == "1.10.4"
+
+
+@patch("libs.pipeline_graph.subgraphs.compliance._run_patient_eval")
+def test_primary_hit_keeps_top_level_matches(mock_run: MagicMock) -> None:
+    mock_run.return_value = ({"matched_rules": [_rule("pri-1", "NG12")]}, False)
     state = {"primary_guideline_ids": ["NG12"]}
     result = _evaluate_dual_compliance(state, ["123"])
     assert result["matched_rules"][0]["rule_id"] == "pri-1"

@@ -63,6 +63,10 @@ param widgetPublicHost string = ''
 
 // Graph API sender mailbox for invite and notification emails.
 param mailFromAddress string
+param mailAlertsFromAddress string = ''
+param mailAlertsToAddresses string = ''
+param azureOpenAiResourceId string = ''
+param deploySpendTrueUpJob bool = true
 
 // Deploy Container Apps (requires Key Vault secrets to exist first).
 // Set false for phase-1 bootstrap; deploy.ps1 -Bootstrap runs migrate-secrets between phases.
@@ -204,5 +208,30 @@ output acaDefaultDomain string = deployContainerApps ? containerApps.outputs.aca
 output deployContainerApps bool = deployContainerApps
 output kvUri string = keyvault.outputs.kvUri
 output sbNamespaceFqdn string = servicebus.outputs.sbNamespaceFqdn
+module costMonitorRoles 'modules/cost-monitor-roles.bicep' = {
+  name: 'cost-monitor-roles'
+  scope: subscription()
+  params: {
+    principalId: managedIdentity.properties.principalId
+  }
+}
+
+module spendTrueUpJob 'modules/llm-spend-true-up-job.bicep' = if (deployContainerApps && deploySpendTrueUpJob) {
+  name: 'llm-spend-true-up-job'
+  params: {
+    location: location
+    environment: environment
+    managedIdentityId: managedIdentity.id
+    managedIdentityClientId: managedIdentity.properties.clientId
+    acrLoginServer: acr.properties.loginServer
+    containerAppsEnvironmentId: containerApps.outputs.containerAppsEnvironmentId
+    kvUri: keyvault.outputs.kvUri
+    imageTag: imageTag
+    mailAlertsFromAddress: mailAlertsFromAddress
+    mailAlertsToAddresses: mailAlertsToAddresses
+    azureOpenAiResourceId: azureOpenAiResourceId
+  }
+}
+
 output aoaiEndpoint string = azureOpenAiEndpoint
 output storageAccountUrl string = 'https://${storageAccountName}.blob.${az.environment().suffixes.storage}'
