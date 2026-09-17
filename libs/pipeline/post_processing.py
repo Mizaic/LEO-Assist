@@ -80,6 +80,7 @@ from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.referral_routing_guard import should_suppress_referral_routing_entity
 from libs.ner.body_structure_guard import should_keep_body_structure
 from libs.ner.observable_post_processor import normalize_observable_entities
+from libs.pipeline.observation_date import assign_finding_observed_at
 from libs.ner.post_processor_rules import PostProcessorRule, apply_rules_to_entities
 from libs.pipeline.extraction_term_normaliser import (
     clean_observable_surface_text,
@@ -1829,6 +1830,11 @@ def run_post_processing_with_trace(
             current,
             add_qualifier_value=True,
         ),
+    )
+    _run_layer(
+        "layer_4a",
+        "Finding observation dates",
+        lambda current: assign_finding_observed_at(encounter_text, current),
     )
 
     # Layer 4b: Observable Surface Cleanup (DI-B5C78811 / DO-728930A1)

@@ -66,3 +66,34 @@ def test_unexplained_only_is_not_auto_applied() -> None:
     )
     assert "1.1.2" not in ALLOW_APPLY
     assert proposal["soft_kinds"] == ["unexplained"]
+
+
+def test_tags_unexplained_and_persistent_as_hard_from_source_text() -> None:
+    from libs.guidelines.soft_gate_backfill import tag_first_presentation_leaves
+
+    tree = {
+        "kind": "AND",
+        "children": [
+            {
+                "kind": "CONCEPT",
+                "criterion": {
+                    "snomed_concept_id": "125605004",
+                    "preferred_term": "Fracture of bone",
+                    "source_text": "unexplained fracture",
+                },
+            },
+            {
+                "kind": "CONCEPT",
+                "source_row_text": "persistent bone pain",
+                "criterion": {
+                    "snomed_concept_id": "12584003",
+                    "preferred_term": "Bone pain",
+                },
+            },
+        ],
+    }
+    out = tag_first_presentation_leaves(tree)
+    unexplained = out["children"][0]["criterion"]["soft_qualifiers"]
+    persistent = out["children"][1]["criterion"]["soft_qualifiers"]
+    assert unexplained == [{"kind": "unexplained", "enforcement": "hard"}]
+    assert persistent == [{"kind": "persistent", "enforcement": "hard"}]

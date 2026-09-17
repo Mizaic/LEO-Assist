@@ -10,6 +10,8 @@ export const LETTER_TITLE = "Inbound referral to Gastroenterology";
 export const SERVICE_NAME = "Gastroenterology (Hepatology)";
 export const PRIMARY_SUPPORT = "Supported by receiving service? no";
 export const OTHER_GUIDELINES = "Other guidelines that would support this request";
+export const OFFER_NOT_SUPPORT =
+  "Offer or consider investigation rules do not mark the receiving service as supported.";
 export const DISPOSITION = "Advisory SPoA disposition: Refer to alternative service";
 export const ADVISORY_TEXT =
   "AI-generated summary. Clinician review required before acting on this " +
@@ -30,6 +32,8 @@ export const SBAR_MARKDOWN = [
   "## Assessment",
   "**Receiving service:** Gastroenterology (Hepatology) -- guidelines NG12.",
   "**Supported by receiving service?** no.",
+  "Offer or consider investigation rules do not mark the receiving " +
+    "service as supported.",
   "No matching guideline rules fired for this patient's coded evidence " +
     "against the receiving service scope.",
   "Reviewed against 3 clinical codes.",

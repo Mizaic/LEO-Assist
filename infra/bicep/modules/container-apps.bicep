@@ -921,3 +921,4 @@ output coreApiFqdn string = coreApi.properties.configuration.ingress.fqdn
 output uiFqdn string = ui.properties.configuration.ingress.fqdn
 // Environment DNS suffix for in-mesh HTTP (e.g. proudriver-82c5b80a.uksouth.azurecontainerapps.io)
 output acaDefaultDomain string = cae.properties.defaultDomain
+output containerAppsEnvironmentId string = cae.id

@@ -141,7 +141,13 @@ def _action_text(rule: dict[str, Any]) -> str:
     return " ".join(parts)
 
 
+def _rule_strength(rule: dict[str, Any]) -> str:
+    return str(rule.get("strength") or "").strip().lower()
+
+
 def _action_kind(rule: dict[str, Any]) -> str:
+    if _rule_strength(rule) in {"offer", "consider"}:
+        return "discussion_with_primary_care"
     text = _action_text(rule)
     # A referral routes the patient into a (fast-tracked) outpatient
     # pathway -- check this before the procedure tokens, since a
@@ -204,8 +210,11 @@ def derive_spoa_disposition(
             "further_information_required",
             "No reason for referral was found, so guideline rules were not applied.",
         )
-    if primary_rules:
-        best = _best_rule(primary_rules) or primary_rules[0]
+    from libs.sbar.referral_support import support_rules_for_referral
+
+    support_rules = support_rules_for_referral(primary_rules)
+    if support_rules:
+        best = _best_rule(support_rules) or support_rules[0]
         if str(source_node_type or "") == "CommunicationRequest":
             return (
                 "discussion_with_primary_care",
@@ -217,6 +226,18 @@ def derive_spoa_disposition(
             kind,
             f"Receiving service guidelines matched: {rule_name}.",
         )
+    if primary_rules:
+        best = _best_rule(primary_rules) or primary_rules[0]
+        kind = _action_kind(best)
+        rule_name = best.get("name") or best.get("rule_id") or "matched rule"
+        if kind != "discussion_with_primary_care":
+            evidence = f"Receiving service guidelines matched: {rule_name}."
+        else:
+            evidence = (
+                "Receiving service two-week-wait rules did not match; "
+                f"a primary-care investigation rule did ({rule_name})."
+            )
+        return kind, evidence
 
     if alternative_rules:
         best = _best_rule(alternative_rules) or alternative_rules[0]

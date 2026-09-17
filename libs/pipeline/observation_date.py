@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from datetime import date
 import re
+from typing import Any
 
 # Shared with taught blood-table cells (lab_result_evidence).
 DATE_TOKEN = (
@@ -92,3 +93,39 @@ def parse_observation_date(text: str) -> str | None:
     if len(found) == 1:
         return next(iter(found))
     return None
+
+
+_FINDING_LABELS = frozenset(
+    {"finding", "clinical_finding", "disorder", "disease", "situation"}
+)
+
+
+def _line_at(text: str, index: int) -> str:
+    if not text:
+        return ""
+    pos = max(0, min(index, len(text)))
+    start = text.rfind("\n", 0, pos) + 1
+    end = text.find("\n", pos)
+    if end == -1:
+        end = len(text)
+    return text[start:end]
+
+
+def assign_finding_observed_at(
+    encounter_text: str, entities: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Stamp observed_at on findings and disorders with exactly one line date."""
+    for ent in entities:
+        if str(ent.get("observed_at") or "").strip():
+            continue
+        label = str(ent.get("label") or ent.get("semantic_tag") or "").lower()
+        if label not in _FINDING_LABELS:
+            continue
+        start = int(ent.get("start") or 0)
+        line = _line_at(encounter_text, start)
+        observed = parse_observation_date(line) or parse_observation_date(
+            str(ent.get("text") or "")
+        )
+        if observed:
+            ent["observed_at"] = observed
+    return entities

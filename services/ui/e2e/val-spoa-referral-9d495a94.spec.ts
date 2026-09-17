@@ -15,6 +15,7 @@ import {
   ADVISORY_TEXT,
   DISPOSITION,
   LETTER_TITLE,
+  OFFER_NOT_SUPPORT,
   OTHER_GUIDELINES,
   PATIENT_ID,
   PATIENT_NAME,
@@ -98,6 +99,7 @@ test.describe("VAL-9D495A94 elective SPoA consultant review @val", () => {
           ctx.lastCompletedStep.value = 0;
 
           await expect(ctx.page.getByText(PRIMARY_SUPPORT).first()).toBeVisible();
+          await expect(ctx.page.getByText(OFFER_NOT_SUPPORT).first()).toBeVisible();
           await recordProtocolStep({
             request: ctx.request,
             runId: ctx.runId,

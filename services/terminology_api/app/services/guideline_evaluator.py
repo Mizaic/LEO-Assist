@@ -109,6 +109,7 @@ class _PatientContext:
     treatments: list[dict[str, Any]] | None
     letter_text: str = ""
     concept_occurrences: dict[str, list] = dataclasses.field(default_factory=dict)
+    historical_concept_ids: list[str] = dataclasses.field(default_factory=list)
     evaluation_time: Any = None
     unverified_qualifiers: list[str] = dataclasses.field(default_factory=list)
     codes: list[str] = dataclasses.field(default_factory=list)
@@ -242,6 +243,7 @@ class GuidelineEvaluator:
         treatment_history: list[dict[str, Any]] | None = None,
         letter_text: str | None = None,
         concept_occurrences: dict[str, list] | None = None,
+        historical_concept_ids: list[str] | None = None,
         evaluation_time: datetime | None = None,
     ) -> dict[str, Any]:
         """Evaluate patient SNOMED codes against the active bitmap ruleset.
@@ -303,6 +305,7 @@ class GuidelineEvaluator:
             treatments=treatment_history,
             letter_text=letter_text or "",
             concept_occurrences=concept_occurrences or {},
+            historical_concept_ids=list(historical_concept_ids or []),
             evaluation_time=evaluation_time,
             codes=effective_codes,
         )
@@ -1324,14 +1327,19 @@ class GuidelineEvaluator:
         record_unverified: bool = True,
     ) -> bool:
         """Apply soft guideline words after the hard CONCEPT bitmap hit."""
-        quals = (node.get("criterion") or {}).get("soft_qualifiers") or []
-        if not quals:
-            return True
         try:
+            from libs.guidelines.soft_gate_backfill import (
+                tag_first_presentation_leaves,
+            )
             from libs.guidelines.soft_qualifier import apply_soft_qualifiers
         except Exception:
             logger.exception("soft qualifier resolver unavailable -- fail closed")
             raise
+
+        tagged = tag_first_presentation_leaves(node)
+        quals = (tagged.get("criterion") or {}).get("soft_qualifiers") or []
+        if not quals:
+            return True
         if session is None:
             logger.error(
                 "soft qualifiers evaluated without patient context -- fail closed"
@@ -1342,9 +1350,10 @@ class GuidelineEvaluator:
         facts = {
             "letter_text": ctx.letter_text,
             "concept_occurrences": ctx.concept_occurrences,
+            "historical_concept_ids": ctx.historical_concept_ids,
         }
         sink = ctx.unverified_qualifiers if record_unverified else []
-        return apply_soft_qualifiers(node, facts, now, sink)
+        return apply_soft_qualifiers(tagged, facts, now, sink)
 
 
 def _observation_mode(node: dict[str, Any]) -> str:

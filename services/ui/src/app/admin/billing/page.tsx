@@ -53,6 +53,8 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import StorageIcon from "@mui/icons-material/Storage";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import { compareStringsNatural } from "@/lib/sortNatural";
+import AzureTrueUpCard from "@/components/admin/AzureTrueUpCard";
+import EncounterQuotaCard from "@/components/admin/EncounterQuotaCard";
 
 // =============================================================================
 // Types
@@ -681,6 +683,9 @@ export default function BillingPage() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Per-tenant AI spend with margin and discounts applied. Visible to platform admins only.
       </Typography>
+
+      <AzureTrueUpCard />
+      <EncounterQuotaCard />
 
       {/* Margin config */}
       <Box sx={{ mb: 3 }}>

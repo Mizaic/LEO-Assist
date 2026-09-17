@@ -181,6 +181,38 @@ def test_outer_recorder_is_not_active_outside_with_block():
     assert get_active_recorder() is None
 
 
+def _sample_call(**overrides: object) -> LLMCallRecord:
+    payload = {
+        "agent_task": "sbar_background",
+        "model_name": "gpt-5.4-mini",
+        "model_provider": "azure",
+        "input_tokens": 1000,
+        "output_tokens": 40,
+        "cached_input_tokens": 0,
+        "latency_ms": 20,
+        "success": True,
+    }
+    payload.update(overrides)
+    return LLMCallRecord(**payload)
+
+
+def test_nested_recorder_forwards_calls_to_parent():
+    """Inner SBAR recorder must not hide tokens from the durable step.
+
+    DI-9456E5BE -- spend totals under-count when SBAR opens a nested
+    LLMUsageRecorder inside the step recorder (2026-09-16 Azure gap).
+    """
+    parent = LLMUsageRecorder()
+    child = LLMUsageRecorder()
+    with parent:
+        with child:
+            child.record(_sample_call())
+    assert child.usage.llm_calls == 1
+    assert parent.usage.llm_calls == 1
+    assert parent.usage.input_tokens == 1000
+    assert parent.usage.output_tokens == 40
+
+
 def test_to_audit_dict_returns_uiwire_compatible_shape(stub_create_llm, monkeypatch):
     monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
     from libs.llm_client.factory import LLMResponse

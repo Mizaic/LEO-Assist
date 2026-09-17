@@ -26,10 +26,12 @@ def _rule_priority(rule: dict[str, Any]) -> str:
 def support_rules_for_referral(
     rules: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Return 2WW-or-higher rules when any exist; else keep all rules."""
+    """Return only 2WW-or-higher refer rules that support the request.
+
+    Offer, consider, routine, and urgent investigation rules never claim
+    receiving-service support. When none of the time-critical rules
+    match, return an empty list.
+    """
     if not rules:
         return []
-    critical = [rule for rule in rules if _rule_priority(rule) in _TIME_CRITICAL]
-    if critical:
-        return critical
-    return list(rules)
+    return [rule for rule in rules if _rule_priority(rule) in _TIME_CRITICAL]

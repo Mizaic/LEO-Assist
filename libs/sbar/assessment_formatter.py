@@ -325,7 +325,7 @@ def _format_spoa_assessment(
     service_name = str(primary.get("service_name") or "").strip()
     service_specialty = str(primary.get("service_specialty") or "").strip()
     primary_ids = list(primary.get("guideline_ids") or guideline_ids or [])
-    supported = bool(primary.get("supported"))
+    supported = bool(primary_rules)
     ruleset_missing = bool(primary.get("ruleset_missing")) or (
         bool(compliance_context.get("degraded")) and not supported
     )

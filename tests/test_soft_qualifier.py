@@ -18,7 +18,6 @@ from libs.guidelines.soft_qualifier import (
     resolve_soft_qualifier,
 )
 
-
 NOW = datetime(2026, 8, 30, tzinfo=timezone.utc)
 
 
@@ -232,3 +231,33 @@ def test_min_occurrences_confirmed_when_count_met() -> None:
         NOW,
     )
     assert outcome == "confirmed"
+
+
+def test_historical_concept_contradicts_unexplained() -> None:
+    outcome = resolve_soft_qualifier(
+        _qualifier("unexplained", concept_id="66308002"),
+        {
+            "letter_text": "unexplained fracture",
+            "historical_concept_ids": ["66308002"],
+        },
+        NOW,
+    )
+    assert outcome == "contradicted"
+
+
+def test_hard_unexplained_not_confirmed_blocks_leaf() -> None:
+    from libs.guidelines.soft_qualifier import apply_soft_qualifiers
+
+    unverified: list[str] = []
+    allowed = apply_soft_qualifiers(
+        {
+            "criterion": {
+                "snomed_concept_id": "66308002",
+                "soft_qualifiers": [{"kind": "unexplained", "enforcement": "hard"}],
+            }
+        },
+        {"letter_text": "past fracture of humerus"},
+        NOW,
+        unverified,
+    )
+    assert allowed is False

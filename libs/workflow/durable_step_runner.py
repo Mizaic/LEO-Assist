@@ -1149,6 +1149,20 @@ class DurableStepRunner:
                 lease_owner=claim.lease_owner,
                 lease_generation=claim.lease_generation,
             )
+        if complete.outcome == "completed":
+            from libs.workflow.run_llm_spend_rollup import (
+                maybe_write_run_llm_spend_rollup,
+            )
+
+            maybe_write_run_llm_spend_rollup(
+                ctx.client,
+                run_id=request.run_id,
+                patient_id=request.patient_id,
+                encounter_id=request.encounter_id,
+                status=result.status,
+                next_action_ids=next_ids,
+                stage_failed=_is_stage_failure(result),
+            )
         _emit_progress(
             ctx.publish_progress,
             request,
