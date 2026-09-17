@@ -20,6 +20,11 @@ from typing import Any, Literal
 
 from libs.ner.form_checkbox_normalizer import NON_EXTRACTABLE_MARKER
 from libs.pipeline.form_pattern_match import safe_search, section_matches
+from libs.pipeline.form_tick_marks import (
+    is_checked_mark,
+    mark_in_span,
+    yes_no_answer as _yes_no_from_marks,
+)
 from libs.pipeline.lab_result_evidence import row_has_value_cell, row_reports_a_result
 
 SectionType = Literal[
@@ -50,14 +55,6 @@ SECTION_TYPE_SEMANTIC_TAG: dict[str, list[str]] = {
 
 _CHECKED_RE = re.compile(r"\[(?:X|x|\*|YES|yes)\]|\((?:X|x)\)")
 _UNCHECKED_RE = re.compile(r"\[\s*\]|\(\s*\)")
-# Yes / No rows appear in both box orders on NHS forms: "Yes [X] No [ ]"
-# and "[X] Yes [ ] No". Capture the word and its own box either way so a
-# tick before the word is not mistaken for an unanswered row.
-_YESNO_PAIR_RE = re.compile(
-    r"\b(Yes|No)\b\s*\[([^\]]*)\]|\[([^\]]*)\]\s*\b(Yes|No)\b",
-    re.IGNORECASE,
-)
-_BOX_CHECKED_RE = re.compile(r"^(?:[Xx*]|YES|yes)")
 
 
 @dataclass
@@ -144,51 +141,12 @@ def _seal(line: str) -> str:
     return _mark(line)
 
 
-_BOX_CAPTURE_RE = re.compile(r"\[([^\]]*)\]|\(([^)]*)\)")
-# Packed-row pairing must ignore prose in parentheses, such as
-# "(Please tick one of the following...)". Only square tick boxes count.
-_TICK_BOX_RE = re.compile(r"\[([^\]]*)\]")
-
-
 def _has_any_box(line: str) -> bool:
     return bool(_CHECKED_RE.search(line) or _UNCHECKED_RE.search(line))
 
 
 def _box_is_checked(match: re.Match[str]) -> bool:
-    content = (match.group(1) or match.group(2) or "").strip()
-    return bool(_BOX_CHECKED_RE.match(content))
-
-
-def _items_in_line_order(
-    line: str, items: list[FormSchemaItem]
-) -> list[FormSchemaItem]:
-    """Return taught items that appear on *line*, left to right."""
-    found: list[tuple[int, FormSchemaItem]] = []
-    for item in items:
-        match = safe_search(item.pattern, line)
-        if match is not None:
-            found.append((match.start(), item))
-    found.sort(key=lambda pair: pair[0])
-    return [item for _start, item in found]
-
-
-def _paired_checked_texts(line: str, items: list[FormSchemaItem]) -> list[str] | None:
-    """Pair N items with N boxes on one row, in left-to-right order.
-
-    The Breast Unit 2WW form prints A3-A6 (and ECOG 0-4) on one line
-    with the tick boxes clustered at the end. First-box-after-pattern
-    would assign every item the first box. None means the line is not
-    this packed shape, so the caller should use the per-item rule.
-    """
-    ordered = _items_in_line_order(line, items)
-    boxes = list(_TICK_BOX_RE.finditer(line))
-    if len(ordered) < 2 or len(boxes) < len(ordered):
-        return None
-    return [
-        item.entity_text
-        for item, box in zip(ordered, boxes, strict=False)
-        if _box_is_checked(box)
-    ]
+    return is_checked_mark(match.group(1) or match.group(2))
 
 
 def _item_is_checked(line: str, item: FormSchemaItem) -> bool | None:
@@ -196,11 +154,7 @@ def _item_is_checked(line: str, item: FormSchemaItem) -> bool | None:
     match = safe_search(item.pattern, line)
     if match is None:
         return None
-    after = line[match.start() :]
-    box_match = _BOX_CAPTURE_RE.search(after)
-    if box_match is None:
-        return None
-    return _box_is_checked(box_match)
+    return mark_in_span(line[match.end() :])
 
 
 def _process_checkbox_line(line: str, section: FormSection) -> list[str]:
@@ -210,42 +164,15 @@ def _process_checkbox_line(line: str, section: FormSection) -> list[str]:
     return [_seal(line)]
 
 
-def _two_column_tick_answer(line: str) -> str | None:
-    """Read a Yes/No table that prints only ``| [X] | [ ] |``."""
-    boxes = [_box_is_checked(match) for match in _TICK_BOX_RE.finditer(line)]
-    if len(boxes) != 2:
-        return None
-    if boxes[0] and not boxes[1]:
-        return "yes"
-    if boxes[1] and not boxes[0]:
-        return "no"
-    return None
-
-
 def _yes_no_answer(line: str) -> str | None:
     """Return "yes", "no", or None for a Yes / No row.
 
-    Reads both box orders, so "[X] Yes [ ] No" answers Yes just like
-    "Yes [X] No [ ]". A two-column tick table without the words is
-    Yes when the first box is ticked. Returns None when the row has
-    no single clear answer, so an unanswered or contradictory row is
-    never read as Yes.
+    Reads [X], [x], X, and x on either side of the word. A
+    two-column tick table without the words is Yes when the first
+    box is ticked. Returns None when the row has no single clear
+    answer, so an unanswered or contradictory row is never read as Yes.
     """
-    checked: set[str] = set()
-    found = False
-    for match in _YESNO_PAIR_RE.finditer(line):
-        word = (match.group(1) or match.group(4) or "").lower()
-        if not word:
-            continue
-        found = True
-        box = (match.group(2) if match.group(1) else match.group(3)) or ""
-        if _BOX_CHECKED_RE.match(box.strip()):
-            checked.add(word)
-    if not found:
-        return _two_column_tick_answer(line)
-    if len(checked) != 1:
-        return None
-    return checked.pop()
+    return _yes_no_from_marks(line)
 
 
 def _process_yesno_line(line: str, section: FormSection) -> list[str]:

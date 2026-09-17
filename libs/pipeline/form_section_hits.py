@@ -19,13 +19,10 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchema,
     FormSchemaItem,
     FormSection,
-    _box_is_checked,
-    _item_is_checked,
-    _items_in_line_order,
     _resolve_default_sections,
-    _TICK_BOX_RE,
     _yes_no_answer,
 )
+from libs.pipeline.form_tick_marks import item_marks_on_line
 
 _BOX_TYPES = frozenset({"checkbox_single", "checkbox_multi", "checkbox_yesno", "scale"})
 _FREE_TEXT_TYPES = frozenset({"free_text"})
@@ -148,10 +145,10 @@ def _matching_section(line: str, sections: list[FormSection]) -> FormSection | N
 def _hits_for_line(line: str, section: FormSection) -> list[dict[str, Any]]:
     if section.section_type == "checkbox_yesno":
         return _yesno_hits(line, section)
-    packed = _packed_hits(line, section)
-    if packed is not None:
-        return packed
-    return _per_item_hits(line, section)
+    return [
+        _hit(section, item, checked is True)
+        for item, checked in item_marks_on_line(line, section.items)
+    ]
 
 
 def _hit(section: FormSection, item: FormSchemaItem, checked: bool) -> dict[str, Any]:
@@ -161,27 +158,6 @@ def _hit(section: FormSection, item: FormSchemaItem, checked: bool) -> dict[str,
         "entity_text": item.entity_text,
         "checked": checked,
     }
-
-
-def _packed_hits(line: str, section: FormSection) -> list[dict[str, Any]] | None:
-    ordered = _items_in_line_order(line, section.items)
-    boxes = list(_TICK_BOX_RE.finditer(line))
-    if len(ordered) < 2 or len(boxes) < len(ordered):
-        return None
-    return [
-        _hit(section, item, _box_is_checked(box))
-        for item, box in zip(ordered, boxes, strict=False)
-    ]
-
-
-def _per_item_hits(line: str, section: FormSection) -> list[dict[str, Any]]:
-    hits: list[dict[str, Any]] = []
-    for item in section.items:
-        checked = _item_is_checked(line, item)
-        if checked is None:
-            continue
-        hits.append(_hit(section, item, checked))
-    return hits
 
 
 def _yesno_hits(line: str, section: FormSection) -> list[dict[str, Any]]:

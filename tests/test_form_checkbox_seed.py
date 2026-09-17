@@ -91,6 +91,41 @@ def _sfh_schema() -> FormSchema:
     )
 
 
+def test_bare_x_on_packed_row_seeds_endometrium() -> None:
+    raw = (
+        "Section A: Gynaecological Cancer type suspected\n"
+        "Ovary [ ] Cervix [ ] Endometrium X Vagina [ ] Vulva [ ]\n"
+    )
+    schema = FormSchema(
+        schema_id="bare-x-seed",
+        fingerprint="bare-x",
+        form_name="Gynaecology 2WW Referral",
+        created_by="test",
+        sections=[
+            FormSection(
+                section_id="A",
+                section_type="checkbox_multi",
+                label="Section A",
+                start_pattern=r"(?i)section\s+a",
+                items=[
+                    FormSchemaItem(
+                        pattern="Ovary",
+                        entity_text="Suspected ovarian cancer",
+                    ),
+                    FormSchemaItem(
+                        pattern="Endometrium",
+                        entity_text="Suspected endometrial cancer",
+                    ),
+                ],
+            )
+        ],
+    )
+    seeded = seed_checkbox_entities(raw, schema)
+    texts = {str(row.get("entity_text") or "") for row in seeded}
+    assert "Suspected endometrial cancer" in texts
+    assert "Suspected ovarian cancer" not in texts
+
+
 def test_ticked_checkbox_is_seeded_at_raw_letter_offset() -> None:
     seeded = seed_checkbox_entities(_RAW, _schema())
     assert len(seeded) == 1
