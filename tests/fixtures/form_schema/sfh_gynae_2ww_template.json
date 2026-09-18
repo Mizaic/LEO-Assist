@@ -899,6 +899,15 @@
           ]
         },
         {
+          "name": "Postcoital bleeding",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            48880000
+          ]
+        },
+        {
           "name": "Vaginal discharge",
           "kind": "optional",
           "required": false,
@@ -987,6 +996,15 @@
           "semantic_categories": [],
           "concept_ids": [
             76742009
+          ]
+        },
+        {
+          "name": "Postcoital bleeding",
+          "kind": "optional",
+          "required": false,
+          "semantic_categories": [],
+          "concept_ids": [
+            48880000
           ]
         },
         {

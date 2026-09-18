@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from libs.completeness.logic_groups import collect_concept_ids
 from libs.sbar.clinic_reason_fit import reason_matches_clinic
 from libs.sbar.situation_headline import headline_from_coded_facts
 
@@ -45,13 +46,18 @@ def build_structured_situation(
     form_clinical_section: str | None = None,
     form_sections: list[Any] | None = None,
     coded_facts: list[dict[str, Any]] | None = None,
+    completeness_groups: list[dict[str, Any]] | None = None,
     run_id: str | None = None,
 ) -> SituationSourceResult:
     """Prefer coded facts, then a clinic-matching reason, then the form."""
     rr = referral_request or {}
     priority = str(rr.get("priority") or "").strip() or None
     clinic = str(rr.get("clinic_type") or "")
-    coded = headline_from_coded_facts(coded_facts, clinic_type=clinic)
+    coded = headline_from_coded_facts(
+        coded_facts,
+        clinic_type=clinic,
+        priority_concept_ids=collect_concept_ids(completeness_groups or []),
+    )
     if coded:
         return SituationSourceResult(
             headline=coded,
