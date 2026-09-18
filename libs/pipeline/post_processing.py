@@ -852,6 +852,70 @@ def _raw_text_value_before(
     return None
 
 
+def _absorb_measurement_span(span: dict[str, Any]) -> None:
+    """Drop a bare measurement span once its observable holds the reading.
+
+    "6 ku/L" beside a CA 125 resolves to "Kilounit/liter (qualifier value)"
+    and is then written to the record as a fact about the patient. It is the
+    same information as the observable's own unit field, so the referral
+    reads as nine extra findings that are really units.
+
+    Only a bare qualifier is dropped. A span that carries clinical meaning of
+    its own -- a finding, a disorder, an observable -- is left in place even
+    when its text was read as a value, because deleting it would lose
+    something the unit field cannot hold.
+    """
+    label = str(span.get("label") or "").strip().lower()
+    if label in ("", "qualifier_value"):
+        span["__suppress__"] = True
+
+
+def _same_reading(obs: dict[str, Any], parsed: tuple[str, str]) -> bool:
+    """Whether an observable already holds exactly this number and unit."""
+    value, unit = parsed
+    return (
+        str(obs.get("value") or "").strip() == value.strip()
+        and str(obs.get("unit") or "").strip().lower() == unit.strip().lower()
+    )
+
+
+def _spans_are_near(a: dict[str, Any], b: dict[str, Any], max_dist: int = 40) -> bool:
+    a_start, a_end = int(a.get("start", 0) or 0), int(a.get("end", 0) or 0)
+    b_start, b_end = int(b.get("start", 0) or 0), int(b.get("end", 0) or 0)
+    return min(abs(b_start - a_end), abs(a_start - b_end)) <= max_dist
+
+
+def _drop_spans_already_recorded(
+    entities: list[dict[str, Any]],
+    obs_indices: list[int],
+    numeric_indices: list[int],
+) -> None:
+    """Drop a bare measurement span the observable beside it already holds.
+
+    Linking only fills an observable that is still empty. When an earlier
+    layer has already read "6 ku/L" off the raw text, the observable is
+    skipped, so the span survives and is coded as "Kilounit/liter" -- the
+    same reading recorded twice.
+
+    The match must be exact on both number and unit. A second, different
+    reading nearby is new information and stays.
+    """
+    for span_i in numeric_indices:
+        span = entities[span_i]
+        if span.get("__suppress__"):
+            continue
+        parsed = _extract_value_unit(str(span.get("text", "")))
+        if not parsed:
+            continue
+        for obs_i in obs_indices:
+            if obs_i == span_i:
+                continue
+            obs = entities[obs_i]
+            if _same_reading(obs, parsed) and _spans_are_near(obs, span):
+                _absorb_measurement_span(span)
+                break
+
+
 def link_observable_value_units(
     entities: list[dict[str, Any]],
     encounter_text: str = "",
@@ -899,10 +963,11 @@ def link_observable_value_units(
         closest = _nearest_entity_within(
             obs_start, obs_end, numeric_indices, entities, max_dist=40
         )
-        if closest is not None:
+        if closest is not None and closest != obs_i:
             parsed = _extract_value_unit(str(entities[closest].get("text", "")))
             if parsed:
                 obs["value"], obs["unit"] = parsed
+                _absorb_measurement_span(entities[closest])
                 continue
 
         # Pass 2: string result entity
@@ -918,6 +983,8 @@ def link_observable_value_units(
         result = _raw_text_value_before(encounter_text, obs_start)
         if result is not None:
             obs["value"], obs["unit"] = result
+
+    _drop_spans_already_recorded(entities, obs_indices, numeric_indices)
 
 
 # ── Layer 9: Disorder Gate ──
@@ -1854,14 +1921,15 @@ def run_post_processing_with_trace(
     )
 
     # Layer 5: Value-Unit Linking (before entity-type norm -- see module docstring)
-    _run_layer(
-        "layer_5",
-        "Value-Unit Linking",
-        lambda current: (
-            link_observable_value_units(current, encounter_text),
-            current,
-        )[1],
-    )
+    def _layer_5(current: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        link_observable_value_units(current, encounter_text)
+        # A span read into an observable is dropped here, not left for a
+        # later layer. The only other place that acts on the flag is the
+        # disorder gate, which is optional, so with the gate off the unit
+        # would reach the record as a fact in its own right.
+        return [e for e in current if not e.get("__suppress__")]
+
+    _run_layer("layer_5", "Value-Unit Linking", _layer_5)
 
     # Layer 6: Entity-Type Normalisation
     _run_layer(

@@ -43,8 +43,13 @@ from libs.pipeline.llm_clinical_input import (
 )
 from libs.pipeline_graph.subgraphs._extractor import LLMExtractorAdapter
 
-# Size of the real referral bundle for NHS 4568668417.
+# Size of the real referral bundle for NHS 4568668417. It used to be cut at
+# 16,000 characters; the cap is now sized to the model's own window, so a
+# letter this length is read whole.
 REFERRAL_BUNDLE_CHARS = 26_585
+
+# A letter long enough to still be cut, so the reporting path stays tested.
+OVERSIZED_CHARS = DEFAULT_USER_TEXT_MAX_CHARS + 5_000
 
 
 class _FakeResp:
@@ -99,11 +104,23 @@ def test_guard_reports_that_it_cut_the_letter(monkeypatch) -> None:
         "libs.pipeline.llm_clinical_input.deidentify_encounter_text",
         lambda text: text,
     )
-    result = guard_user_clinical_text_checked(_letter(REFERRAL_BUNDLE_CHARS))
+    result = guard_user_clinical_text_checked(_letter(OVERSIZED_CHARS))
     assert result.truncated is True
-    assert result.original_chars == REFERRAL_BUNDLE_CHARS
+    assert result.original_chars == OVERSIZED_CHARS
     assert result.kept_chars == DEFAULT_USER_TEXT_MAX_CHARS
-    assert result.dropped_chars == REFERRAL_BUNDLE_CHARS - DEFAULT_USER_TEXT_MAX_CHARS
+    assert result.dropped_chars == OVERSIZED_CHARS - DEFAULT_USER_TEXT_MAX_CHARS
+
+
+def test_a_referral_sized_letter_is_read_whole_now(monkeypatch) -> None:
+    """The regression that started this. 26,585 characters used to lose its
+    last 10,585, and the FIT result sat in what was dropped."""
+    monkeypatch.setattr(
+        "libs.pipeline.llm_clinical_input.deidentify_encounter_text",
+        lambda text: text,
+    )
+    result = guard_user_clinical_text_checked(_letter(REFERRAL_BUNDLE_CHARS))
+    assert result.truncated is False
+    assert "faecal immunochemical" in result.text
 
 
 def test_guard_reports_a_whole_letter_as_whole(monkeypatch) -> None:
@@ -123,14 +140,14 @@ def test_guard_reports_a_whole_letter_as_whole(monkeypatch) -> None:
 
 
 def test_extractor_usage_reports_the_short_read(adapter) -> None:
-    letter = _letter(REFERRAL_BUNDLE_CHARS)
+    letter = _letter(OVERSIZED_CHARS)
     _items, usage = adapter.extract_batch_with_usage(
         letter,
         [SentenceChunk("s0", "Abdominal pain.", 0, 15)],
     )
     assert usage["clinical_text_truncated"] is True
     assert usage["clinical_text_dropped_chars"] == (
-        REFERRAL_BUNDLE_CHARS - DEFAULT_USER_TEXT_MAX_CHARS
+        OVERSIZED_CHARS - DEFAULT_USER_TEXT_MAX_CHARS
     )
 
 

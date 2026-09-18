@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+from libs.llm_client.context_budget import fleet_safe_char_budget
 from libs.llm_client.prompt_safety import (
     INJECTION_GUARD,
     cap_llm_response,
@@ -20,7 +21,12 @@ from libs.utils.deidentify import deidentify_text
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_USER_TEXT_MAX_CHARS = 16_000
+# Sized to the tightest model window on file rather than typed. The old
+# 16,000 was about 1.5% of what the smallest model can read, and cutting
+# there silently dropped the end of long referrals -- including the FIT
+# and CA 125 results on 000482029135. This is a safety ceiling now, not a
+# routine truncation point.
+DEFAULT_USER_TEXT_MAX_CHARS = fleet_safe_char_budget()
 EXTRACTION_LLM_RESPONSE_MAX_CHARS = 65_536
 
 

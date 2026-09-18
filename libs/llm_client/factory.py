@@ -37,6 +37,12 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Any, Generator, TypedDict
 
+from libs.llm_client.context_budget import (
+    check_output_request,
+    check_prompt_fits,
+    estimate_tokens,
+)
+
 logger = logging.getLogger(__name__)
 _BEDROCK_CACHEPOINT_UNSUPPORTED_MODELS: set[str] = set()
 
@@ -350,6 +356,31 @@ class LLMClient:
             max_retries=0,
         )
 
+    def _check_context_budget(
+        self,
+        system: str,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+    ) -> None:
+        """Stop a call that would crowd the model's context window.
+
+        Every provider call funnels through ``converse``, so this is the
+        one place that can see the whole prompt before it is sent. The
+        published limits live in ``libs.llm_client.context_budget``; a
+        model with no declared window stops here too, because guessing a
+        limit on a patient's referral is the thing that guard prevents.
+
+        Messages are measured as serialised JSON rather than by walking
+        each provider's content shape. That counts a little punctuation
+        the model never sees, which errs towards stopping early.
+        """
+        check_output_request(self.model_id, requested_tokens=max_tokens)
+        body = json.dumps(messages, default=str)
+        check_prompt_fits(
+            self.model_id,
+            estimated_tokens=estimate_tokens(system) + estimate_tokens(body),
+        )
+
     def converse(
         self,
         system: str,
@@ -389,6 +420,7 @@ class LLMClient:
             patient_id: Patient id forwarded to the tracking callback so
                 per-tenant billing can attribute cost. Defaults to ``""``.
         """
+        self._check_context_budget(system, messages, max_tokens)
         client = self._get_client()
         provider_tag = "aws" if self.provider == "aws" else "azure"
         started = time.monotonic()

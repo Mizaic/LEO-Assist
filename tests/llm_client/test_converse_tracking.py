@@ -80,7 +80,9 @@ def stub_bedrock(monkeypatch):
 def _make_bedrock_client() -> factory.LLMClient:
     return factory.LLMClient(
         provider="aws",
-        model_id="eu.anthropic.claude-haiku-test-v1:0",
+        # A real model id: converse refuses one with no declared context
+        # window. See libs/llm_client/context_budget.py.
+        model_id="eu.anthropic.claude-haiku-4-5-20251001-v1:0",
         tier="small",
     )
 
@@ -190,7 +192,7 @@ def test_bedrock_converse_fires_tracking_with_matching_tokens(
     assert payload["agent_task"] == "vt-513-tc-001"
     assert payload["patient_id"] == "pat-1"
     assert payload["model_provider"] == "aws"
-    assert payload["model_name"] == "eu.anthropic.claude-haiku-test-v1:0"
+    assert payload["model_name"] == "eu.anthropic.claude-haiku-4-5-20251001-v1:0"
     assert payload["input_tokens"] == 120
     assert payload["output_tokens"] == 30
     assert payload["cache_read_input_tokens"] == 50
