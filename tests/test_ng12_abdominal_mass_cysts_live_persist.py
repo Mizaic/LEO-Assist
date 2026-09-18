@@ -20,7 +20,9 @@ from dotenv import load_dotenv
 from libs.guidelines.ng12_abdominal_mass_cysts import (
     ABDOMINAL_MASS_ID,
     CYST_OF_KIDNEY_ID,
+    CYST_OF_OVARY_ID,
     CYST_OF_PANCREAS_ID,
+    MASS_OF_UTERINE_ADNEXA_ID,
     exclude_organ_cysts_from_abdominal_mass_leaf,
 )
 from libs.neo4j_client.client import KnowledgeGraphClient
@@ -52,8 +54,9 @@ RETURN r.id AS rule_id, r.status AS status, r.logicJson AS logic_json
 @pytest.fixture(scope="module")
 def kg_client():
     root = Path(__file__).resolve().parent.parent
-    load_dotenv(root / "secrets" / ".env")
-    load_dotenv(root / ".env")
+    load_dotenv(root / "secrets" / ".env.config", override=True)
+    load_dotenv(root / "secrets" / ".env", override=False)
+    load_dotenv(root / ".env", override=False)
     client = KnowledgeGraphClient()
     yield client
     client.close()
@@ -77,8 +80,9 @@ def test_persist_abdominal_mass_cyst_exclusions(kg_client, name: str) -> None:
         updates=updates,
         reviewer="live_persist_pytest",
         reason=(
-            "Exclude cyst of pancreas and cyst of kidney from the "
-            "abdominal-mass leaf. NICE 1.3.1 and 1.5.1 are not organ cysts."
+            "Exclude cyst of pancreas, cyst of kidney, cyst of ovary, "
+            "and mass of uterine adnexa from the abdominal-mass leaf. "
+            "NICE 1.3.1 FIT is not an ovarian cyst."
         ),
     )
     new_id = result["rule_id"]
@@ -91,15 +95,15 @@ def test_persist_abdominal_mass_cyst_exclusions(kg_client, name: str) -> None:
     for leaf in leaves:
         assert CYST_OF_PANCREAS_ID in leaf["excluded_concept_ids"]
         assert CYST_OF_KIDNEY_ID in leaf["excluded_concept_ids"]
+        assert MASS_OF_UTERINE_ADNEXA_ID in leaf["excluded_concept_ids"]
+        assert CYST_OF_OVARY_ID in leaf["excluded_concept_ids"]
 
 
 def _mass_leaves(node: dict) -> list[dict]:
     found: list[dict] = []
     if str(node.get("kind") or "").upper() == "CONCEPT":
         crit = node.get("criterion") or {}
-        cid = crit.get("primary_concept_id") or crit.get(
-            "snomed_concept_id"
-        )
+        cid = crit.get("primary_concept_id") or crit.get("snomed_concept_id")
         primary = str(cid or "")
         if primary == ABDOMINAL_MASS_ID:
             found.append(crit)
