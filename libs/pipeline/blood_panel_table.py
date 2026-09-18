@@ -16,9 +16,11 @@ once rendered or pasted into encounter text. Detection uses:
 from __future__ import annotations
 
 import re
+from datetime import date
 from typing import Any
 
 from libs.nlp.sentence_splitter import SentenceChunk
+from libs.pipeline.blood_panel_presets import battery_for_label
 
 # Display-name abbreviations used across validation scenario fixtures.
 _BLOOD_ABBREVS = (
@@ -285,6 +287,102 @@ def _scan_lab_sections(encounter_text: str, entities: list, seen: set) -> None:
             offset += len(line)
 
 
+_DATED_TEST_LINE_RE = re.compile(
+    r"^[ \t]*(\d{1,2})/(\d{1,2})/(\d{4})[ \t]+(?P<name>\S.*?)[ \t]*$"
+)
+# A result on its own line: "< 4 ug/g", "36.8 C", "1.9 mg/L".
+_LONE_RESULT_RE = re.compile(
+    r"^[ \t]*(?P<value>[<>]?[ \t]*\d+(?:\.\d+)?)[ \t]*"
+    r"(?P<unit>[A-Za-z%µ][A-Za-z0-9%^µ]*(?:/[A-Za-z0-9%^µ]+)*)[ \t]*$"
+)
+
+
+def _iso_date(day: str, month: str, year: str) -> str:
+    """UK ``DD/MM/YYYY`` as an ISO date, or empty when it is not a date."""
+    try:
+        return date(int(year), int(month), int(day)).isoformat()
+    except ValueError:
+        return ""
+
+
+def _result_after(lines: list[str], index: int) -> tuple[str, str]:
+    """Return the ``(value, unit)`` printed under a dated test line.
+
+    Only the next non-blank line is considered. A results summary puts
+    the number directly beneath its test, and looking further would
+    start attaching one test's result to another.
+    """
+    for line in lines[index + 1 :]:
+        if not line.strip():
+            continue
+        match = _LONE_RESULT_RE.match(line)
+        if not match:
+            return "", ""
+        value = re.sub(r"\s+", " ", match.group("value")).strip()
+        return value, match.group("unit")
+    return "", ""
+
+
+def _scan_dated_battery_lines(encounter_text: str, entities: list, seen: set) -> None:
+    """Code ``DD/MM/YYYY <test name>`` lines from a plain-text summary.
+
+    Only a line whose name resolves to a known preset battery counts, so
+    a dated line about anything else is left alone. That gate is what
+    keeps this from inventing tests out of ordinary prose.
+    """
+    offset = 0
+    lines = encounter_text.splitlines()
+    for index, line in enumerate(lines):
+        match = _DATED_TEST_LINE_RE.match(line)
+        if match:
+            _append_dated_battery(entities, seen, match, lines, index, offset)
+        offset += len(line) + 1
+
+
+def _append_dated_battery(
+    entities: list,
+    seen: set,
+    match: re.Match,
+    lines: list[str],
+    index: int,
+    offset: int,
+) -> None:
+    name = match.group("name")
+    battery = battery_for_label(name)
+    if battery is None or not battery.procedure_snomed:
+        return
+    key = f"dated:{battery.procedure_snomed}:{offset}"
+    if key in seen:
+        return
+    seen.add(key)
+    value, unit = _result_after(lines, index)
+    start = offset + match.start("name")
+    entities.append(
+        {
+            "text": name,
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "concept_id": battery.procedure_snomed,
+            "start": start,
+            "end": start + len(name),
+            "assertion": "present",
+            "confidence": 0.85,
+            "normalized": None,
+            "value": value or None,
+            "unit": unit or None,
+            "observed_at": _iso_date(*match.group(1, 2, 3)) or None,
+            "reference_range": None,
+            "__sentence_id": "s0",
+            "__source": "blood_panel_dated_line",
+            "__model_name": "deterministic-fallback",
+            "__model_version": "v1",
+            "__contract_version": "",
+            "__source_meta": {},
+            "__relations": [],
+        }
+    )
+
+
 def _scan_dense_chunks(chunks: list[SentenceChunk], entities: list, seen: set) -> None:
     for chunk in chunks:
         text = chunk.text or ""
@@ -315,6 +413,7 @@ def extract_blood_panel_table_entities(
         _scan_all_markdown_table_cells(text, entities, seen)
         _scan_lab_sections(text, entities, seen)
         _scan_dense_lines(text, entities, seen)
+        _scan_dated_battery_lines(text, entities, seen)
     _scan_dense_chunks(chunks, entities, seen)
     return entities
 
