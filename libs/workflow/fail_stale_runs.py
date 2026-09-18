@@ -3,7 +3,7 @@
 A run that still says running but holds no live lease is not
 running. Leaving it open hides the failure.
 
-Atlas:
+Atlas trace:
   DI: DI-36F80B95
   DO: DO-CE65B1F2
   VT: VT-0203C659
