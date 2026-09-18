@@ -55,6 +55,7 @@ class SBARSubgraphState(TypedDict, total=False):
     form_clinical_section: str
     form_sections: list[dict[str, Any]]
     completeness_result: dict[str, Any]
+    completeness_groups: list[dict[str, Any]]
     entities: list[dict[str, Any]]
     section_hits: list[dict[str, Any]]
     dry_run: bool
@@ -214,6 +215,7 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
             "healthcare_service_missing": state.get("healthcare_service_missing"),
             "form_clinical_section": state.get("form_clinical_section"),
             "form_sections": _form_sections_from_state(state),
+            "completeness_groups": list(state.get("completeness_groups") or []),
         },
     )
     result = await SBAROrchestrator(

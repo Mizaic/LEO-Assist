@@ -194,6 +194,7 @@ def test_completeness_cancer_type_required(template: dict) -> None:
     }
     assert {
         _PMB_ID,
+        _PCB_ID,
         _DISCHARGE_ID,
         _VULVAL_ULCER_ID,
         _VULVAL_MASS_ID,
@@ -216,6 +217,7 @@ def test_completeness_symptom_criterion(template: dict) -> None:
 
 # NG12 1.5.12 / 1.5.13 / 1.5.14 / 1.5.17 codes that dry-runs already fire.
 _PMB_ID = 76742009
+_PCB_ID = 48880000
 _DISCHARGE_ID = 271939006
 _VULVAL_ULCER_ID = 68640004
 _VULVAL_MASS_ID = 289477004
@@ -233,7 +235,14 @@ def _groups_from_seed() -> list:
 
 @pytest.mark.parametrize(
     "concept_id",
-    [_PMB_ID, _DISCHARGE_ID, _VULVAL_ULCER_ID, _VULVAL_MASS_ID, _VULVAL_SWELL_ID],
+    [
+        _PMB_ID,
+        _PCB_ID,
+        _DISCHARGE_ID,
+        _VULVAL_ULCER_ID,
+        _VULVAL_MASS_ID,
+        _VULVAL_SWELL_ID,
+    ],
 )
 def test_ng12_gynae_code_satisfies_taught_completeness(concept_id: int) -> None:
     """A present NG12 gynae finding meets both required groups with no ticks.
@@ -275,6 +284,30 @@ def test_empty_gynae_without_ng12_code_is_still_incomplete() -> None:
     assert "cancer_type_required" in missing
     assert "symptom_criterion_required" in missing
     assert result["complete"] is False
+
+
+def test_add_optional_concept_member_is_idempotent() -> None:
+    from libs.completeness.logic_groups import collect_concept_ids
+    from libs.completeness.schema import add_optional_concept_member
+
+    groups = _groups_from_seed()
+    once = add_optional_concept_member(
+        groups,
+        name="Postcoital bleeding",
+        concept_id=_PCB_ID,
+        after_name="Postmenopausal bleeding",
+    )
+    twice = add_optional_concept_member(
+        once,
+        name="Postcoital bleeding",
+        concept_id=_PCB_ID,
+        after_name="Postmenopausal bleeding",
+    )
+    assert _PCB_ID in collect_concept_ids(once)
+    assert collect_concept_ids(once) == collect_concept_ids(twice)
+    first = next(g for g in once if g["name"] == "cancer_type_required")
+    names = [m.get("name") for m in first["members"] if m.get("name")]
+    assert names.count("Postcoital bleeding") == 1
 
 
 def test_no_pii_in_fixture(template: dict) -> None:

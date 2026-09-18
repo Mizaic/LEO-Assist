@@ -222,6 +222,7 @@ def _structured_from_payload(
         form_clinical_section=extra.get("form_clinical_section"),
         form_sections=extra.get("form_sections"),
         coded_facts=entities,
+        completeness_groups=extra.get("completeness_groups"),
         run_id=str(getattr(payload, "run_id", "") or ""),
     )
 

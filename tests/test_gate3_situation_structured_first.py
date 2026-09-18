@@ -539,6 +539,101 @@ def test_persists_referral_reason_evidence_with_provenance() -> None:
     assert payload["result_version"] == "1.0"
 
 
+def test_form_priority_codes_beat_smear_and_wrong_site_suspected() -> None:
+    """Taught FormSchema members own the headline, not a local smear list.
+
+    Atlas: DI-ED65569C / DI-50BE367C / VT-6CA911CF
+    """
+    from libs.completeness.logic_groups import collect_concept_ids
+    from libs.sbar.situation_headline import headline_from_coded_facts
+    from libs.sbar.situation_source import build_structured_situation
+    from tests.test_sfh_gynae_template_seed import _groups_from_seed
+
+    facts = [
+        {
+            "text": "Smear normal - patient notified",
+            "assertion": "present",
+            "term": "Cervical smear: normal (finding)",
+            "label": "finding",
+            "concept_id": "168731009",
+        },
+        {
+            "text": "Postcoital bleeding",
+            "assertion": "present",
+            "term": "Postcoital bleeding (finding)",
+            "label": "finding",
+            "concept_id": "48880000",
+        },
+        {
+            "text": "Malignant neoplasm of breast suspected",
+            "assertion": "present",
+            "term": "Malignant neoplasm of breast suspected (situation)",
+            "label": "situation",
+            "concept_id": "315284009",
+        },
+    ]
+    groups = _groups_from_seed()
+    headline = headline_from_coded_facts(
+        facts,
+        clinic_type="2WW_GYNAECOLOGY",
+        priority_concept_ids=collect_concept_ids(groups),
+    )
+    assert headline is not None
+    low = headline.lower()
+    assert "postcoital" in low
+    assert "smear" not in low
+    assert "breast" not in low
+
+    result = build_structured_situation(
+        referral_request={
+            "id": "4245439343",
+            "clinic_type": "2WW_GYNAECOLOGY",
+            "priority": "TWO_WEEK_WAIT",
+            "reason": "",
+        },
+        referral_reason=None,
+        trigger_scoped_letter="Smear normal. Postcoital bleeding 3 weeks.",
+        coded_facts=facts,
+        completeness_groups=groups,
+    )
+    low = result.headline.lower()
+    assert "postcoital" in low
+    assert "smear" not in low
+    assert "breast" not in low
+
+
+def test_gynae_clinic_drops_breast_suspected_without_priority_ids() -> None:
+    """A breast situation must not lead a gynaecology Situation.
+
+    Atlas: DI-ED65569C / VT-6CA911CF
+    """
+    from libs.sbar.situation_headline import headline_from_coded_facts
+
+    headline = headline_from_coded_facts(
+        [
+            {
+                "text": "Malignant neoplasm of breast suspected",
+                "assertion": "present",
+                "term": "Malignant neoplasm of breast suspected (situation)",
+                "label": "situation",
+                "concept_id": "315284009",
+            },
+            {
+                "text": "Postcoital bleeding",
+                "assertion": "present",
+                "term": "Postcoital bleeding (finding)",
+                "label": "finding",
+                "concept_id": "48880000",
+            },
+        ],
+        clinic_type="2WW_GYNAECOLOGY",
+    )
+    assert headline is not None
+    low = headline.lower()
+    assert "postcoital" in low
+    assert "breast" not in low
+
+
 def test_resolved_codes_keep_label_so_hypertrophy_can_lead() -> None:
     """Gate 3 coded facts must keep semantic tag and assertion.
 

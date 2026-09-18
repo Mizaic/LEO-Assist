@@ -72,9 +72,12 @@ _SITE_SKIP = frozenset(
 def headline_from_coded_facts(
     entities: list[dict[str, Any]] | None,
     clinic_type: str | None = None,
+    priority_concept_ids: set[int] | set[str] | None = None,
 ) -> str | None:
     """Name undenied form ticks first. Never name absent PMB."""
-    ticks, suspected, findings = _split_headline_facts(entities, clinic_type)
+    ticks, suspected, findings = _split_headline_facts(
+        entities, clinic_type, priority_concept_ids
+    )
     if ticks:
         parts = [row[1] for row in ticks[:3]]
     else:
@@ -243,6 +246,7 @@ def present_finding_terms(entities: list[dict[str, Any]] | None) -> list[str]:
 def _split_headline_facts(
     entities: list[dict[str, Any]] | None,
     clinic_type: str | None,
+    priority_concept_ids: set[int] | set[str] | None = None,
 ) -> tuple[
     list[tuple[tuple[int, int, int], str]],
     list[tuple[tuple[int, int, int], str]],
@@ -265,13 +269,54 @@ def _split_headline_facts(
                 ticks.append((rank, term))
             continue
         if _is_suspected(term, entity):
+            if clinic and not term_fits_clinic(term, clinic):
+                continue
             suspected.append((rank, term))
         elif _is_finding(term, entity):
             findings.append((rank, term))
     ticks.sort()
+    suspected, findings = _prefer_form_priority(
+        suspected, findings, entities, priority_concept_ids
+    )
+    return ticks, suspected, findings
+
+
+def _prefer_form_priority(
+    suspected: list[tuple[tuple[int, int, int], str]],
+    findings: list[tuple[tuple[int, int, int], str]],
+    entities: list[dict[str, Any]] | None,
+    priority_concept_ids: set[int] | set[str] | None,
+) -> tuple[
+    list[tuple[tuple[int, int, int], str]],
+    list[tuple[tuple[int, int, int], str]],
+]:
+    """When FormSchema names trigger codes, those findings own the headline."""
+    priority = {str(cid) for cid in (priority_concept_ids or set()) if str(cid)}
+    if not priority:
+        suspected.sort()
+        findings.sort()
+        return suspected, findings
+    terms = {
+        _short_term(entity)
+        for entity in entities or []
+        if _concept_id(entity) in priority
+    }
+    terms.discard("")
+    if not terms:
+        suspected.sort()
+        findings.sort()
+        return suspected, findings
+    preferred = [row for row in findings if row[1] in terms]
+    if preferred:
+        preferred.sort()
+        return [], preferred
     suspected.sort()
     findings.sort()
-    return ticks, suspected, findings
+    return suspected, findings
+
+
+def _concept_id(entity: dict[str, Any]) -> str:
+    return str(entity.get("concept_id") or "").strip()
 
 
 def _content_words(term: str) -> set[str]:

@@ -521,6 +521,7 @@ def _ng12_gynae_finding_members() -> list:
     """Coded findings that already fire NG12 1.5.12 / 1.5.13 / 1.5.14 / 1.5.17."""
     return [
         _coded_finding("Postmenopausal bleeding", 76742009),
+        _coded_finding("Postcoital bleeding", 48880000),
         _coded_finding("Vaginal discharge", 271939006),
         _coded_finding("Ulceration of vulva", 68640004),
         _coded_finding("Mass of vulva", 289477004),

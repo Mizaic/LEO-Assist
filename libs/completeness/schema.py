@@ -8,6 +8,7 @@ Atlas trace:
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 from libs.completeness.logic_groups import group_is_blocking, resolve_kind
@@ -23,6 +24,50 @@ def normalise_completeness_groups(
     if require_blocking and not any(group_is_blocking(row) for row in rows):
         raise ValueError("Completeness schema needs at least one required group")
     return rows
+
+
+def add_optional_concept_member(
+    groups: list[dict[str, Any]],
+    *,
+    name: str,
+    concept_id: int,
+    after_name: str | None = None,
+) -> list[dict[str, Any]]:
+    """Insert a coded finding into each group that does not already have it."""
+    member = {
+        "name": name,
+        "kind": "optional",
+        "required": False,
+        "semantic_categories": [],
+        "concept_ids": [int(concept_id)],
+    }
+    out = deepcopy(groups)
+    for group in out:
+        members = group.get("members")
+        if not isinstance(members, list) or _has_concept(members, concept_id):
+            continue
+        members.insert(_insert_index(members, after_name), dict(member))
+    return out
+
+
+def _has_concept(members: list[Any], concept_id: int) -> bool:
+    target = int(concept_id)
+    for member in members:
+        if not isinstance(member, dict):
+            continue
+        ids = [_as_int(cid, 0) for cid in member.get("concept_ids") or []]
+        if target in ids:
+            return True
+    return False
+
+
+def _insert_index(members: list[Any], after_name: str | None) -> int:
+    if not after_name:
+        return len(members)
+    for index, member in enumerate(members):
+        if isinstance(member, dict) and member.get("name") == after_name:
+            return index + 1
+    return len(members)
 
 
 def _normalise_one(group: Any) -> dict[str, Any]:
