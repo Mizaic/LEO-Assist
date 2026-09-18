@@ -35,7 +35,9 @@ Atlas trace:
 
 from __future__ import annotations
 
+from libs.pipeline.form_checkbox_seed import TAUGHT_CHECKBOX_SOURCE
 from libs.pipeline.unresulted_test_guard import (
+    is_unresulted_test_mention,
     line_containing,
     suppress_unresulted_test_mentions,
 )
@@ -67,6 +69,70 @@ def _ent(text: str, label: str, last: bool = False, **kw) -> dict:
     }
     ent.update(kw)
     return ent
+
+
+TICK_ROW = "| B4. Suspicious pelvic mass on pelvic ultrasound | [X] Yes [ ] No |\n"
+
+
+def _ticked_scan(**kw) -> dict:
+    """The scan a ticked B4 box says was carried out.
+
+    Shaped exactly as ``seed_checkbox_entities`` emits it: the taught
+    procedure sits on the tick's own span, so its offsets land on the
+    checkbox row rather than on the words naming the scan.
+    """
+    start = TICK_ROW.index("B4.")
+    ent = {
+        "text": "B4.",
+        "entity_text": "Pelvic echography",
+        "lookup_term": "Pelvic echography",
+        "concept_id": "24848001",
+        "label": "procedure",
+        "semantic_tag": "procedure",
+        "start": start,
+        "end": start + len("B4."),
+        "assertion": "present",
+        "__source": TAUGHT_CHECKBOX_SOURCE,
+    }
+    ent.update(kw)
+    return ent
+
+
+class TestATickedBoxIsNotABlankRow:
+    """A tick is the result. Only a blank printed row says nothing.
+
+    NHS 4568668417 had a pelvic ultrasound, and B4 is taught to record
+    the scan as well as the mass it found. The scan was seeded and then
+    dropped here, because a tick row is a table row carrying no number.
+    An imaging procedure never carries a number, so requiring one asks
+    for something that cannot exist and throws away the referrer's own
+    statement that the scan was done.
+    """
+
+    def test_a_ticked_scan_is_not_treated_as_unresulted(self) -> None:
+        assert not is_unresulted_test_mention(_ticked_scan(), TICK_ROW)
+
+    def test_the_ticked_scan_survives_the_guard(self) -> None:
+        kept, dropped = suppress_unresulted_test_mentions([_ticked_scan()], TICK_ROW)
+
+        assert dropped == []
+        assert [e["concept_id"] for e in kept] == ["24848001"]
+
+    def test_a_blank_panel_row_is_still_dropped(self) -> None:
+        """The exemption is the tick, not the table. Guard the original bug."""
+        kept, dropped = suppress_unresulted_test_mentions(
+            [_ent("FBC", "procedure")], PANEL
+        )
+
+        assert kept == []
+        assert len(dropped) == 1
+
+    def test_an_untaught_test_on_a_tick_row_is_still_judged(self) -> None:
+        """Only a taught tick is exempt. An extractor guess is not."""
+        guessed = _ticked_scan()
+        guessed.pop("__source")
+
+        assert is_unresulted_test_mention(guessed, TICK_ROW)
 
 
 class TestLineContaining:
@@ -163,10 +229,7 @@ class TestWhatItMustNotTouch:
 
         Atlas: DI-0B907354 / VT-24D1E4F6
         """
-        text = (
-            "| Past medical history | Notes |\n"
-            "| Hysterectomy | performed |\n"
-        )
+        text = "| Past medical history | Notes |\n" "| Hysterectomy | performed |\n"
         start = text.index("Hysterectomy")
         ent = {
             "text": "Hysterectomy",

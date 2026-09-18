@@ -20,7 +20,7 @@ leaves the panel chunk untouched. Forms differ per organisation and service,
 so that map is the wrong place to carry a safety property. This guard works
 from the letter text instead, so it holds for any form.
 
-Two things it deliberately leaves alone:
+Three things it deliberately leaves alone:
 
   - **Conditions.** A problem-list row such as
     ``| Diastolic dysfunction (XaYYs) | [DATE] - Ongoing |`` reports no
@@ -29,6 +29,10 @@ Two things it deliberately leaves alone:
   - **Requested tests.** A blank row does support "this test is being asked
     for", so a ``planned`` assertion stands. It is ``present`` -- "this was
     done" -- that a blank row contradicts.
+  - **Ticked boxes.** A tick is a result. ``| B4. Suspicious pelvic mass
+    on pelvic ultrasound | [X] Yes |`` reports a scan that happened, and a
+    scan has no number to print, so judging it by the lab-result test
+    would throw away the referrer's own answer.
 
 It also fails open on suppression: an entity we cannot locate in the text is
 kept, because dropping a fact we cannot reason about would lose clinical
@@ -40,6 +44,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from libs.pipeline.form_checkbox_seed import TAUGHT_CHECKBOX_SOURCE
 from libs.pipeline.lab_result_evidence import row_reports_a_result
 
 #: Labels that name a test or a measurement rather than a condition.
@@ -105,9 +110,23 @@ def _claims_performed(ent: dict[str, Any]) -> bool:
     return assertion in _CLAIMS_PERFORMED
 
 
+def _is_ticked_fact(ent: dict[str, Any]) -> bool:
+    """True when a referrer ticked the box this fact was read from.
+
+    The tick is the result. This guard reasons about a row the form
+    printed and nobody filled in, and a ticked box is the opposite of
+    that: somebody answered it. An imaging procedure has no number to
+    report either, so demanding one would discard the only statement the
+    letter makes about whether the scan happened.
+    """
+    return str(ent.get("__source") or "") == TAUGHT_CHECKBOX_SOURCE
+
+
 def is_unresulted_test_mention(ent: dict[str, Any], encounter_text: str) -> bool:
     """True when *ent* is a test the letter does not show a result for."""
     if not _is_test_mention(ent):
+        return False
+    if _is_ticked_fact(ent):
         return False
     if not _claims_performed(ent):
         return False
