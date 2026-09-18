@@ -734,6 +734,27 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "output": '{"terms": [{"sentence_id": "s0", "text": "Diffuse left pleural thickening", "lookup_term": "pleural thickening", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "reduced left lung volume", "lookup_term": "reduced lung volume", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "CT imaging", "lookup_term": "CT chest", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     {
+        "category": "procedure:investigation_log",
+        "model_scope": "any",
+        "description": "Dated investigation log: each line is a study that was carried out",
+        "input": "[s0] | 30 May 2026: Standard chest X-ray (535..) |\n[s1] | 24 Jun 2026: US PELVIS |\n[s2] | 24 Jun 2026: US PELVIS TRANSVAGINAL |",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Standard chest X-ray", "lookup_term": "chest x-ray", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s1", "text": "US PELVIS", "lookup_term": "pelvic ultrasound", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s2", "text": "US PELVIS TRANSVAGINAL", "lookup_term": "transvaginal ultrasound scan of pelvis", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "procedure:investigation_log:report",
+        "model_scope": "any",
+        "description": "Radiology report header names the study; the report body gives the findings",
+        "input": "[s0] | US PELVIS TRANSVAGINAL: US Pelvis transvaginal This is a FINAL report. Right ovary contains a 62 mm cyst with a solid component. Left ovary normal. |",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "US Pelvis transvaginal", "lookup_term": "transvaginal ultrasound scan of pelvis", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "Right ovary contains a 62 mm cyst", "lookup_term": "cyst of ovary", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "procedure:investigation_log:planned",
+        "model_scope": "any",
+        "description": "A test the letter only asks for is planned, not performed",
+        "input": "[s0] Please arrange an US pelvis before the clinic appointment.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "US pelvis", "lookup_term": "pelvic ultrasound", "semantic_tag": "procedure", "assertion": "planned", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
         "category": "disorder:imaging:pelvic",
         "model_scope": "any",
         "description": "Pelvic ultrasound report: name the scan as a procedure, then its findings",
@@ -854,6 +875,13 @@ _apply_core_by_first_category(
         "precision:referral_scope:short_span",
         "precision:referral_scope:ers_reason",
         "finding:investigation",
+        # A completed scan listed in the investigation log, the report it
+        # produced, and the counterweight so a requested scan stays planned.
+        # All three are core: dynamic retrieval is switched off once a form
+        # is taught, so an example that is not core never reaches the model.
+        "procedure:investigation_log",
+        "procedure:investigation_log:report",
+        "procedure:investigation_log:planned",
         "assertion:absent",
         "negation:compound",
         "assertion:family",
@@ -883,6 +911,9 @@ _TAUGHT_FORM_SAFE_CATEGORIES = {
     "finding:investigation",
     "disorder:imaging",
     "disorder:imaging:pelvic",
+    "procedure:investigation_log",
+    "procedure:investigation_log:report",
+    "procedure:investigation_log:planned",
     "multi-entity",
 }
 
