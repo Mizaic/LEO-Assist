@@ -7,6 +7,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+# converse refuses a model whose context window nobody has declared, so a
+# placeholder id no longer stands in for a real one. See
+# libs/llm_client/context_budget.py.
+_A_REAL_MODEL = "claude-haiku-4-5-20251001-v1:0"
+
 
 class TestInvokeWithRetry:
 
@@ -176,7 +181,7 @@ class TestLLMClientToolUse:
             patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()),
         ):
             mock_retry.return_value = self._make_bedrock_response([{"text": "verdict"}])
-            client = LLMClient(provider="aws", model_id="test-model")
+            client = LLMClient(provider="aws", model_id=_A_REAL_MODEL)
             resp = client.converse(
                 system="s", messages=[{"role": "user", "content": "t"}]
             )
@@ -197,7 +202,7 @@ class TestLLMClientToolUse:
             patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()),
         ):
             mock_retry.return_value = self._make_bedrock_response([{"text": "ok"}])
-            client = LLMClient(provider="aws", model_id="test-model")
+            client = LLMClient(provider="aws", model_id=_A_REAL_MODEL)
             resp = client.converse(
                 system="s",
                 messages=[{"role": "user", "content": "t"}],
@@ -226,7 +231,7 @@ class TestLLMClientToolUse:
             mock_retry.return_value = self._make_bedrock_response(
                 [tool_use_block], stop_reason="tool_use"
             )
-            client = LLMClient(provider="aws", model_id="test-model")
+            client = LLMClient(provider="aws", model_id=_A_REAL_MODEL)
             resp = client.converse(
                 system="s",
                 messages=[{"role": "user", "content": "t"}],
@@ -259,7 +264,7 @@ class TestLLMClientToolUse:
                 ],
                 stop_reason="tool_use",
             )
-            client = LLMClient(provider="aws", model_id="test-model")
+            client = LLMClient(provider="aws", model_id=_A_REAL_MODEL)
             resp = client.converse(
                 system="s",
                 messages=[{"role": "user", "content": "t"}],
@@ -280,7 +285,7 @@ class TestLLMClientToolUse:
             output_tokens=5,
             cached_input_tokens=0,
             stop_reason="end_turn",
-            model_id="test-model",
+            model_id=_A_REAL_MODEL,
         )
         assert resp.tool_uses == []
 
@@ -301,7 +306,7 @@ class TestLLMClientToolUse:
                 },
                 "stopReason": "end_turn",
             }
-            client = LLMClient(provider="aws", model_id="test-model")
+            client = LLMClient(provider="aws", model_id=_A_REAL_MODEL)
             resp = client.converse(
                 system="s", messages=[{"role": "user", "content": "t"}]
             )
