@@ -272,9 +272,7 @@ class LLMExtractorAdapter:
 
         dynamic_pool = dynamic_pool + learned_few_shots()
         if known_form_schema:
-            core_examples = [
-                ex for ex in core_examples if ex.get("category") == "form:checkbox"
-            ]
+            core_examples = [ex for ex in core_examples if _survives_taught_form(ex)]
             max_core = min(len(core_examples), self._max_few_shot)
             self._core_examples = core_examples[:max_core]
             self._dynamic_budget = 0
@@ -562,6 +560,25 @@ def build_extractor(
         known_form_schema=known_form_schema,
         taught_form_fingerprint=taught_form_fingerprint,
     )
+
+
+def _survives_taught_form(example: dict[str, Any]) -> bool:
+    """Say whether a core example is still sent once a form is taught.
+
+    A taught form pins how the form itself must be read, so the generic
+    checkbox, negation, and referral-scope examples are dropped: they
+    argue with the taught contract. But a taught bundle is not only the
+    form. Referral letters carry radiology reports, blood tables, and GP
+    summaries behind it, and that free text still needs the examples that
+    teach content extraction.
+
+    ``taught_form_safe`` marks those examples, and lives on the example in
+    PromptConfig rather than as a category list here, so the choice is
+    editable without a code change.
+    """
+    if example.get("category") == "form:checkbox":
+        return True
+    return bool(example.get("taught_form_safe"))
 
 
 def _example_id(example: dict[str, Any]) -> str:

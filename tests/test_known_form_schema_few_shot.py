@@ -42,7 +42,9 @@ def test_known_form_schema_skips_dynamic_few_shot(monkeypatch) -> None:
         select_called.append(k)
         return [], 0.0
 
-    monkeypatch.setattr("libs.llm_client.factory.create_llm", lambda tier="small": fake_llm)
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm", lambda tier="small": fake_llm
+    )
     monkeypatch.setattr(
         "libs.pipeline_graph.subgraphs._extractor.FewShotSelector.select_with_scores",
         _track_select,
@@ -84,7 +86,9 @@ def test_known_form_schema_skips_dynamic_few_shot(monkeypatch) -> None:
 def test_known_form_schema_keeps_only_form_checkbox_core(monkeypatch) -> None:
     _mock_compose_prompt(monkeypatch)
     fake_llm = _FakeLLM()
-    monkeypatch.setattr("libs.llm_client.factory.create_llm", lambda tier="small": fake_llm)
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm", lambda tier="small": fake_llm
+    )
 
     adapter = LLMExtractorAdapter(
         system_prompt="Base instructions",
@@ -158,10 +162,83 @@ def test_run_llm_extraction_passes_known_form_schema(monkeypatch) -> None:
     assert captured["known_form_schema"] is False
 
 
+def test_taught_form_keeps_examples_marked_safe(monkeypatch) -> None:
+    """A taught bundle still carries free text, so content examples must survive.
+
+    The form filter exists to stop generic checkbox and negation examples
+    fighting the taught contract. It must not blind the model to the
+    radiology reports and lab tables attached behind the form.
+    """
+    _mock_compose_prompt(monkeypatch)
+    fake_llm = _FakeLLM()
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm", lambda tier="small": fake_llm
+    )
+
+    adapter = LLMExtractorAdapter(
+        system_prompt="Base instructions",
+        output_schema_json='{"type":"object","properties":{"terms":{"type":"array"}}}',
+        few_shot_examples=[
+            {
+                "category": "form:checkbox",
+                "description": "checkbox core",
+                "input": "[s0] [X] Breast lump",
+                "output": '{"terms":[]}',
+                "model_scope": "any",
+                "core": True,
+            },
+            {
+                "category": "disorder:imaging",
+                "description": "pelvic ultrasound core",
+                "input": "[s0] Right adnexal cyst measuring 6cm.",
+                "output": '{"terms":[]}',
+                "model_scope": "any",
+                "core": True,
+                "taught_form_safe": True,
+            },
+            {
+                "category": "precision:referral_scope",
+                "description": "scope core",
+                "input": "[s0] Referred under 2WW.",
+                "output": '{"terms":[]}',
+                "model_scope": "any",
+                "core": True,
+            },
+        ],
+        max_few_shot=5,
+        provider="aws",
+        known_form_schema=True,
+    )
+
+    kept = {ex["description"] for ex in adapter._core_examples}
+    assert kept == {"checkbox core", "pelvic ultrasound core"}
+    assert "pelvic ultrasound core" in adapter._system_prompt
+    assert "scope core" not in adapter._system_prompt
+
+
+def test_library_teaches_pelvic_ultrasound_on_a_taught_form() -> None:
+    """The gynae 2WW bundle attaches pelvic scans, so the library must cover them."""
+    from libs.prompts.extraction_examples import EXTRACTION_EXAMPLES
+
+    survivors = [
+        ex
+        for ex in EXTRACTION_EXAMPLES
+        if ex.get("core")
+        and (ex.get("category") == "form:checkbox" or ex.get("taught_form_safe"))
+    ]
+    blob = " ".join(
+        f"{ex.get('description', '')} {ex.get('input', '')}" for ex in survivors
+    ).lower()
+    assert "adnexal" in blob or "ovarian" in blob
+    assert "ultrasound" in blob
+
+
 def test_known_form_schema_adds_taught_form_hint(monkeypatch) -> None:
     _mock_compose_prompt(monkeypatch)
     fake_llm = _FakeLLM()
-    monkeypatch.setattr("libs.llm_client.factory.create_llm", lambda tier="small": fake_llm)
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm", lambda tier="small": fake_llm
+    )
 
     adapter = LLMExtractorAdapter(
         system_prompt="Base instructions",
