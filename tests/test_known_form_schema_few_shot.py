@@ -257,6 +257,30 @@ def test_seeded_payload_carries_the_taught_form_flag() -> None:
     assert any("adnexal" in str(ex.get("input", "")).lower() for ex in survivors)
 
 
+def test_seeding_can_be_narrowed_to_named_prompts() -> None:
+    """Seeding everything rewrites prompts the repo and graph disagree on.
+
+    The SBAR prompts had drifted from the graph when the few-shot fix
+    needed seeding, so the extraction prompt must be seedable alone.
+    """
+    from scripts.seed_prompt_configs import SEED_PROMPTS, select_prompts
+
+    chosen = select_prompts(SEED_PROMPTS, ["extraction"])
+    assert [p["name"] for p in chosen] == ["extraction"]
+    assert select_prompts(SEED_PROMPTS, None) == SEED_PROMPTS
+    assert select_prompts(SEED_PROMPTS, []) == SEED_PROMPTS
+
+
+def test_seeding_refuses_a_name_it_cannot_find() -> None:
+    """A typo must fail loudly, not seed nothing and report success."""
+    import pytest
+
+    from scripts.seed_prompt_configs import SEED_PROMPTS, select_prompts
+
+    with pytest.raises(SystemExit):
+        select_prompts(SEED_PROMPTS, ["extracton"])
+
+
 def test_known_form_schema_adds_taught_form_hint(monkeypatch) -> None:
     _mock_compose_prompt(monkeypatch)
     fake_llm = _FakeLLM()
