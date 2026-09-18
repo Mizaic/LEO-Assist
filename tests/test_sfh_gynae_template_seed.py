@@ -213,6 +213,14 @@ def test_completeness_symptom_criterion(template: dict) -> None:
         if member.get("item_pattern")
     }
     assert patterns == SYMPTOM_PREFIXES, "All 9 symptom criteria must be in the group"
+    coded_by_box = {
+        str(member.get("item_pattern") or ""): set(member.get("concept_ids") or [])
+        for member in grp["members"]
+        if member.get("item_pattern")
+    }
+    assert _PCB_ID in coded_by_box["B6."]
+    assert _PMB_ID in coded_by_box["B5."]
+    assert _VULVAL_MASS_ID in coded_by_box["B2."]
 
 
 # NG12 1.5.12 / 1.5.13 / 1.5.14 / 1.5.17 codes that dry-runs already fire.
@@ -284,6 +292,34 @@ def test_empty_gynae_without_ng12_code_is_still_incomplete() -> None:
     assert "cancer_type_required" in missing
     assert "symptom_criterion_required" in missing
     assert result["complete"] is False
+
+
+def test_attach_item_pattern_concept_id_is_idempotent() -> None:
+    from libs.completeness.schema import (
+        attach_item_pattern_concept_id,
+        concept_ids_for_item_pattern,
+    )
+
+    groups = attach_item_pattern_concept_id(
+        _groups_from_seed(),
+        item_pattern="B6.",
+        concept_id=_PCB_ID,
+        section_id="section_b_symptoms",
+    )
+    again = attach_item_pattern_concept_id(
+        groups,
+        item_pattern="B6.",
+        concept_id=_PCB_ID,
+        section_id="section_b_symptoms",
+    )
+    first = concept_ids_for_item_pattern(
+        groups, item_pattern="B6.", section_id="section_b_symptoms"
+    )
+    second = concept_ids_for_item_pattern(
+        again, item_pattern="B6.", section_id="section_b_symptoms"
+    )
+    assert first == [_PCB_ID]
+    assert second == [_PCB_ID]
 
 
 def test_add_optional_concept_member_is_idempotent() -> None:

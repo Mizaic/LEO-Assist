@@ -373,6 +373,13 @@ def _dedup_by_concept_id(entities: list[dict[str, Any]]) -> list[dict[str, Any]]
     return kept
 
 
+def _keep_taught_checkbox_code(entity: dict[str, Any]) -> bool:
+    """Taught FormSchema ticks already carry the completeness concept id."""
+    if not is_taught_checkbox(entity):
+        return False
+    return bool(str(entity.get("concept_id") or "").strip())
+
+
 def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
     entities = state.get("entities") or []
     expected_tags = state.get("expected_tags") or {}
@@ -409,6 +416,9 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
         resolved = []
         for idx, entity in enumerate(entities):
             lookup = lookup_by_index.get(idx) or ""
+            if _keep_taught_checkbox_code(entity):
+                resolved.append(dict(entity))
+                continue
             merged = _merge_resolution(entity, results.get(lookup, []), min_score)
             if lookup:
                 merged["lookup_term"] = lookup
