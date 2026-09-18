@@ -1181,7 +1181,36 @@ def seed_if_missing() -> None:
         driver.close()
 
 
-def main(missing_only: bool = False, *, force: bool = False) -> None:
+def select_prompts(
+    prompts: list[dict],
+    only: list[str] | None,
+) -> list[dict]:
+    """Narrow the seed set by prompt name.
+
+    Seeding everything rewrites every factory prompt from the repo. That
+    is wrong when the repo and the graph have drifted on a prompt nobody
+    asked you to touch, so a caller can name just the ones they mean.
+
+    Raises:
+        SystemExit: A requested name matches no seed payload, which would
+            otherwise seed nothing and look like success.
+    """
+    if not only:
+        return list(prompts)
+    wanted = {name.strip() for name in only if name.strip()}
+    chosen = [p for p in prompts if p["name"] in wanted]
+    missing = wanted - {p["name"] for p in chosen}
+    if missing:
+        raise SystemExit(f"No seed payload for: {', '.join(sorted(missing))}")
+    return chosen
+
+
+def main(
+    missing_only: bool = False,
+    *,
+    force: bool = False,
+    only: list[str] | None = None,
+) -> None:
     driver = _get_driver()
     upsert_query = FORCE_UPSERT_SEED_PROMPT if force else UPSERT_SEED_PROMPT
 
@@ -1190,8 +1219,9 @@ def main(missing_only: bool = False, *, force: bool = False) -> None:
         session.run(CREATE_INDEX_NAME)
         logger.info("Constraints & indexes ensured.")
 
+    prompts = select_prompts(SEED_PROMPTS, only)
     seeded = 0
-    for prompt in SEED_PROMPTS:
+    for prompt in prompts:
         with driver.session() as session:
             if missing_only and _prompt_exists(
                 session, prompt["name"], prompt["version"]
@@ -1245,5 +1275,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Overwrite all factory prompts (including previously user-edited)",
     )
+    parser.add_argument(
+        "--only",
+        action="append",
+        metavar="NAME",
+        help="Seed only this prompt name. Repeatable.",
+    )
     args = parser.parse_args()
-    main(missing_only=args.missing, force=args.force)
+    main(missing_only=args.missing, force=args.force, only=args.only)
