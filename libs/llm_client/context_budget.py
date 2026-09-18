@@ -87,6 +87,17 @@ PUBLISHED_WINDOWS: dict[str, ModelWindow] = {
     for window in (
         ModelWindow("gpt-5-mini", 400_000, 272_000, 128_000),
         ModelWindow("gpt-5.4", 1_050_000, 922_000, 128_000),
+        # The GPT-5.4 and 5.2 reasoning line. gpt-5.4-mini is what the
+        # container apps actually run as the small model, where ModelConfig
+        # still says gpt-5-mini.
+        ModelWindow("gpt-5.4-mini", 400_000, 272_000, 128_000),
+        ModelWindow("gpt-5.4-nano", 400_000, 272_000, 128_000),
+        ModelWindow("gpt-5.4-pro", 1_050_000, 922_000, 128_000),
+        ModelWindow("gpt-5.2", 400_000, 272_000, 128_000),
+        # The chat preview is a fraction of the rest, and core-api runs it
+        # as its big model. Its 16,384 output ceiling is below what Azure's
+        # reasoning expansion will ask for, so it is the one that trips.
+        ModelWindow("gpt-5.2-chat", 128_000, 111_616, 16_384),
         ModelWindow("claude-haiku-4-5-20251001-v1:0", 200_000, 200_000, 64_000),
         ModelWindow("claude-sonnet-4-6", 1_000_000, 1_000_000, 64_000),
         ModelWindow("claude-opus-4-6-v1", 1_000_000, 1_000_000, 128_000),

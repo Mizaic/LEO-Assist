@@ -46,6 +46,34 @@ CONFIGURED_MODELS = {
 }
 
 
+# What the production container apps are actually pointed at, read from
+# the leo-ai-prod app settings on 2026-09-18. These are the ids that reach
+# create_llm, and they do not all match the ModelConfig rows: ModelConfig
+# still says gpt-5-mini where the apps say gpt-5.4-mini. A window missing
+# from here stops every call on that tier, so the deployed set is pinned.
+DEPLOYED_MODEL_IDS = (
+    "gpt-5.4",  # pipeline-worker AZURE_OPENAI_BIG_MODEL
+    "gpt-5.4-mini",  # AZURE_OPENAI_SMALL_MODEL, both apps
+    "gpt-5.2-chat",  # core-api AZURE_OPENAI_BIG_MODEL
+)
+
+
+def test_every_model_the_apps_are_pointed_at_has_a_window() -> None:
+    """The guard refuses an undeclared model, so anything deployed must be
+    declared or that tier stops working."""
+    for model_id in DEPLOYED_MODEL_IDS:
+        assert window_for_model(model_id).context_window_tokens > 0, model_id
+
+
+def test_the_smallest_deployed_model_is_the_chat_preview() -> None:
+    """gpt-5.2-chat is a fraction of the others at 128,000, and core-api
+    runs it as its big model. A budget sized for gpt-5.4 overruns it."""
+    window = window_for_model("gpt-5.2-chat")
+    assert window.context_window_tokens == 128_000
+    assert window.max_input_tokens == 111_616
+    assert window.max_output_tokens == 16_384
+
+
 def test_every_configured_model_has_a_declared_window() -> None:
     """A model the platform can be pointed at must have a window on file."""
     for model_id, (total, inp, out) in CONFIGURED_MODELS.items():
@@ -115,9 +143,10 @@ def test_an_ordinary_output_request_is_allowed() -> None:
 
 
 def test_the_clinical_text_budget_is_sized_to_the_tightest_window() -> None:
-    """Haiku's 200,000 is the smallest, so 180,000 usable less a 32,000
-    reserve, at four characters to a token."""
-    assert fleet_safe_char_budget() == 592_000
+    """gpt-5.2-chat is the smallest at 111,616 input, so 100,454 usable
+    less a 32,000 reserve, at four characters to a token. Still seventeen
+    times the 16,000 it replaced."""
+    assert fleet_safe_char_budget() == 273_816
 
 
 def test_the_clinical_text_cap_is_no_longer_a_typed_number() -> None:
