@@ -233,6 +233,52 @@ def test_library_teaches_pelvic_ultrasound_on_a_taught_form() -> None:
     assert "ultrasound" in blob
 
 
+def _surviving_examples() -> list[dict]:
+    """Core examples that still reach the model once a form is taught."""
+    from libs.prompts.extraction_examples import EXTRACTION_EXAMPLES
+
+    return [
+        ex
+        for ex in EXTRACTION_EXAMPLES
+        if ex.get("core")
+        and (ex.get("category") == "form:checkbox" or ex.get("taught_form_safe"))
+    ]
+
+
+class TestTheInvestigationLog:
+    """A dated list of completed scans must read as scans that happened.
+
+    NHS 4568668417 listed three finished studies in the referral's
+    investigation log::
+
+        | 30 May 2026: Standard chest X-ray (535..) |
+        | 24 Jun 2026: US PELVIS |
+        | 24 Jun 2026: US PELVIS TRANSVAGINAL |
+
+    The model was shown every one of those lines and returned nothing for
+    them, so a pelvic ultrasound the patient had already had was requested
+    again. "US PELVIS" was already taught in SurfaceForm at the time, so
+    the gap was never the vocabulary -- the model simply never produced a
+    span to look up. Only an example of this shape closes that.
+    """
+
+    def test_the_library_shows_a_dated_investigation_line(self) -> None:
+        blob = " ".join(str(ex.get("input", "")) for ex in _surviving_examples())
+        assert "US PELVIS" in blob or "US Pelvis" in blob
+
+    def test_the_library_shows_a_scan_being_coded_as_a_procedure(self) -> None:
+        for ex in _surviving_examples():
+            if "US PELVIS" in str(ex.get("input", "")):
+                assert '"semantic_tag": "procedure"' in str(ex.get("output", ""))
+                return
+        raise AssertionError("no investigation-log example in the library")
+
+    def test_the_library_covers_plain_film_as_well_as_ultrasound(self) -> None:
+        """A chest X-ray is on the same log and was missed the same way."""
+        blob = " ".join(str(ex.get("input", "")) for ex in _surviving_examples())
+        assert "chest x-ray" in blob.lower()
+
+
 def test_seeded_payload_carries_the_taught_form_flag() -> None:
     """The flag is only useful if it survives the trip into Neo4j.
 
