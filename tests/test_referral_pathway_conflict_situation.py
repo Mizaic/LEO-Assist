@@ -9,9 +9,11 @@ valuable signal (wrong-pathway form used) rendered uselessly.
 Covers:
 1. ``clinic_type`` (the specific pathway, e.g. "2WW_BREAST") is now pulled
    onto the referral_request artefact alongside the generic ``specialty``.
-2. The Situation prompt gives the model a concrete worked example of naming
-   both sides of a form-vs-coded-pathway mismatch instead of a bare
-   "conflicts between X and Y" clause.
+2. The Situation prompt makes the model name both sides of a
+   form-vs-coded-pathway mismatch instead of a bare "conflicts between
+   X and Y" clause. This started as one worked example and is now a
+   general SOURCE DISAGREEMENT rule that also forbids picking a winner
+   or adding clinical meaning.
 """
 
 from __future__ import annotations
@@ -58,15 +60,25 @@ def test_resolve_artifact_returns_clinic_type_for_referral_request():
 
 
 def test_situation_prompt_names_both_sides_of_pathway_mismatch():
+    """The form-vs-coded-pathway mismatch must still be named on both sides.
+
+    The prompt used to teach this with one worked example naming the
+    Serious Non-Specific Symptoms form against ``2WW_BREAST``. That was
+    replaced by a general SOURCE DISAGREEMENT rule covering any two
+    sources that disagree, with the pathway mismatch called out as one
+    case. Assert the rule, not the example that carried it.
+    """
     flat = _flatten(SBAR_SITUATION_SYSTEM_V1).lower()
     assert "clinic_type" in flat
-    assert "never just say" in flat or "not just label the two pathway names" in flat
-    assert "serious, non-specific symptoms pathway referral request" in flat
-    # The bad/vague example the model must not reproduce verbatim.
-    assert (
-        'bad (too vague, do not write this): "the request conflicts '
-        'between 2ww and the serious non-specific symptoms pathway."'
-    ) in flat
+    assert "source disagreement" in flat
+    assert "name both sides" in flat
+    assert "never just say" in flat
+    # The pathway mismatch specifically, now stated as a case of the rule.
+    assert "say which form was used and which pathway the case is coded to" in flat
+    # The model must report the disagreement, not settle it or explain it.
+    assert "do not pick a winner" in flat
+    assert "do not add clinical meaning" in flat
+    assert "please check" in flat
 
 
 def test_situation_prompt_prefers_specific_clinic_type_over_bare_specialty():
