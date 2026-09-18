@@ -150,6 +150,33 @@ def test_list_payload_is_read_as_background_markdown() -> None:
     assert "Postmenopausal bleeding" in (result["markdown"] or "")
 
 
+def test_list_valued_markdown_field_becomes_background() -> None:
+    """Azure GPT-5 mini can put paragraphs in a list, not a string.
+
+    Prod run 994fe451 crashed on .strip() and lost Background.
+    """
+    sources = _sources(2, text_len=200)
+
+    async def _invoker(system, user, **_kw):
+        return {
+            "background_markdown": [
+                "- Vulval mass referred on a two-week-wait pathway.",
+                "- BMI 41. Past asthma and eczema.",
+            ]
+        }
+
+    result = asyncio.run(
+        prompt_calls.call_background(
+            sources, [], invoker=_invoker, prompt_fetcher=_prompt_fetcher
+        )
+    )
+
+    assert result.get("error") is None
+    md = result["markdown"] or ""
+    assert "Vulval mass" in md
+    assert "BMI 41" in md
+
+
 def test_non_object_payload_does_not_crash_call_background() -> None:
     """A bare string reply must not raise; the section fails closed."""
     sources = _sources(2, text_len=200)
