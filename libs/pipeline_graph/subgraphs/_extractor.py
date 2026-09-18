@@ -372,6 +372,9 @@ class LLMExtractorAdapter:
                 "model_tier": self._tier,
                 "few_shot_example_ids": [],
                 "empty_sentence_input": True,
+                "clinical_text_truncated": False,
+                "clinical_text_dropped_chars": 0,
+                "clinical_text_original_chars": len(encounter_text or ""),
             }
         from libs.llm_client.factory import create_llm
 
@@ -380,10 +383,12 @@ class LLMExtractorAdapter:
         from libs.pipeline.llm_clinical_input import (
             guard_llm_extraction_response,
             guard_user_clinical_text,
+            guard_user_clinical_text_checked,
         )
 
         llm = create_llm(tier=self._tier)
-        safe_encounter = guard_user_clinical_text(encounter_text)
+        guarded_encounter = guard_user_clinical_text_checked(encounter_text)
+        safe_encounter = guarded_encounter.text
         sentence_block = "\n".join(
             f"[{s.sentence_id}] {guard_user_clinical_text(s.text)}" for s in sentences
         )
@@ -437,6 +442,9 @@ class LLMExtractorAdapter:
                 if isinstance(ex, dict)
             ],
             "few_shot_max_similarity": few_shot_max_similarity,
+            "clinical_text_truncated": guarded_encounter.truncated,
+            "clinical_text_dropped_chars": guarded_encounter.dropped_chars,
+            "clinical_text_original_chars": guarded_encounter.original_chars,
         }
 
         raw = guard_llm_extraction_response((resp.text or "").strip())

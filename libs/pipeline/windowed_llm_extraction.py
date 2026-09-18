@@ -14,12 +14,21 @@ from dataclasses import dataclass
 from typing import Any
 
 from libs.nlp.sentence_splitter import SentenceChunk
+from libs.pipeline.extraction_completeness import (
+    INCOMPLETE_EXTRACTION_WARNING,
+    short_read_fields,
+)
 
 logger = logging.getLogger(__name__)
 
 RunLlmExtraction = Callable[..., dict[str, Any]]
 
-INCOMPLETE_EXTRACTION_WARNING = "extraction_incomplete"
+__all__ = [
+    "INCOMPLETE_EXTRACTION_WARNING",
+    "extraction_window_policy",
+    "normalise_chunks_for_llm",
+    "run_windowed_llm_extraction",
+]
 
 
 @dataclass
@@ -335,21 +344,12 @@ def _incomplete_extraction_fields(
     what is missing.
     """
     unread = max(0, planned - completed)
-    if not unread and not truncated_windows:
-        return {}
     reasons: list[str] = []
     if unread:
         reasons.append(f"{unread} of {planned} parts of the letter were not read")
     if truncated_windows:
         reasons.append(f"{truncated_windows} part(s) were too long to read in full")
-    return {
-        "extraction_partial": True,
-        "warnings": [
-            f"{INCOMPLETE_EXTRACTION_WARNING}: a person needs to check this "
-            f"referral against the letter. We did not read all of it: "
-            f"{'; '.join(reasons)}. Some findings may be missing."
-        ],
-    }
+    return short_read_fields(reasons)
 
 
 def _collect_windows(windows: list[Any], ctx: _WindowRun) -> dict[str, Any]:
