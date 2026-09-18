@@ -104,6 +104,9 @@ _add(
             "model_scope": ex.get("model_scope", "any"),
             "description": ex.get("description", ""),
             "core": bool(ex.get("core", False)),
+            # Survives the cut when a taught FormSchema is bound. See
+            # libs/pipeline_graph/subgraphs/_extractor.py::_survives_taught_form.
+            "taught_form_safe": bool(ex.get("taught_form_safe", False)),
         }
         for i, ex in enumerate(EXTRACTION_EXAMPLES)
     ],

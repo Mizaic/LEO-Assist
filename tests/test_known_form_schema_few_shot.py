@@ -233,6 +233,30 @@ def test_library_teaches_pelvic_ultrasound_on_a_taught_form() -> None:
     assert "ultrasound" in blob
 
 
+def test_seeded_payload_carries_the_taught_form_flag() -> None:
+    """The flag is only useful if it survives the trip into Neo4j.
+
+    The extractor reads examples from PromptConfig at run time, not from
+    the Python module, and the seeder rebuilds each example from a fixed
+    key list. A flag missing from that list is dropped in silence and the
+    taught-form filter never sees it.
+    """
+    from scripts.seed_prompt_configs import SEED_PROMPTS
+
+    extraction = next(
+        p for p in SEED_PROMPTS if p["name"] == "extraction" and p["version"] == 1
+    )
+    examples = extraction["few_shot_examples"]
+    survivors = [
+        ex
+        for ex in examples
+        if ex.get("core")
+        and (ex.get("category") == "form:checkbox" or ex.get("taught_form_safe"))
+    ]
+    assert any(ex.get("taught_form_safe") for ex in examples)
+    assert any("adnexal" in str(ex.get("input", "")).lower() for ex in survivors)
+
+
 def test_known_form_schema_adds_taught_form_hint(monkeypatch) -> None:
     _mock_compose_prompt(monkeypatch)
     fake_llm = _FakeLLM()
