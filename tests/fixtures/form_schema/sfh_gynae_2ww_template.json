@@ -959,7 +959,10 @@
         },
         {
           "section_id": "section_b_symptoms",
-          "item_pattern": "B2."
+          "item_pattern": "B2.",
+          "concept_ids": [
+            289477004
+          ]
         },
         {
           "section_id": "section_b_symptoms",
@@ -971,11 +974,17 @@
         },
         {
           "section_id": "section_b_symptoms",
-          "item_pattern": "B5."
+          "item_pattern": "B5.",
+          "concept_ids": [
+            76742009
+          ]
         },
         {
           "section_id": "section_b_symptoms",
-          "item_pattern": "B6."
+          "item_pattern": "B6.",
+          "concept_ids": [
+            48880000
+          ]
         },
         {
           "section_id": "section_b_symptoms",

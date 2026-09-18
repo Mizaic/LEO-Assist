@@ -533,11 +533,23 @@ def _cancer_type_members() -> list:
     return [{"section_id": "section_a_cancer_type"}] + _ng12_gynae_finding_members()
 
 
+# Taught Section B ticks that already have a coded completeness member.
+_BOX_CONCEPT_IDS = {
+    "B2.": 289477004,  # Mass of vulva
+    "B5.": 76742009,  # Postmenopausal bleeding
+    "B6.": 48880000,  # Postcoital bleeding
+}
+
+
 def _symptom_members() -> list:
-    boxes = [
-        {"section_id": "section_b_symptoms", "item_pattern": f"B{index}."}
-        for index in range(1, 10)
-    ]
+    boxes = []
+    for index in range(1, 10):
+        pattern = f"B{index}."
+        row = {"section_id": "section_b_symptoms", "item_pattern": pattern}
+        concept_id = _BOX_CONCEPT_IDS.get(pattern)
+        if concept_id:
+            row["concept_ids"] = [concept_id]
+        boxes.append(row)
     return boxes + _ng12_gynae_finding_members()
 
 

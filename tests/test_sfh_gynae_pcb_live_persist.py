@@ -18,7 +18,11 @@ import pytest
 from dotenv import load_dotenv
 
 from libs.completeness.logic_groups import collect_concept_ids
-from libs.completeness.schema import add_optional_concept_member
+from libs.completeness.schema import (
+    add_optional_concept_member,
+    attach_item_pattern_concept_id,
+    concept_ids_for_item_pattern,
+)
 from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
@@ -64,7 +68,21 @@ def test_persist_pcb_completeness_member(pg_client) -> None:
         concept_id=_PCB_ID,
         after_name="Postmenopausal bleeding",
     )
+    for pattern, concept_id in (
+        ("B2.", 289477004),
+        ("B5.", 76742009),
+        ("B6.", _PCB_ID),
+    ):
+        groups = attach_item_pattern_concept_id(
+            groups,
+            item_pattern=pattern,
+            concept_id=concept_id,
+            section_id="section_b_symptoms",
+        )
     assert _PCB_ID in collect_concept_ids(groups)
+    assert _PCB_ID in concept_ids_for_item_pattern(
+        groups, item_pattern="B6.", section_id="section_b_symptoms"
+    )
     saved = save_form_schema(
         pg_client,
         FormSchemaWrite(
@@ -92,6 +110,11 @@ def test_persist_pcb_completeness_member(pg_client) -> None:
     )
     assert reloaded is not None
     assert _PCB_ID in collect_concept_ids(reloaded.completeness_groups)
+    assert _PCB_ID in concept_ids_for_item_pattern(
+        reloaded.completeness_groups,
+        item_pattern="B6.",
+        section_id="section_b_symptoms",
+    )
     assert [s.section_id for s in reloaded.sections] == [
         s.section_id for s in schema.sections
     ]

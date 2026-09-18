@@ -734,6 +734,20 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "output": '{"terms": [{"sentence_id": "s0", "text": "Diffuse left pleural thickening", "lookup_term": "pleural thickening", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "reduced left lung volume", "lookup_term": "reduced lung volume", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "CT imaging", "lookup_term": "CT chest", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     {
+        "category": "disorder:imaging:pelvic",
+        "model_scope": "any",
+        "description": "Pelvic ultrasound report: name the scan as a procedure, then its findings",
+        "input": "[s0] Transvaginal ultrasound of the pelvis. The uterus is anteverted. Endometrial thickness 14 mm. There is a 62 mm right adnexal cystic lesion with a solid mural nodule. Small volume free fluid in the pouch of Douglas.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Transvaginal ultrasound of the pelvis", "lookup_term": "transvaginal ultrasound scan of pelvis", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "Endometrial thickness", "lookup_term": "endometrial thickness", "semantic_tag": "observable entity", "assertion": "present", "value": "14", "unit": "mm", "reference_range": null}, {"sentence_id": "s0", "text": "right adnexal cystic lesion", "lookup_term": "adnexal cyst", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "free fluid in the pouch of Douglas", "lookup_term": "free fluid in pelvis", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "disorder:imaging:pelvic",
+        "model_scope": "any",
+        "description": "Abdomen and pelvis ultrasound: normal ovaries still record the scan as done",
+        "input": "[s0] Ultrasound scan of abdomen and pelvis performed 12 May 2026. Both ovaries are visualised and appear normal. No ascites. No adnexal mass identified.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Ultrasound scan of abdomen and pelvis", "lookup_term": "ultrasound scan of abdomen and pelvis", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "No ascites", "lookup_term": "ascites", "semantic_tag": "disorder", "assertion": "absent", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "No adnexal mass identified", "lookup_term": "adnexal mass", "semantic_tag": "finding", "assertion": "absent", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
         "category": "disorder:imaging",
         "model_scope": "any",
         "description": "Pleural opacity: extract named pathologies as disorder; opacity descriptor not extracted separately",
@@ -852,9 +866,28 @@ _apply_core_by_first_category(
         "abbreviation",
         "finding:lifestyle",
         "disorder:imaging",
+        "disorder:imaging:pelvic",
         "form:checkbox",
     },
 )
+
+# A taught FormSchema pins how the form itself is read, so the extractor drops
+# the generic checkbox, negation, and referral-scope examples that would argue
+# with it. The categories below survive that cut: a taught referral bundle also
+# carries radiology reports, blood tables, and GP summaries behind the form, and
+# that free text still needs examples showing how to read it.
+# See libs/pipeline_graph/subgraphs/_extractor.py::_survives_taught_form.
+_TAUGHT_FORM_SAFE_CATEGORIES = {
+    "observable",
+    "observable:blood_panel",
+    "finding:investigation",
+    "disorder:imaging",
+    "disorder:imaging:pelvic",
+    "multi-entity",
+}
+
+for _ex in EXTRACTION_EXAMPLES:
+    _ex["taught_form_safe"] = _ex.get("category") in _TAUGHT_FORM_SAFE_CATEGORIES
 
 # Prefer every checkbox example in retrieval -- common 2WW form failure mode.
 for _ex in EXTRACTION_EXAMPLES:
