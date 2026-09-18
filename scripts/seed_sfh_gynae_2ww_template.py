@@ -136,9 +136,15 @@ def build_section_b() -> dict:
                 "B3.",
                 "Palpable pelvic mass (not fibroids)",
             ),
+            # A tick here reports the scan as well as the mass: nobody
+            # calls a pelvic mass suspicious on ultrasound without having
+            # scanned. Recording the scan stops NG12 1.5.2 asking for an
+            # ultrasound the form already reported.
             _item(
                 "B4.",
                 "Suspicious pelvic mass on ultrasound",
+                procedure_snomed="24848001",
+                procedure_display="Pelvic echography",
             ),
             _item(
                 "B5.",

@@ -227,6 +227,22 @@ NHS_BLOOD_PANEL_BATTERIES: tuple[PresetBattery, ...] = (
         aliases=("ca125", "cancer antigen 125"),
         analytes=(_a("CA 125", "1000461000000109", "Serum cancer antigen 125 level"),),
     ),
+    # A stool test, not blood, but it is printed in the same results
+    # table as the batteries above and needs coding the same way.
+    PresetBattery(
+        label="FIT",
+        procedure_snomed="149421000000109",
+        procedure_display="Provision of faecal immunochemical test kit",
+        aliases=(
+            "qfit",
+            "faecal immunochemical test",
+            "quantitative faecal immunochemical test",
+            "fecal immunochemical test",
+        ),
+        analytes=(
+            _a("FIT", "1049361000000101", "Quantitative faecal immunochemical test"),
+        ),
+    ),
 )
 
 # Rows where no safe SNOMED concept was found in the loaded UK release.

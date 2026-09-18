@@ -103,8 +103,8 @@
           "entity_text": "Suspicious pelvic mass on ultrasound",
           "semantic_tag": "finding",
           "assertion": "present",
-          "procedure_snomed": "",
-          "procedure_display": "",
+          "procedure_snomed": "24848001",
+          "procedure_display": "Pelvic echography",
           "analytes": [],
           "value_placeholder": ""
         },

@@ -39,6 +39,7 @@ EXPECTED_BATTERY_LABELS = [
     "Fasting Chol.",
     "HbA1c",
     "CA 125",
+    "FIT",
 ]
 
 
@@ -111,3 +112,43 @@ def test_unverified_codes_are_declared_not_invented() -> None:
     assert "Iron" in unverified
     for reason in unverified.values():
         assert reason.strip()
+
+
+def test_a_quantitative_fit_row_is_a_known_battery() -> None:
+    """The FIT row on a 2WW referral must code deterministically.
+
+    NHS 4568668417 had "08/06/2026 Quantitative faecal immunochemical
+    test | < 4 ug/g" in the same markdown table as Bone profile and
+    U&E, and it was never coded. The phrase already has an approved
+    SurfaceForm, so the miss was recall: the model simply never emitted
+    the span. A preset battery takes the model out of the loop, the way
+    it already does for FBC and CA 125.
+    """
+    from libs.pipeline.blood_panel_presets import battery_for_label
+
+    for label in (
+        "FIT",
+        "QFIT",
+        "Quantitative faecal immunochemical test",
+        "faecal immunochemical test",
+    ):
+        battery = battery_for_label(label)
+        assert battery is not None, f"{label!r} is not a known battery"
+        assert battery.procedure_snomed == "149421000000109"
+        assert [a.snomed_code for a in battery.analytes] == ["1049361000000101"]
+
+
+def test_the_fit_preset_codes_are_in_the_fit_investigation_family() -> None:
+    """A coded FIT must satisfy the guideline that asks for a FIT.
+
+    Without this the row codes cleanly and NG12 1.3.1 still asks for a
+    test the record already holds.
+    """
+    from libs.guidelines.investigation_family_catalog import FIT_MEMBER_IDS
+    from libs.pipeline.blood_panel_presets import battery_for_label
+
+    battery = battery_for_label("FIT")
+    assert battery is not None
+    assert battery.procedure_snomed in FIT_MEMBER_IDS
+    for analyte in battery.analytes:
+        assert analyte.snomed_code in FIT_MEMBER_IDS

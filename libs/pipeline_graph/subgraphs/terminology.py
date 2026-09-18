@@ -251,15 +251,36 @@ def _upgrade_generic_vulva_ulcer(entity: dict[str, Any]) -> dict[str, Any]:
     return upgraded
 
 
+def _reports_a_measured_value(entity: dict[str, Any]) -> bool:
+    """Say whether this span reports a number with a unit.
+
+    A value plus a unit is what separates "the CA 125 was 6 ku/L" from
+    "suspected ovarian cancer". Only the former is a measurement, and a
+    measurement's identity is its analyte, never a suspicion.
+    """
+    value = str(entity.get("value") or "").strip()
+    unit = str(entity.get("unit") or "").strip()
+    return bool(value) and bool(unit)
+
+
 def _resolve_lookup_term(entity: dict[str, Any]) -> str:
     text = str(entity.get("text") or "").strip()
     normalized_lookup = str(entity.get("normalized_lookup") or "").strip()
     normalized = str(entity.get("normalized") or "").strip()
     lookup = str(entity.get("lookup_term") or "").strip()
 
-    for candidate in (normalized_lookup, normalized, lookup):
-        if candidate and "suspected" in candidate.lower():
-            return candidate
+    # A reported result keeps the analyte's name. Blood tables put the
+    # requesting clinic in the last cell ("| CA 125 | 6 ku/L | 2ww Gynae |"),
+    # the model pulls it into the lookup term, and without this guard a
+    # normal CA 125 codes as a suspected gynaecological malignancy.
+    measured = _reports_a_measured_value(entity)
+    if measured:
+        if text:
+            return text
+    else:
+        for candidate in (normalized_lookup, normalized, lookup):
+            if candidate and "suspected" in candidate.lower():
+                return candidate
 
     if lookup and lookup.lower() != text.lower():
         return lookup

@@ -75,6 +75,42 @@ def test_resolve_lookup_term_prefers_suspected_normalized() -> None:
     assert "suspected" in _resolve_lookup_term(entity).lower()
 
 
+def test_a_measured_result_is_not_a_suspected_cancer() -> None:
+    """A lab row that reports a number must keep the analyte's identity.
+
+    Seen on a real Sherwood gynaecology referral. The blood table row
+    ``| CA 125 | 02 Jun 2026, 6 ku/L | 2ww Gynae |`` carries the clinic
+    destination in its last cell, the model pulled that into the
+    lookup term, and the suspected-cancer preference then coded the
+    row as "Malignant neoplasm of female genital organ suspected".
+
+    A CA 125 of 6 ku/L is normal, so the referral gained a coded
+    suspected malignancy off a reassuring result. A measurement is
+    never a suspicion: when an entity carries a value and a unit, the
+    span's own name wins.
+    """
+    entity = {
+        "text": "CA 125",
+        "lookup_term": "suspected gynaecological malignancy",
+        "value": "6",
+        "unit": "ku/L",
+    }
+
+    assert _resolve_lookup_term(entity) == "CA 125"
+
+
+def test_a_measured_result_ignores_a_suspected_normalized_form() -> None:
+    """The same rule applies whichever field carries the suspicion."""
+    entity = {
+        "text": "CA 125",
+        "normalized": "malignant neoplasm of female genital organ suspected",
+        "value": "6",
+        "unit": "ku/L",
+    }
+
+    assert _resolve_lookup_term(entity) == "CA 125"
+
+
 def test_guard_remaps_confirmed_malignancy_disorder() -> None:
     entity = {
         "label": "situation",

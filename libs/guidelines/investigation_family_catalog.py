@@ -47,6 +47,12 @@ CA125_FAMILY_NAME = "Cancer antigen 125 measurement"
 CA125_MEMBER_IDS: tuple[str, ...] = (
     "909121000000107",  # Measurement of cancer antigen 125 in serum specimen
     "408253004",  # CA125 level (procedure)
+    # The three approved SurfaceForms for "CA 125" resolve to 80529009,
+    # 909121000000107 or 1027511000000100. All three must count, or which
+    # one the resolver happens to pick decides whether the test reads as
+    # done.
+    "80529009",  # CA 125 measurement (procedure)
+    "144297009",  # Carbohydrate antigen 125 level (procedure)
     "1000461000000109",  # Serum cancer antigen 125 level (observable entity)
     "1027511000000100",  # Cancer antigen 125 level (observable entity)
     "1106431000000109",  # Arbitrary concentration of CA125 in serum
