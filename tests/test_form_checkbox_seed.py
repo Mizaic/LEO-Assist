@@ -413,3 +413,98 @@ def test_packed_yes_seed_stays_present_beside_empty_no_box() -> None:
     apply_context_detection_to_dicts(letter, seeded)
     assert seeded
     assert all(row.get("assertion") == "present" for row in seeded)
+
+
+_B4_RAW = (
+    "Section B: Symptoms\n"
+    "| B4. Suspicious pelvic mass on pelvic ultrasound | [X] Yes [ ] No |\n"
+)
+
+_B4_SECTION = FormSection(
+    section_id="section_b_symptoms",
+    section_type="checkbox_yesno",
+    label="Section B: Symptoms",
+    start_pattern=r"(?i)section\s+b:",
+    items=[
+        FormSchemaItem(
+            pattern="B4.",
+            entity_text="Suspicious pelvic mass on ultrasound",
+            semantic_tag="finding",
+            assertion="present",
+            procedure_snomed="24848001",
+            procedure_display="Pelvic echography",
+        ),
+    ],
+)
+
+
+def _b4_schema(section: FormSection) -> FormSchema:
+    return FormSchema(
+        schema_id="b4-scan-seed",
+        fingerprint="sfh-gynae-2ww-v1",
+        form_name="Gynaecology 2WW Referral",
+        sections=[section],
+        created_by="test",
+    )
+
+
+def test_a_ticked_box_that_names_a_scan_records_the_scan() -> None:
+    """Ticking B4 asserts a pelvic ultrasound was carried out.
+
+    B4 reads "Suspicious pelvic mass on pelvic ultrasound". A tick there
+    says two things: the mass is suspicious, and somebody scanned her to
+    find it. Only the finding was ever coded, so NICE NG12 1.5.2 kept
+    asking for the ultrasound the form had already reported.
+
+    The schema already carries ``procedure_snomed`` for exactly this,
+    described as "filled by the teacher". This asserts the seeder
+    honours it.
+    """
+    schema = _b4_schema(_B4_SECTION)
+    text = apply_schema_to_text(_B4_RAW, schema)
+
+    entities = seed_checkbox_entities(text, schema)
+    procedures = [e for e in entities if e.get("concept_id") == "24848001"]
+
+    assert procedures, f"no pelvic ultrasound entity in {entities}"
+    assert procedures[0]["semantic_tag"] == "procedure"
+    assert procedures[0]["assertion"] == "present"
+
+
+def test_an_unticked_box_records_no_scan() -> None:
+    """A blank B4 is not evidence anyone scanned her."""
+    schema = _b4_schema(_B4_SECTION)
+    raw = (
+        "Section B: Symptoms\n"
+        "| B4. Suspicious pelvic mass on pelvic ultrasound | [ ] Yes [X] No |\n"
+    )
+    text = apply_schema_to_text(raw, schema)
+
+    entities = seed_checkbox_entities(text, schema)
+
+    assert not [e for e in entities if e.get("concept_id") == "24848001"]
+
+
+def test_a_ticked_box_with_no_taught_scan_adds_nothing_extra() -> None:
+    """Most ticks name no procedure, and must stay single-fact."""
+    section = FormSection(
+        section_id="section_b_symptoms",
+        section_type="checkbox_yesno",
+        label="Section B: Symptoms",
+        start_pattern=r"(?i)section\s+b:",
+        items=[
+            FormSchemaItem(
+                pattern="B4.",
+                entity_text="Suspicious pelvic mass on ultrasound",
+                semantic_tag="finding",
+                assertion="present",
+            ),
+        ],
+    )
+    schema = _b4_schema(section)
+    text = apply_schema_to_text(_B4_RAW, schema)
+
+    entities = seed_checkbox_entities(text, schema)
+
+    assert len(entities) == 1
+    assert entities[0]["semantic_tag"] == "finding"

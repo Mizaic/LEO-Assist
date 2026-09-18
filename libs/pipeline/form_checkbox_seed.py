@@ -117,6 +117,40 @@ def _append_seed(
     if taught_ids:
         row["concept_id"] = str(taught_ids[0])
     entities.append(row)
+    _append_taught_procedure(entities, row, item)
+
+
+def _append_taught_procedure(
+    entities: list[dict[str, Any]],
+    fact: dict[str, Any],
+    item: FormSchemaItem,
+) -> None:
+    """Record the test a ticked box says was carried out.
+
+    Some boxes report a finding *and* the investigation that found it:
+    "Suspicious pelvic mass on pelvic ultrasound" only gets ticked
+    because somebody scanned her. Coding the mass alone leaves the scan
+    invisible, and a guideline then asks for a test the form already
+    reported.
+
+    The procedure is a second fact over the same span, so it keeps the
+    tick's own offsets. ``procedure_snomed`` is taught per item in the
+    FormSchema, which is what decides whether a box works this way.
+    """
+    concept_id = str(item.procedure_snomed or "").strip()
+    if not concept_id:
+        return
+    display = (item.procedure_display or item.entity_text or "").strip()
+    entities.append(
+        {
+            **fact,
+            "entity_text": display,
+            "lookup_term": display,
+            "concept_id": concept_id,
+            "semantic_tag": "procedure",
+            "label": "procedure",
+        }
+    )
 
 
 def _taught_concept_ids(
