@@ -88,6 +88,7 @@ def _sfh_schema() -> FormSchema:
         form_name=str(payload.get("form_name") or "SFH gynae"),
         sections=build_sections_from_request(list(payload.get("sections") or [])),
         created_by="test",
+        completeness_groups=list(payload.get("completeness_groups") or []),
     )
 
 
@@ -370,6 +371,38 @@ def test_seed_replaces_longer_extractor_span_with_same_printed_label() -> None:
     assert merged[0].get("__source") == "form_schema_checkbox"
     assert merged[0]["lookup_term"] == "ECOG 0 fully active without restriction"
     assert merged[0].get("concept_id") != "373803006"
+
+
+def test_ticked_b6_seeds_taught_pcb_concept() -> None:
+    """A ticked B6 box must publish the FormSchema PCB code.
+
+    Atlas: DI-0B907354 / DI-50BE367C / VT-24D1E4F6
+    """
+    raw = (
+        "| B6. Postcoital bleeding persisting more than 4 weeks, age over 35 "
+        "| Yes [X] No [ ] |"
+    )
+    seeded = seed_checkbox_entities(raw, _sfh_schema())
+    pcb = [
+        row
+        for row in seeded
+        if "postcoital" in str(row.get("entity_text") or "").lower()
+    ]
+    assert pcb
+    assert str(pcb[0].get("concept_id")) == "48880000"
+    assert pcb[0].get("assertion") == "present"
+
+
+def test_ticked_b5_and_b2_seed_taught_finding_codes() -> None:
+    raw = (
+        "| B2. vulval mass | Yes [X] No [ ] |\n"
+        "| B5. Postmenopausal bleeding in woman aged over 55 not on HRT "
+        "| Yes [X] No [ ] |"
+    )
+    seeded = seed_checkbox_entities(raw, _sfh_schema())
+    by_code = {str(row.get("concept_id") or "") for row in seeded}
+    assert "289477004" in by_code
+    assert "76742009" in by_code
 
 
 def test_packed_yes_seed_stays_present_beside_empty_no_box() -> None:

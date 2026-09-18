@@ -28,6 +28,7 @@ from libs.pipeline.form_schema_normalizer import (
     FormSection,
 )
 from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
+from libs.pipeline.lab_result_evidence import row_reports_a_result
 
 FIXTURES = Path(__file__).parent / "fixtures" / "form_schema"
 TEMPLATE_FIXTURE = FIXTURES / "sfh_gynae_2ww_template.json"
@@ -48,6 +49,14 @@ Blood Results (Last ):
 
 # The same row with a specimen date but no analyte values at all.
 DATED_BLOOD_ROW = "| FBC | 23.06.26 |  |  |  |\n"
+
+# The CA125 row exactly as it reaches the pipeline for NHS 4568668417.
+# The specimen date and the result share one cell, which is the layout
+# this form uses for tumour markers.
+CA125_RESULTED_ROW = "| CA 125 | 02 Jun 2026, 6 ku/L | 2ww Gynae |\n"
+
+# The same layout with nothing resulted: a routing note, but no value.
+CA125_UNRESULTED_ROW = "| CA 125 | Requested, awaiting result | 2ww Gynae |\n"
 
 
 def _taught_item(raw: dict) -> FormSchemaItem:
@@ -186,3 +195,37 @@ def test_specimen_date_alone_seeds_only_the_battery() -> None:
     entities = seed_ordered_tests_entities(DATED_BLOOD_ROW, _taught_schema())
     labels = {str(e["label"]) for e in entities}
     assert labels == {"FBC"}
+
+
+# ---------------------------------------------------------------------------
+# A cell holding both the date and the result
+#
+# NHS 4568668417 had a CA125 of 6 ku/L on 2 June 2026. The row was in the
+# letter and in the extraction prompt, but nothing was coded, so NICE
+# NG12 1.5.3 offered the test again. This form puts the date and the
+# value in one cell, and every clause of the result gate needs the date
+# or the value to fill a cell on its own.
+# ---------------------------------------------------------------------------
+
+
+def test_date_and_value_in_one_cell_reports_a_result() -> None:
+    assert row_reports_a_result(CA125_RESULTED_ROW.strip(), ["CA 125"]) is True
+
+
+def test_combined_cell_without_a_value_reports_nothing() -> None:
+    """A routing note in the same cell shape is still not a result."""
+    assert row_reports_a_result(CA125_UNRESULTED_ROW.strip(), ["CA 125"]) is False
+
+
+def test_resulted_ca125_row_seeds_the_taught_battery() -> None:
+    """The taught CA125 battery carries the code NG12 1.5.3 asks for."""
+    entities = seed_ordered_tests_entities(CA125_RESULTED_ROW, _taught_schema())
+    ca125 = next(e for e in entities if e["label"] == "CA 125")
+    assert ca125["snomed_code"] == "909121000000107"
+    assert ca125["semantic_tag"] == "procedure"
+    assert ca125["assertion"] == "present"
+
+
+def test_unresulted_ca125_row_seeds_nothing() -> None:
+    entities = seed_ordered_tests_entities(CA125_UNRESULTED_ROW, _taught_schema())
+    assert entities == []

@@ -9,6 +9,7 @@ Atlas trace:
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 
 from libs.llm_client.prompt_safety import (
     INJECTION_GUARD,
@@ -40,10 +41,59 @@ def guard_system_prompt(instructions: str) -> str:
     return INJECTION_GUARD + body
 
 
-def guard_user_clinical_text(text: str, *, max_chars: int = DEFAULT_USER_TEXT_MAX_CHARS) -> str:
-    """De-identify then sanitise clinical text before embedding in an LLM user message."""
+@dataclass(frozen=True)
+class GuardedClinicalText:
+    """Guarded text plus whether any of the letter was left behind.
+
+    A cut is not a failure the caller can infer from the text itself, so
+    it is carried here. See ``.cursor/rules/fail-closed-boundary.mdc``
+    rule 3: partial results are typed as partial.
+    """
+
+    text: str
+    original_chars: int
+    kept_chars: int
+
+    @property
+    def truncated(self) -> bool:
+        return self.dropped_chars > 0
+
+    @property
+    def dropped_chars(self) -> int:
+        return max(0, self.original_chars - self.kept_chars)
+
+
+def guard_user_clinical_text_checked(
+    text: str,
+    *,
+    max_chars: int = DEFAULT_USER_TEXT_MAX_CHARS,
+) -> GuardedClinicalText:
+    """Guard clinical text and report whether it had to be cut."""
     deid = deidentify_encounter_text(text)
-    return sanitise_for_prompt(deid, max_chars=max_chars)
+    guarded = sanitise_for_prompt(deid, max_chars=max_chars)
+    result = GuardedClinicalText(
+        text=guarded,
+        original_chars=len(deid),
+        kept_chars=len(guarded),
+    )
+    if result.truncated:
+        logger.warning(
+            "clinical text truncated for LLM prompt: kept %d of %d characters",
+            result.kept_chars,
+            result.original_chars,
+        )
+    return result
+
+
+def guard_user_clinical_text(
+    text: str, *, max_chars: int = DEFAULT_USER_TEXT_MAX_CHARS
+) -> str:
+    """De-identify then sanitise clinical text for an LLM user message.
+
+    Prefer ``guard_user_clinical_text_checked`` on any path that reads a
+    whole letter: this one cannot tell the caller that it cut the text.
+    """
+    return guard_user_clinical_text_checked(text, max_chars=max_chars).text
 
 
 def guard_llm_extraction_response(

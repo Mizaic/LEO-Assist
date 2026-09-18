@@ -258,6 +258,43 @@ def test_resolve_terms_logs_terminology_low_confidence_for_unresolved() -> None:
     )
 
 
+def test_taught_checkbox_keeps_form_concept_id() -> None:
+    """FormSchema tick codes must not be replaced by a long-label lookup.
+
+    Atlas: DI-0B907354 / DI-50BE367C
+    """
+    entity = {
+        "text": "Postcoital bleeding persisting more than 4 weeks, age over 35",
+        "lookup_term": "Postcoital bleeding persisting more than 4 weeks, age over 35",
+        "concept_id": "48880000",
+        "assertion": "present",
+        "label": "finding",
+        "__source": "form_schema_checkbox",
+    }
+
+    def _fake_resolve(self, terms, expected_tags=None, org_id=None):
+        return {
+            entity["lookup_term"]: [
+                ResolvedTerm(
+                    text=entity["lookup_term"],
+                    concept_id="999999999",
+                    term="Wrong long-label hit",
+                    semantic_tag="finding",
+                    score=0.99,
+                )
+            ]
+        }
+
+    with patch.object(TerminologyClient, "resolve", _fake_resolve):
+        result = _resolve_terms(
+            {"entities": [entity], "expected_tags": {}, "confidence_threshold": 0.55}
+        )
+
+    kept = result["resolved_entities"][0]
+    assert kept["concept_id"] == "48880000"
+    assert kept.get("terminology_unresolved") is not True
+
+
 def test_dedup_keeps_taught_checkbox_when_concept_collides() -> None:
     """Exam lump and the taught A1 tick can share 89164003. Keep both."""
     kept = _dedup_by_concept_id(

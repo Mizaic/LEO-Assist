@@ -850,7 +850,26 @@ def _run_llm_extraction(
         ),
         **_llm_model_fields(state, llm_tokens),
         **schema_fields,
+        **_short_read_fields_from_usage(llm_tokens),
     }
+
+
+def _short_read_fields_from_usage(llm_tokens: dict[str, Any] | None) -> dict[str, Any]:
+    """Type the run as partial when the letter did not fit the prompt."""
+    from libs.pipeline.extraction_completeness import (
+        short_read_fields,
+        truncated_text_reason,
+    )
+
+    usage = llm_tokens or {}
+    if not usage.get("clinical_text_truncated"):
+        return {}
+    return short_read_fields(
+        truncated_text_reason(
+            int(usage.get("clinical_text_dropped_chars") or 0),
+            int(usage.get("clinical_text_original_chars") or 0),
+        )
+    )
 
 
 def _schema_scope(state: dict[str, Any]) -> tuple[str, str, str]:

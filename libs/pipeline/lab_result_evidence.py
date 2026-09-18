@@ -34,6 +34,10 @@ _VALUE_CELL_RE = re.compile(rf"{VALUE_PATTERN}(?:\s*{UNIT_PATTERN})?", re.IGNORE
 # 2026-06-23, or 23 Jun 2026.
 _DATE_CELL_RE = re.compile(DATE_TOKEN)
 
+# A result carrying its own unit, e.g. "6 ku/L". Required of a part of a
+# shared cell, where a bare number is too weak to read as a result.
+_VALUE_WITH_UNIT_RE = re.compile(rf"{VALUE_PATTERN}\s*{UNIT_PATTERN}", re.IGNORECASE)
+
 
 def _cells(row: str) -> list[str]:
     """Return the trimmed cells of a markdown table row."""
@@ -42,19 +46,48 @@ def _cells(row: str) -> list[str]:
     return [cell.strip() for cell in row.split("|")]
 
 
-def row_has_specimen_date(row: str) -> bool:
-    """Return True when a whole cell of *row* is a specimen date.
+def _shared_cell_parts(cell: str) -> list[str]:
+    """Split a cell that holds more than one field, e.g. a date and a result.
 
-    The date must fill its own cell. A date inside prose, such as the
-    "BLOODS DONE TODAY 23.6.26" boilerplate, says nothing about which
-    battery on which row was resulted.
+    Tumour-marker rows on the Sherwood gynaecology form are written
+    ``| CA 125 | 02 Jun 2026, 6 ku/L | 2ww Gynae |``. Returns an empty
+    list for an ordinary single-field cell, so those keep reading
+    exactly as before.
     """
-    return any(cell and _DATE_CELL_RE.fullmatch(cell) for cell in _cells(row))
+    parts = [part.strip() for part in cell.split(",") if part.strip()]
+    return parts if len(parts) > 1 else []
+
+
+def row_has_specimen_date(row: str) -> bool:
+    """Return True when a cell of *row*, or a field of one, is a date.
+
+    The date must fill its cell, or its own comma-separated field of a
+    shared cell. A date inside prose, such as the "BLOODS DONE TODAY
+    23.6.26" boilerplate, says nothing about which battery on which row
+    was resulted.
+    """
+    for cell in _cells(row):
+        if cell and _DATE_CELL_RE.fullmatch(cell):
+            return True
+        if any(_DATE_CELL_RE.fullmatch(part) for part in _shared_cell_parts(cell)):
+            return True
+    return False
 
 
 def row_has_value_cell(row: str) -> bool:
-    """Return True when a whole cell of *row* is a numeric result."""
-    return any(cell and _VALUE_CELL_RE.fullmatch(cell) for cell in _cells(row))
+    """Return True when a cell of *row*, or a field of one, is a result.
+
+    A shared cell must carry the unit as well, because a bare number
+    beside free text is as likely to be a count or a grade as a result.
+    """
+    for cell in _cells(row):
+        if cell and _VALUE_CELL_RE.fullmatch(cell):
+            return True
+        if any(
+            _VALUE_WITH_UNIT_RE.fullmatch(part) for part in _shared_cell_parts(cell)
+        ):
+            return True
+    return False
 
 
 def label_has_value(text: str, label: str) -> bool:

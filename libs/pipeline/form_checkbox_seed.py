@@ -16,6 +16,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from libs.completeness.schema import concept_ids_for_item_pattern
 from libs.pipeline.form_pattern_match import safe_search
 from libs.pipeline.form_schema_normalizer import (
     FormSchema,
@@ -68,9 +69,7 @@ def _ticked_items(line: str, section: FormSection) -> list[FormSchemaItem]:
     ]
 
 
-def _fact_span(
-    text: str, item: FormSchemaItem
-) -> tuple[str, tuple[int, int]] | None:
+def _fact_span(text: str, item: FormSchemaItem) -> tuple[str, tuple[int, int]] | None:
     taught = (item.entity_text or "").strip()
     if taught:
         span = _raw_label_span(text, taught)
@@ -90,6 +89,8 @@ def _append_seed(
     seen: set[str],
     text: str,
     item: FormSchemaItem,
+    schema: FormSchema | None = None,
+    section: FormSection | None = None,
 ) -> None:
     found = _fact_span(text, item)
     if found is None:
@@ -101,18 +102,33 @@ def _append_seed(
         return
     seen.add(key)
     start, end = span
-    entities.append(
-        {
-            "text": display,
-            "entity_text": taught,
-            "lookup_term": taught,
-            "start": start,
-            "end": end,
-            "assertion": item.assertion or "present",
-            "semantic_tag": item.semantic_tag or "situation",
-            "label": item.semantic_tag or "situation",
-            "__source": TAUGHT_CHECKBOX_SOURCE,
-        }
+    row: dict[str, Any] = {
+        "text": display,
+        "entity_text": taught,
+        "lookup_term": taught,
+        "start": start,
+        "end": end,
+        "assertion": item.assertion or "present",
+        "semantic_tag": item.semantic_tag or "situation",
+        "label": item.semantic_tag or "situation",
+        "__source": TAUGHT_CHECKBOX_SOURCE,
+    }
+    taught_ids = _taught_concept_ids(schema, section, item)
+    if taught_ids:
+        row["concept_id"] = str(taught_ids[0])
+    entities.append(row)
+
+
+def _taught_concept_ids(
+    schema: FormSchema | None,
+    section: FormSection | None,
+    item: FormSchemaItem,
+) -> list[int]:
+    groups = list(getattr(schema, "completeness_groups", None) or [])
+    return concept_ids_for_item_pattern(
+        groups,
+        item_pattern=item.pattern,
+        section_id=str(getattr(section, "section_id", "") or ""),
     )
 
 
@@ -130,7 +146,7 @@ def seed_checkbox_entities(
             continue
         for line in encounter_text.splitlines():
             for item in _ticked_items(line, section):
-                _append_seed(entities, seen, encounter_text, item)
+                _append_seed(entities, seen, encounter_text, item, schema, section)
     return entities
 
 
@@ -163,11 +179,7 @@ def merge_checkbox_seed_entities(
         if not isinstance(row, dict):
             merged.append(row)
             continue
-        cover = (
-            ent
-            for key, ent in covers
-            if _seed_covers_row(key, _row_key(row))
-        )
+        cover = (ent for key, ent in covers if _seed_covers_row(key, _row_key(row)))
         match = next(cover, None)
         if match is None:
             merged.append(row)

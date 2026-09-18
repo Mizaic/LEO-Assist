@@ -50,6 +50,59 @@ def add_optional_concept_member(
     return out
 
 
+def attach_item_pattern_concept_id(
+    groups: list[dict[str, Any]],
+    *,
+    item_pattern: str,
+    concept_id: int,
+    section_id: str = "",
+) -> list[dict[str, Any]]:
+    """Put a SNOMED id on the completeness member that owns a tick pattern."""
+    wanted = str(item_pattern or "").strip()
+    section = str(section_id or "").strip()
+    target = int(concept_id)
+    out = deepcopy(groups)
+    for group in out:
+        for member in group.get("members") or []:
+            if not isinstance(member, dict):
+                continue
+            if str(member.get("item_pattern") or "").strip() != wanted:
+                continue
+            if section and str(member.get("section_id") or "").strip() != section:
+                continue
+            ids = _concept_ids(member.get("concept_ids"))
+            if target not in ids:
+                ids.append(target)
+            member["concept_ids"] = ids
+    return out
+
+
+def concept_ids_for_item_pattern(
+    groups: list[dict[str, Any]] | None,
+    *,
+    item_pattern: str,
+    section_id: str = "",
+) -> list[int]:
+    """Read taught concept ids for one FormSchema tick pattern."""
+    wanted = str(item_pattern or "").strip()
+    section = str(section_id or "").strip()
+    if not wanted:
+        return []
+    ids: list[int] = []
+    for group in groups or []:
+        for member in group.get("members") or []:
+            if not isinstance(member, dict):
+                continue
+            if str(member.get("item_pattern") or "").strip() != wanted:
+                continue
+            if section and str(member.get("section_id") or "").strip() != section:
+                continue
+            for cid in _concept_ids(member.get("concept_ids")):
+                if cid not in ids:
+                    ids.append(cid)
+    return ids
+
+
 def _has_concept(members: list[Any], concept_id: int) -> bool:
     target = int(concept_id)
     for member in members:
