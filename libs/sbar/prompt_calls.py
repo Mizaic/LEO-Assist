@@ -437,7 +437,7 @@ def _stitch_partials_deterministic(parts: list[dict[str, Any]]) -> str:
             chunks.append("\n\n".join([heading, body]))
             continue
         heading = f"### Part {idx} of {total} -- {rr_text}"
-        md = (part.get("background_markdown") or "").strip()
+        md = _markdown_text(part.get("background_markdown"))
         body_pieces = [heading]
         if md:
             body_pieces.append(md)
@@ -445,25 +445,44 @@ def _stitch_partials_deterministic(parts: list[dict[str, Any]]) -> str:
     return "\n\n".join(chunks)
 
 
+def _markdown_text(value: Any) -> str:
+    """Read Background markdown whether Azure sent a string or a list."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        parts = [_markdown_text(item) for item in value]
+        return "\n\n".join(part for part in parts if part)
+    if isinstance(value, dict):
+        for key in ("background_markdown", "markdown", "text"):
+            text = _markdown_text(value.get(key))
+            if text:
+                return text
+        return ""
+    return str(value).strip()
+
+
 def _normalise_background_raw(raw: Any) -> dict[str, Any]:
     """Coerce an LLM reply into one Background object.
 
-    Azure GPT-5 mini sometimes returns a JSON list. The old reader
-    called ``raw.get`` and crashed, so a good reply never landed.
+    Azure GPT-5 mini sometimes returns a JSON list, or a list
+    inside ``background_markdown``. The old reader called
+    ``.strip()`` on that list and crashed, so a good reply never
+    landed.
     """
     if isinstance(raw, dict):
-        return raw
+        out = dict(raw)
+        out["background_markdown"] = _markdown_text(raw.get("background_markdown"))
+        return out
     if isinstance(raw, list):
         objects = [item for item in raw if isinstance(item, dict)]
         if not objects:
             return {"error": "invalid json: background reply was a list"}
-        markdowns = [
-            str(item.get("background_markdown") or "").strip() for item in objects
-        ]
+        markdowns = [_markdown_text(item.get("background_markdown")) for item in objects]
         markdowns = [text for text in markdowns if text]
         first = dict(objects[0])
-        if markdowns:
-            first["background_markdown"] = "\n\n".join(markdowns)
+        first["background_markdown"] = "\n\n".join(markdowns)
         return first
     return {"error": "invalid json: background reply was not a JSON object"}
 
@@ -516,7 +535,7 @@ async def _invoke_background_part(
             "error_code": friendly["code"],
             "error_message": friendly["message"],
         }
-    md = (raw.get("background_markdown") or "").strip()
+    md = _markdown_text(raw.get("background_markdown"))
     if not md:
         friendly = translate_error("background", "missing_background_markdown")
         return {
