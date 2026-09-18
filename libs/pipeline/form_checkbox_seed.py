@@ -21,12 +21,9 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchema,
     FormSchemaItem,
     FormSection,
-    _TICK_BOX_RE,
-    _box_is_checked,
-    _item_is_checked,
-    _items_in_line_order,
     _yes_no_answer,
 )
+from libs.pipeline.form_tick_marks import item_marks_on_line
 
 _CHECKBOX_TYPES = frozenset(
     {"checkbox_single", "checkbox_multi", "checkbox_yesno", "scale"}
@@ -55,18 +52,6 @@ def _raw_label_span(text: str, label: str) -> tuple[int, int] | None:
     return idx, idx + len(label)
 
 
-def _paired_checked_items(
-    line: str, items: list[FormSchemaItem]
-) -> list[FormSchemaItem] | None:
-    ordered = _items_in_line_order(line, items)
-    boxes = list(_TICK_BOX_RE.finditer(line))
-    if len(ordered) < 2 or len(boxes) < len(ordered):
-        return None
-    return [
-        item for item, box in zip(ordered, boxes, strict=False) if _box_is_checked(box)
-    ]
-
-
 def _ticked_items(line: str, section: FormSection) -> list[FormSchemaItem]:
     if section.section_type == "checkbox_yesno":
         if _yes_no_answer(line) != "yes":
@@ -76,10 +61,11 @@ def _ticked_items(line: str, section: FormSection) -> list[FormSchemaItem]:
             for item in section.items
             if safe_search(item.pattern, line) is not None
         ]
-    paired = _paired_checked_items(line, section.items)
-    if paired is not None:
-        return paired
-    return [item for item in section.items if _item_is_checked(line, item)]
+    return [
+        item
+        for item, checked in item_marks_on_line(line, section.items)
+        if checked is True
+    ]
 
 
 def _fact_span(
