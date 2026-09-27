@@ -610,18 +610,10 @@
     {
       "literal": "does not appear consistent with",
       "category": "NEGATED_EXISTENCE",
-      "direction": "PSEUDO",
-      "max_scope": null,
-      "description": "Stops default 'not' or 'does not' looking backward. The next rule then marks only the diagnosis that follows.",
-      "example": "Vulval ulceration of uncertain cause Does not appear consistent with lichen sclerosus -> ulceration stays present"
-    },
-    {
-      "literal": "does not appear consistent with",
-      "category": "NEGATED_EXISTENCE",
       "direction": "FORWARD",
       "max_scope": 6,
-      "description": "The diagnosis after this phrase is not the cause. Earlier findings stay present.",
-      "example": "Does not appear consistent with lichen sclerosus -> lichen sclerosus is absent"
+      "description": "The diagnosis after this phrase is not the cause. Earlier findings stay present. A single FORWARD rule is required: a PSEUDO copy of the same literal consumed the trigger, so lichen sclerosus was never marked absent.",
+      "example": "Vulval ulceration of uncertain cause Does not appear consistent with lichen sclerosus -> ulceration stays present, lichen sclerosus is absent"
     },
     {
       "literal": "of uncertain cause",

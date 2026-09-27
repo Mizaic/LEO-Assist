@@ -145,7 +145,9 @@ def test_unenriched_compliance_falls_to_global(mock_cls: MagicMock) -> None:
         return {"matched_rules": []}
 
     evaluator.evaluate_patient.side_effect = _evaluate
-    evaluate_compliance({**_thin_state(), "entities": []})
+    evaluate_compliance(
+        {**_thin_state(), "entities": [], "referral_reason": "Suspected breast cancer"}
+    )
     assert captured
     assert captured[0].get("scope_type") == "global"
     assert captured[0].get("scope_id") is None
@@ -164,11 +166,15 @@ def test_enriched_compliance_uses_receiving_service_ng12(mock_cls: MagicMock) ->
         return {"matched_rules": []}
 
     evaluator.evaluate_patient.side_effect = _evaluate
-    evaluate_compliance({**state, "entities": []})
+    evaluate_compliance(
+        {**state, "entities": [], "referral_reason": "Suspected breast cancer"}
+    )
     assert captured
     first = captured[0]
-    assert first.get("scope_type") == "guideline"
-    assert first.get("scope_id") == "NG12"
+    # Catalogue ids such as NG12 use the full published ruleset
+    # (global + pathway filter), not the stale scoped compile.
+    assert first.get("scope_type") == "global"
+    assert first.get("pathway_filter") == "NG12"
     assert first.get("patient_age") == state["patient_age"]
     assert first.get("patient_sex") == "female"
 

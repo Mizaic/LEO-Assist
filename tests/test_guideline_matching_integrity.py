@@ -143,6 +143,7 @@ def test_missing_ruleset_degrades_and_is_not_called_unsupported() -> None:
                 "primary_guideline_ids": ["NG12"],
                 "healthcare_service_id": BREAST_SERVICE_ID,
                 "healthcare_service_name": "Breast Clinic",
+                "referral_reason": "Suspected breast cancer",
                 "entities": [{"concept_id": "22298006", "assertion": "present"}],
             }
         )

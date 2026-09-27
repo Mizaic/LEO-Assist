@@ -70,11 +70,10 @@ def item_marks_on_line(
     if not found:
         return []
     marks = _square_and_bare_marks(line)
-    if len(marks) == len(found):
-        paired_equal = []
-        for (item, _start, _end), (_pos, checked) in zip(found, marks):
-            paired_equal.append((item, checked))
-        return paired_equal
+    if _marks_sit_on_their_items(found, marks):
+        return [
+            (item, checked) for (item, _s, _e), (_pos, checked) in zip(found, marks)
+        ]
     paired: list[tuple[FormSchemaItem, bool | None]] = []
     for index, (item, _start, end) in enumerate(found):
         span_end = found[index + 1][1] if index + 1 < len(found) else len(line)
@@ -131,6 +130,31 @@ def _box_checked(match: re.Match[str]) -> bool:
 
 def _inside_box(index: int, boxes: list[re.Match[str]]) -> bool:
     return any(box.start() <= index < box.end() for box in boxes)
+
+
+def _marks_sit_on_their_items(
+    found: list[tuple[FormSchemaItem, int, int]],
+    marks: list[tuple[int, bool]],
+) -> bool:
+    """True when a one-to-one zip would pair each tick with its own label.
+
+    Equal counts are not enough. A wrapped chunk can put a Yes/No pair
+    at the start of the line and two site words much later; zipping those
+    marks a cancer site that nobody ticked. Boxes that sit with their
+    labels -- including a tick just before a score -- still overlap.
+    """
+    if len(marks) != len(found):
+        return False
+    item_lo = found[0][1]
+    item_hi = found[-1][2]
+    mark_lo = marks[0][0]
+    mark_hi = marks[-1][0]
+    if mark_hi >= item_lo and mark_lo <= item_hi:
+        return True
+    # Packed ``A3 ... A6 | Yes [ ] Yes [X]`` puts every box after the
+    # last label. A Yes/No pair that sits well before the first label
+    # is someone else's row and must not zip.
+    return mark_lo >= item_hi
 
 
 def _square_and_bare_marks(line: str) -> list[tuple[int, bool]]:

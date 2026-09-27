@@ -63,7 +63,7 @@ def test_uk_pack_blocks_does_not_appear_consistent_with() -> None:
     ]
     assert hits, "does not appear consistent with must be in the UK ConText pack"
     assert hits[0]["category"] == "NEGATED_EXISTENCE"
-    assert hits[0]["direction"] == "PSEUDO"
+    assert hits[0]["direction"] == "FORWARD"
     assert hits[0]["rule_id"] == packaged_rule_id(
         "uk", "does not appear consistent with"
     )

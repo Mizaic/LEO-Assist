@@ -125,6 +125,8 @@ def test_live_neo4j_concurrent_claim_exactly_one() -> None:
 
     from libs.neo4j_client.client import PatientGraphClient
 
+    if os.getenv("LIVE_NEO4J") != "1" and os.getenv("LIVE_NEO4J_GUIDANCE") != "1":
+        pytest.skip("Set LIVE_NEO4J=1 to run the live claim race")
     uri = os.getenv("NEO4J_URI") or os.getenv("NEO4J_PATIENT_URI")
     password = os.getenv("NEO4J_PASSWORD") or os.getenv("NEO4J_PATIENT_PASSWORD")
     if not uri or not password:

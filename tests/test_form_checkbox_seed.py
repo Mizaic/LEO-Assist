@@ -127,6 +127,22 @@ def test_bare_x_on_packed_row_seeds_endometrium() -> None:
     assert "Suspected ovarian cancer" not in texts
 
 
+def test_a_later_section_yes_does_not_tick_an_earlier_site_word() -> None:
+    """B1 names cervix and vagina. That is not a Section A Vagina tick."""
+    raw = (
+        "Section A: Gynaecological Cancer type suspected\n"
+        "Ovary [ ] Cervix [X] Endometrium [ ] Vagina [ ] Vulva [ ]\n"
+        "Section B: Signs/symptoms\n"
+        "| B1. Lesion suspicious of cancer of cervix or vagina "
+        "on speculum examination | Yes [X] No [ ] |\n"
+    )
+    seeded = seed_checkbox_entities(raw, _sfh_schema())
+    texts = {str(e.get("entity_text") or "") for e in seeded}
+    assert "Suspected cervical cancer" in texts
+    assert "Suspected vaginal cancer" not in texts
+    assert "Suspected vulval cancer" not in texts
+
+
 def test_ticked_checkbox_is_seeded_at_raw_letter_offset() -> None:
     seeded = seed_checkbox_entities(_RAW, _schema())
     assert len(seeded) == 1

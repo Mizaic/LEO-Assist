@@ -22,6 +22,7 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchema,
     FormSchemaItem,
     FormSection,
+    _find_matching_section,
     _yes_no_answer,
 )
 from libs.pipeline.form_tick_marks import item_marks_on_line
@@ -166,6 +167,28 @@ def _taught_concept_ids(
     )
 
 
+def _seed_line(
+    entities: list[dict[str, Any]],
+    seen: set[str],
+    text: str,
+    line: str,
+    section: FormSection,
+    schema: FormSchema,
+) -> None:
+    if section.section_type not in _CHECKBOX_TYPES:
+        return
+    for item in _ticked_items(line, section):
+        _append_seed(entities, seen, text, item, schema, section)
+
+
+def _letter_has_section_header(text: str, schema: FormSchema) -> bool:
+    return any(
+        section.matches_header(line)
+        for section in schema.sections
+        for line in text.splitlines()
+    )
+
+
 def seed_checkbox_entities(
     encounter_text: str,
     schema: FormSchema,
@@ -175,12 +198,19 @@ def seed_checkbox_entities(
         return []
     entities: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for section in schema.sections:
-        if section.section_type not in _CHECKBOX_TYPES:
-            continue
-        for line in encounter_text.splitlines():
-            for item in _ticked_items(line, section):
-                _append_seed(entities, seen, encounter_text, item, schema, section)
+    lines = encounter_text.splitlines()
+    if not _letter_has_section_header(encounter_text, schema):
+        for section in schema.sections:
+            for line in lines:
+                _seed_line(entities, seen, encounter_text, line, section, schema)
+        return entities
+    current: FormSection | None = None
+    for line in lines:
+        matched = _find_matching_section(line, schema.sections)
+        if matched is not None:
+            current = matched
+        if current is not None:
+            _seed_line(entities, seen, encounter_text, line, current, schema)
     return entities
 
 

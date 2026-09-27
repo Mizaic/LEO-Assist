@@ -58,6 +58,10 @@ def _literal_fallback(pattern: str) -> str:
     tokens = _WORD.findall(cleaned)
     if not tokens:
         return ""
+    # A lone digit from a broken class such as ``0 [`` would match every
+    # "0" in the letter. Need two tokens, or one real word.
+    if len(tokens) == 1 and len(tokens[0]) < 3:
+        return ""
     return r"\s*\W*\s*".join(re.escape(t) for t in tokens)
 
 
@@ -74,9 +78,14 @@ def safe_search(pattern: str, text: str) -> re.Match[str] | None:
     except re.error:
         pass
     try:
-        return re.search(re.escape(pattern), text, re.IGNORECASE)
+        exact = re.search(re.escape(pattern), text, re.IGNORECASE)
     except re.error:
-        pass
+        exact = None
+    # An escaped pattern always compiles. A miss must not skip the
+    # token fallback -- that is what matches a taught heading after
+    # a broken regex such as ``(?i)Patient\s+Fitness\s+(ECOG``.
+    if exact is not None:
+        return exact
     fallback = _literal_fallback(pattern)
     if not fallback:
         return None

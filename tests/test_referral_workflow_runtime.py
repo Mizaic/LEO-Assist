@@ -145,7 +145,15 @@ def test_compliance_uses_guideline_evaluator_when_scope_configured(monkeypatch):
         # rule_id, not id: matched rules are deduplicated on rule_id and a
         # rule without one is dropped, so an "id" fixture made a compliant
         # result look non-compliant. The real evaluator emits rule_id.
-        return {"matched_rules": [{"rule_id": "rule-1"}], "is_compliant": True}
+        return {
+            "matched_rules": [
+                {
+                    "rule_id": "rule-1",
+                    "actions": [{"priority": "2ww", "due_days": 14}],
+                }
+            ],
+            "is_compliant": True,
+        }
 
     monkeypatch.setattr(compliance, "_evaluate_guideline", fake_guideline)
 
@@ -153,6 +161,7 @@ def test_compliance_uses_guideline_evaluator_when_scope_configured(monkeypatch):
         {
             "patient_id": "p1",
             "guideline_scope_id": "NG12",
+            "referral_reason": "Suspected colorectal cancer",
             "entities": [{"concept_id": "71711000112103"}],
         }
     )
@@ -170,6 +179,9 @@ def test_evaluate_guideline_passes_ruleset_version_override(monkeypatch):
     captured_kwargs: dict[str, Any] = {}
 
     class FakeEvaluator:
+        def __init__(self, *args, **kwargs):
+            pass
+
         def evaluate_patient(self, codes, *args, **kwargs):
             captured_kwargs.update(kwargs)
             return {"matched_rules": []}
@@ -198,6 +210,9 @@ def test_evaluate_guideline_omits_ruleset_version_when_unset(monkeypatch):
     captured_kwargs: dict[str, Any] = {}
 
     class FakeEvaluator:
+        def __init__(self, *args, **kwargs):
+            pass
+
         def evaluate_patient(self, codes, *args, **kwargs):
             captured_kwargs.update(kwargs)
             return {"matched_rules": []}
@@ -220,6 +235,9 @@ def test_evaluate_guideline_works_with_communication_thread_state(monkeypatch):
     from libs.pipeline_graph.subgraphs import compliance
 
     class FakeEvaluator:
+        def __init__(self, *args, **kwargs):
+            pass
+
         def evaluate_patient(self, codes, *args, **kwargs):
             return {"matched_rules": ["rule-1"]}
 

@@ -56,9 +56,9 @@ EXPECTED_HEADER_BINDING = [
     "patient_awareness",
     "section_c_clinical_details",
     "section_e_performance",
-    "section_e_performance",
-    "section_e_performance",
-    "section_e_performance",
+    "ecog_status",
+    "ecog_status",
+    "ecog_status",
 ]
 
 

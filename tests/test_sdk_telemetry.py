@@ -54,12 +54,16 @@ class _FakeRedis:
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     from app.routers.sdk_telemetry import (
         _reset_telemetry_state_for_testing,
         router,
     )
 
+    # Shared conftest points REDIS_URL at localhost. These tests prove
+    # the in-process LRU, so they must not inherit a leftover Redis key
+    # from an earlier run.
+    monkeypatch.delenv("REDIS_URL", raising=False)
     _reset_telemetry_state_for_testing()
     app = FastAPI()
     app.include_router(router)

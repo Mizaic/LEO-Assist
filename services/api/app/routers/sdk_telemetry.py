@@ -184,8 +184,15 @@ def _reset_telemetry_state_for_testing() -> None:
     _REDIS_KEY_PREFIX from the configured Redis instance.
     """
     global _event_count, _redis_client
+    client = None if _redis_client is _SENTINEL else _redis_client
     _lru_cache.clear()
     _event_count = 0
+    if client is not None:
+        try:
+            for key in client.scan_iter(match=f"{_REDIS_KEY_PREFIX}*"):
+                client.delete(key)
+        except Exception:
+            pass
     _redis_client = _SENTINEL
 
 

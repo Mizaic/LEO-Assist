@@ -457,7 +457,7 @@ def build_ecog_status() -> dict:
         section_id="ecog_status",
         section_type="scale",
         label="ECOG performance status",
-        start_pattern="ECOG",
+        start_pattern="ECOG STATUS",
         items=[
             _item("0 [", "ECOG 0 fully active"),
             _item("1 [", "ECOG 1 restricted in strenuous activity"),

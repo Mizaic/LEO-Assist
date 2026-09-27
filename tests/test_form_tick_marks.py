@@ -18,7 +18,11 @@ from libs.pipeline.form_schema_normalizer import (
     FormSection,
 )
 from libs.pipeline.form_section_hits import collect_section_hits
-from libs.pipeline.form_tick_marks import mark_in_span, yes_no_answer
+from libs.pipeline.form_tick_marks import (
+    item_marks_on_line,
+    mark_in_span,
+    yes_no_answer,
+)
 
 
 _GYNAE_A = FormSection(
@@ -129,3 +133,19 @@ def test_section_hits_read_yes_bare_x() -> None:
     by_item = {h["item_pattern"]: h["checked"] for h in hits}
     assert by_item["B4."] is True
     assert by_item["B5."] is False
+
+
+def test_yes_no_boxes_do_not_tick_a_later_site_on_the_same_line() -> None:
+    """A wrapped chunk puts the admin Yes/No pair and the exam on one line.
+
+    Pairing by count alone marked Vulva present because two boxes met
+    two later site words. Those boxes belong to Cognitive Impairment.
+    """
+    line = (
+        "Cognitive Impairment - Yes [ ] No [X] Examination: "
+        "vulva doesnt appear atrophic scanty vaginal discharge"
+    )
+    marks = item_marks_on_line(line, _GYNAE_A.items)
+    by_item = {item.pattern: checked for item, checked in marks}
+    assert by_item.get("Vulva") is not True
+    assert by_item.get("Vagina") is not True

@@ -79,6 +79,13 @@ def test_invalid_start_pattern_returns_false_when_absent() -> None:
     assert section.matches_header("| Section B: Signs/symptoms |") is False
 
 
+def test_a_broken_box_pattern_does_not_match_every_zero() -> None:
+    """``0 [`` is an unclosed class. Its leftover token must not be '0'."""
+    from libs.pipeline.form_pattern_match import safe_search
+
+    assert safe_search("0 [", "[X] 0 - Fully active") is None
+
+
 def test_literal_label_with_brackets_matches_its_own_row() -> None:
     """Teachers often paste the raw label; it is not valid regex."""
     section = _section("PMB", "(Please put a X in appropriate boxes)")

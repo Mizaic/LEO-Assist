@@ -755,7 +755,7 @@
       "section_id": "ecog_status",
       "section_type": "scale",
       "label": "ECOG performance status",
-      "start_pattern": "ECOG",
+      "start_pattern": "ECOG STATUS",
       "items": [
         {
           "pattern": "0 [",

@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+from libs.pipeline.form_checkbox_seed import seed_checkbox_entities
 from libs.pipeline.form_schema_normalizer import apply_schema_to_text
 from libs.pipeline.form_schema_request import dict_to_section
 from libs.pipeline.form_schema_section_types import is_valid_section_type
@@ -93,16 +94,23 @@ def _canonical_texts(section_id: str) -> dict[str, str]:
 
 
 def test_only_the_ticked_cancer_site_survives(normalised: str) -> None:
-    """Ovary [ ] Cervix [X] Endometrium [ ] -- only Cervix is real."""
+    """Ovary [ ] Cervix [X] Endometrium [ ] -- only Cervix is real.
+
+    Tick rows are sealed so the model cannot re-quote them. The taught
+    fact is seeded from the tick, not written back into the letter.
+    """
     emitted = set(_extractable_lines(normalised))
     canonical = _canonical_texts("section_a_cancer_type")
+    for text in canonical.values():
+        assert text not in emitted
 
-    assert canonical["Cervix"] in emitted
+    seeded = {
+        str(e.get("entity_text") or e.get("text") or "")
+        for e in seed_checkbox_entities(_referral_text(), _schema())
+    }
+    assert canonical["Cervix"] in seeded
     for unticked in ("Ovary", "Endometrium", "Vagina", "Vulva"):
-        assert canonical[unticked] not in emitted, f"unticked site {unticked} leaked"
-
-    found = {p for p, text in canonical.items() if text in emitted}
-    assert found == {"Cervix"}, f"Section A emitted {sorted(found)}"
+        assert canonical[unticked] not in seeded, f"unticked site {unticked} leaked"
 
 
 def test_the_raw_inline_option_row_is_not_extractable(normalised: str) -> None:
@@ -116,8 +124,14 @@ def test_b1_survives_and_b2_to_b9_yield_nothing(normalised: str) -> None:
     emitted = set(_extractable_lines(normalised))
     canonical = _canonical_texts("section_b_symptoms")
     assert len(canonical) == 9, "fixture no longer has all nine B criteria"
+    for text in canonical.values():
+        assert text not in emitted
 
-    found = {p.split(".")[0] for p, text in canonical.items() if text in emitted}
+    seeded = {
+        str(e.get("entity_text") or e.get("text") or "")
+        for e in seed_checkbox_entities(_referral_text(), _schema())
+    }
+    found = {p.split(".")[0] for p, text in canonical.items() if text in seeded}
     assert found == {"B1"}, f"Section B emitted {sorted(found)}"
 
 
@@ -125,8 +139,14 @@ def test_only_the_ticked_frailty_point_survives(normalised: str) -> None:
     """1. Very Fit [X] -- the other eight scale points are not findings."""
     emitted = set(_extractable_lines(normalised))
     canonical = _canonical_texts("section_e_performance")
+    for text in canonical.values():
+        assert text not in emitted
 
-    found = {p for p, text in canonical.items() if text in emitted}
+    seeded = {
+        str(e.get("entity_text") or e.get("text") or "")
+        for e in seed_checkbox_entities(_referral_text(), _schema())
+    }
+    found = {p for p, text in canonical.items() if text in seeded}
     assert found == {"1. Very Fit"}, f"Section E emitted {sorted(found)}"
 
 
