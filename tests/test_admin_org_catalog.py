@@ -30,6 +30,7 @@ def test_shared_org_catalog_includes_service_provider_labels() -> None:
     assert "LIST_ORGS" in QUERY_SRC
 
 
-def test_shared_service_catalog_matches_either_provides_service_direction() -> None:
-    assert "LIST_ORG_SERVICES" in QUERY_SRC
-    assert "[:PROVIDES_SERVICE]-" in QUERY_SRC
+def test_shared_service_catalog_follows_provides_service_for() -> None:
+    """Live orgs link Service to Organization with PROVIDES_SERVICE_FOR."""
+    block = QUERY_SRC.split("LIST_ORG_SERVICES = ", 1)[1].split('"""', 2)[1]
+    assert "(s)-[:PROVIDES_SERVICE_FOR]->(o)" in block

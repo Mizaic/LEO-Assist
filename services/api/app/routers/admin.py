@@ -412,7 +412,7 @@ async def list_org_services(
     org_id: str,
     scope: CallerScope = Depends(require_org_catalog_reader),
 ) -> list[dict[str, Any]]:
-    """List services linked to a Service Provider org via PROVIDES_SERVICE."""
+    """List services linked to an organisation via PROVIDES_SERVICE_FOR."""
     if not scope.is_admin and org_id not in scope.org_ids:
         raise HTTPException(403, "Access to this organisation is outside your scope")
     client = _client()

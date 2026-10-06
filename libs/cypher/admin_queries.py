@@ -335,7 +335,8 @@ MATCH (o)
 WHERE o.id = $org_id
   AND (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN
        OR o:ServiceProvider OR o:Organization)
-MATCH (s:Service)-[:PROVIDES_SERVICE]-(o)
+MATCH (s:Service)
+WHERE (s)-[:PROVIDES_SERVICE_FOR]->(o)
 RETURN DISTINCT s.id AS id, s.name AS name, s.code AS code
 ORDER BY s.name
 """
