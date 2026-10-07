@@ -30,3 +30,5 @@ beautifulsoup4>=4.12
 numpy>=1.26.0,<2.4
 # GuidelineEvaluator / BitmapStore (compliance subgraph in-process import).
 pyroaring>=1.0.0
+# Per-document form recognition (libs/form_recognition) in the chunk loader.
+rapidfuzz>=3.9,<4

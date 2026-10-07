@@ -132,6 +132,7 @@ export default function FormSchemaAnnotator({
         organizationName: initialOrganizationName,
         serviceName: initialServiceName,
         completenessGroups: groups,
+        sourceText,
       });
       teach.setSaved(true);
       onSaved?.();
@@ -308,7 +309,7 @@ function TeachHeader({
         </Typography>
       </Stack>
       <Typography variant="caption" color="text.secondary">
-        Confirm the sections below. When you save, this form will never pause again.
+        Check the sections below. When you save, we check this form against the letter. Next time, we know the form by its headings.
       </Typography>
       {libraryFingerprint ? (
         <Typography variant="caption" color="primary.main" sx={{ display: "block", mt: 0.5 }}>

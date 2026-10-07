@@ -19,13 +19,8 @@ from pathlib import Path
 
 import pytest
 
+from libs.form_recognition.bundle import split_chunks
 from libs.llm_client import form_schema_detector
-from libs.pipeline.document_chunk_loader import (
-    CHUNK_TEXT_SEPARATOR,
-    bundle_fingerprint,
-    strip_pdf_attachments,
-)
-from libs.pipeline.document_quality import form_fingerprint
 from libs.pipeline.form_schema_normalizer import (
     FormSchema,
     FormSchemaItem,
@@ -51,8 +46,8 @@ def chunks() -> list[str]:
 
 @pytest.fixture(scope="module")
 def letter_text(chunks: list[str]) -> str:
-    """Primary referral text, as the teach dialog receives it."""
-    return strip_pdf_attachments(CHUNK_TEXT_SEPARATOR.join(chunks))
+    """Primary referral document, as the teach dialog receives it."""
+    return split_chunks(chunks)[0].text
 
 
 def _section(section_id: str, start_pattern: str, **kw) -> FormSection:
@@ -119,27 +114,6 @@ def test_markdown_cell_heading_still_matches() -> None:
     assert (
         section.matches_header("| Section A: Gynaecological Cancer type suspected |")
         is True
-    )
-
-
-# -- Defect 3: fingerprint must be scoped to the primary document -----------
-
-
-def test_runtime_fingerprint_matches_taught_fingerprint(
-    chunks: list[str], letter_text: str
-) -> None:
-    """A bundle with a PDF attachment must fingerprint like the letter alone.
-
-    The teach dialog fingerprints the PDF-stripped letter. If the runtime
-    loader fingerprints the whole bundle the taught schema never loads.
-    """
-    assert bundle_fingerprint(chunks) == form_fingerprint(letter_text)
-
-
-def test_fingerprint_is_stable_when_attachments_differ(chunks: list[str]) -> None:
-    without_attachment = chunks[:-1]
-    assert bundle_fingerprint(chunks) == bundle_fingerprint(
-        without_attachment + ["--- Document: Other.pdf ---\n\nNo Information Provided"]
     )
 
 

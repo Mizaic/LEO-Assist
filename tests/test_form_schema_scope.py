@@ -77,9 +77,13 @@ def test_save_form_schema_persists_org_and_service_ids():
     assert kwargs["service_id"] == "svc-gynae"
 
 
-def test_save_form_schema_drafts_other_active_schemas_for_same_service():
+def test_save_form_schema_keeps_other_active_forms_for_the_same_service():
+    """A service may use several forms, so saving one never drafts another.
+
+    DI-E21DF9EF: recognition picks the form from the document text.
+    """
     client = MagicMock()
-    client.run.return_value = [{"fingerprint": "old-hash"}]
+    client.run.return_value = [{"fingerprint": "other-form"}]
     write = FormSchemaWrite(
         fingerprint="fp-1",
         form_name="SFH Gynae",
@@ -92,13 +96,9 @@ def test_save_form_schema_drafts_other_active_schemas_for_same_service():
     release = [
         call
         for call in client.run.call_args_list
-        if "draft" in str(call.args[0]).lower()
+        if "status = 'draft'" in str(call.args[0]).lower().replace('"', "'")
     ]
-    assert release, "save must draft other active schemas for this service"
-    kwargs = release[0].kwargs
-    assert kwargs["organization_id"] == "org-sfh"
-    assert kwargs["service_id"] == "svc-gynae"
-    assert kwargs["fingerprint"] == "fp-1"
+    assert release == []
 
 
 def test_save_form_schema_ensures_service_completeness_domain():

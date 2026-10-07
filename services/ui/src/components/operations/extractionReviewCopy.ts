@@ -12,7 +12,16 @@ export const PAUSE_REASON_LABELS: Record<string, string> = {
   low_rule_coverage: "Too many form lines could not be read",
   wrapper_admin_only: "The letter looks like a wrapper, not the clinical form",
   manual_pause: "Someone paused this for a check",
+  form_not_recognised: "We did not recognise this form",
 };
+
+export const FORM_NOT_RECOGNISED_COPY =
+  "We did not recognise this form. Teach it, then run extraction again.";
+
+export const FORM_CHECK_FAILED_COPY =
+  "We could not check which form this is. Check the letter yourself before it goes on.";
+
+export const NO_CLOSE_FORM_COPY = "No taught form came close.";
 
 export function pauseReasonTokens(raw: string): string[] {
   return raw

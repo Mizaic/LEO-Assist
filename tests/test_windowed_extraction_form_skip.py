@@ -31,6 +31,7 @@ from libs.pipeline_graph.subgraphs.extraction import (
     _run_windowed_llm_extraction,
     load_document_chunks,
 )
+from tests.form_recognition_corpus import load_schemas
 
 FIXTURES = Path(__file__).parent / "fixtures" / "form_schema"
 CHUNKS_FIXTURE = FIXTURES / "sherwood_gynae_2ww_chunks_deid.json"
@@ -148,7 +149,7 @@ def test_taught_form_section_c_reaches_model_unmodified() -> None:
     """A bound taught schema keeps all 928 Section C characters."""
     reset_schema_cache()
     state = _base_state(
-        form_schema_match="exact_hash",
+        form_schema_match="recognised",
         form_schema_fingerprint=TAUGHT_FINGERPRINT,
         form_schema_label="SFH Gynae 2WW",
     )
@@ -184,11 +185,11 @@ def test_orphan_fingerprint_without_match_still_normalises() -> None:
         assert marker in section_c.lower()
 
 
-def test_chunk_loader_publishes_resolved_schema_keys() -> None:
-    """The loader pins the resolved taught-form keys onto pipeline state."""
+def test_chunk_loader_publishes_recognised_schema_keys() -> None:
+    """The loader pins the recognised taught-form keys onto pipeline state."""
     reset_schema_cache()
     client = MagicMock()
-    client.run.return_value = [_schema_row(_taught_schema())]
+    client.run.return_value = [_schema_row(s) for s in load_schemas()]
     sentences = [
         {"sentence_id": c.sentence_id, "text": c.text, "start": c.start, "end": c.end}
         for c in _sherwood_chunks()
@@ -202,5 +203,5 @@ def test_chunk_loader_publishes_resolved_schema_keys() -> None:
                 "healthcare_service_id": SERVICE_ID,
             }
         )
-    assert loaded["form_schema_match"] == "exact_hash"
-    assert loaded["form_schema_fingerprint"] == TAUGHT_FINGERPRINT
+    assert loaded["form_schema_match"] == "recognised"
+    assert loaded["form_schema_fingerprint"] == "sfh-gynae-2ww-v1"

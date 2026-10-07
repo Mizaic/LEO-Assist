@@ -48,8 +48,8 @@ def test_document_chunks_loader_publishes_the_reverse_map() -> None:
             return_value=client,
         ),
         patch(
-            "libs.pipeline.document_chunk_loader._resolve_chunk_schema",
-            return_value=(None, {}),
+            "libs.pipeline.document_chunk_loader._recognise_chunks",
+            return_value=[],
         ),
     ):
         out = load_document_chunks({"chunk_ids": [_CHUNK]})

@@ -3,9 +3,9 @@
 | Field            | Value                                               |
 | ---------------- | --------------------------------------------------- |
 | Document ID      | DC-DEP-001                                          |
-| Version          | 1.1.0                                               |
+| Version          | 1.2.0                                               |
 | Status           | Draft                                               |
-| Date             | 2026-03-03                                          |
+| Date             | 2026-10-06                                          |
 | Standard         | IEC 81001-5-1:2021 (5.3), NHS DSPT                  |
 | Classification   | QMS -- Design Controls                              |
 | Trace            | DC-TM-SEC-002 (threat model), DI-LEO-AI-052         |
@@ -142,6 +142,7 @@ each new environment:
 - [ ] Hotlink Protection is enabled
 - [ ] Email Address Obfuscation is enabled
 - [ ] Cloudflare plan tier is documented for NHS DSPT evidence
+- [ ] Origin NSG or firewall allows inbound HTTPS only from the ranges in Section 3.4
 
 ### 3.3  TLS Requirements
 
@@ -151,6 +152,56 @@ each new environment:
 | Cipher suites        | Cloudflare default (ECDHE-based, no CBC)                        |
 | Certificate          | Cloudflare Universal SSL or Advanced Certificate Manager        |
 | Origin certificate   | Azure-managed TLS on Container App custom domain                |
+
+### 3.4  Origin firewall allowlist (Cloudflare IP ranges)
+
+When the DNS record is orange-cloud (proxied), clients reach Cloudflare,
+not Azure. The origin network security group (NSG) or firewall MUST
+allow inbound HTTPS (TCP 443) only from Cloudflare's published ranges.
+Do not allowlist the three host addresses recorded in the 2026-03-03
+DNS probe. Those addresses sit inside the ranges below and can change.
+
+Retrieved 2026-10-06 from Cloudflare's published lists:
+
+- IPv4: <https://www.cloudflare.com/ips-v4>
+- IPv6: <https://www.cloudflare.com/ips-v6>
+- Page: <https://www.cloudflare.com/ips/>
+
+Re-fetch those URLs before you apply or change the rule. Cloudflare
+updates the lists without notice. The page changelog last recorded a
+change on 2023-09-28 (`2405:b500::/32` added).
+
+#### IPv4 (15 ranges)
+
+| CIDR |
+| --- |
+| `173.245.48.0/20` |
+| `103.21.244.0/22` |
+| `103.22.200.0/22` |
+| `103.31.4.0/22` |
+| `141.101.64.0/18` |
+| `108.162.192.0/18` |
+| `190.93.240.0/20` |
+| `188.114.96.0/20` |
+| `197.234.240.0/22` |
+| `198.41.128.0/17` |
+| `162.158.0.0/15` |
+| `104.16.0.0/13` |
+| `104.24.0.0/14` |
+| `172.64.0.0/13` |
+| `131.0.72.0/22` |
+
+#### IPv6 (7 ranges)
+
+| CIDR |
+| --- |
+| `2400:cb00::/32` |
+| `2606:4700::/32` |
+| `2803:f800::/32` |
+| `2405:b500::/32` |
+| `2405:8100::/32` |
+| `2a06:98c0::/29` |
+| `2c0f:f248::/32` |
 
 ---
 
@@ -304,6 +355,7 @@ Use this checklist when deploying the platform to a new environment.
 - [ ] Enable HSTS with recommended settings
 - [ ] Enable WAF managed rulesets
 - [ ] Configure rate limiting rules per Section 3.2
+- [ ] Allow inbound HTTPS on the origin NSG or firewall only from Section 3.4
 - [ ] Verify security headers appear in HTTP response
 
 ### 7.3  Infrastructure
@@ -332,6 +384,7 @@ Use this checklist when deploying the platform to a new environment.
 
 | Version | Date       | Author            | Changes                           |
 | ------- | ---------- | ----------------- | --------------------------------- |
+| 1.2.0   | 2026-10-06 | Platform team     | Add Cloudflare origin allowlist (Section 3.4) from cloudflare.com/ips, retrieved 2026-10-06 |
 | 1.1.0   | 2026-05-22 | Platform team     | Align KV secret names with `migrate-secrets.ps1` / `loader.py`; add OIDC federated credential templates; document Redis URL format |
 | 1.0.0   | 2026-03-03 | Security sweep    | Initial version from threat model findings |
 

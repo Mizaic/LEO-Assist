@@ -34,7 +34,7 @@ def test_keys_from_state_includes_form_schema_keys() -> None:
             "org_id": "sfh",
             "completeness_domain": "gynae",
             "form_schema_fingerprint": "sfh-gynae-2ww-v1",
-            "form_schema_match": "org_service",
+            "form_schema_match": "recognised",
             "form_schema_label": "SFH Gynae 2WW",
         }
     )

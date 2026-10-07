@@ -3,9 +3,9 @@
 | Field | Value |
 | ----- | ----- |
 | Document ID | DC-INST-001 |
-| Version | 1.0.0 |
+| Version | 1.0.1 |
 | Status | Draft |
-| Date | 2026-06-12 |
+| Date | 2026-10-06 |
 | Product | LEO Clinical Decision Support (LEO CDS) |
 | Product ID | PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4 |
 | Related documents | DC-DEP-001; SVP-LEO-CDS-001; infra/github-oidc/README.md |
@@ -113,6 +113,9 @@ Download TRUD releases into `external_content/` before Track G seeding.
 ### A.5 DNS and edge (optional Cloudflare)
 
 Per DC-DEP-001 Section 3: proxied DNS, Full (Strict) SSL, WAF, rate limits.
+Allow inbound HTTPS on the origin NSG or firewall only from the Cloudflare
+ranges in DC-DEP-001 Section 3.4. Re-fetch those ranges from
+cloudflare.com/ips before you apply the rule.
 Record per-environment UI hostnames for Bicep `frontendUrl` and Entra redirect URIs.
 
 ### A.6 GitHub repository
@@ -574,6 +577,7 @@ flowchart TD
 
 | Version | Date | Author | Changes |
 | ------- | ---- | ------ | ------- |
+| 1.0.1 | 2026-10-06 | Platform team | Point Track A.5 at the Cloudflare origin allowlist in DC-DEP-001 Section 3.4 |
 | 1.0.0 | 2026-06-12 | Platform team | Initial greenfield installation procedure |
 
 ---

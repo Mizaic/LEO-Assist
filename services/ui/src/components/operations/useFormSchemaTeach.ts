@@ -16,6 +16,7 @@ import {
   isIncompleteSchema,
   loadTaughtLibrarySchema,
   localDetectOrEmpty,
+  readApiErrorDetail,
   savedSchemaBlocksAutoDetect,
   type TeachScopeIds,
 } from "./formSchemaTeach";
@@ -86,6 +87,7 @@ export function useFormSchemaTeach(
     fingerprint,
     name,
     sections,
+    sourceText,
     onSaved,
     setName,
     setSections,
@@ -105,6 +107,7 @@ function bindTeachActions(state: {
   fingerprint: string;
   name: string;
   sections: FormSchemaSection[];
+  sourceText: string;
   onSaved?: () => void;
   setName: (name: string) => void;
   setSections: Dispatch<SetStateAction<FormSchemaSection[]>>;
@@ -138,6 +141,7 @@ function bindTeachActions(state: {
         fingerprint: state.fingerprint,
         name: state.name,
         sections: state.sections,
+        sourceText: state.sourceText,
         onSaved: state.onSaved,
         setSaving: state.setSaving,
         setError: state.setError,
@@ -238,6 +242,7 @@ async function saveSchema(args: {
   fingerprint: string;
   name: string;
   sections: FormSchemaSection[];
+  sourceText: string;
   onSaved?: () => void;
   setSaving: (v: boolean) => void;
   setError: (v: string) => void;
@@ -254,9 +259,15 @@ async function saveSchema(args: {
         form_name: args.name,
         sections: args.sections,
         saved_by: "validation_lab",
+        source_text: args.sourceText,
       }),
     });
-    if (!res.ok) throw new Error("save");
+    if (!res.ok) {
+      args.setError(
+        (await readApiErrorDetail(res)) || "Could not save the form schema. Try again.",
+      );
+      return;
+    }
     args.setSaved(true);
     args.onSaved?.();
   } catch {

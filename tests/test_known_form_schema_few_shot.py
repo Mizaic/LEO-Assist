@@ -148,11 +148,22 @@ def test_run_llm_extraction_passes_known_form_schema(monkeypatch) -> None:
         [SentenceChunk("s0", "line", 0, 4)],
         {
             **prompt_state,
-            "form_schema_match": "org_service",
+            "form_schema_match": "recognised",
             "form_schema_fingerprint": "sfh-gynae-2ww-v1",
         },
     )
     assert captured["known_form_schema"] is True
+
+    _run_llm_extraction(
+        "letter text",
+        [SentenceChunk("s0", "line", 0, 4)],
+        {
+            **prompt_state,
+            "form_schema_match": "org_service",
+            "form_schema_fingerprint": "sfh-gynae-2ww-v1",
+        },
+    )
+    assert captured["known_form_schema"] is False
 
     _run_llm_extraction(
         "letter text",

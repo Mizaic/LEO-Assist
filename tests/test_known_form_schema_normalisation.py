@@ -26,13 +26,15 @@ def _section_c_chunk_text() -> str:
 
 
 def test_has_taught_form_schema_needs_match_and_fingerprint() -> None:
-    """Both resolved keys must agree, as form_schema_state_fields writes them."""
+    """Recognised plus a fingerprint, as form_schema_state_fields writes them."""
     bound = {
-        "form_schema_match": "org_service",
+        "form_schema_match": "recognised",
         "form_schema_fingerprint": "sfh-gynae-2ww-v1",
     }
     assert has_taught_form_schema(bound) is True
-    assert has_taught_form_schema({"form_schema_match": "org_service"}) is False
+    assert has_taught_form_schema({"form_schema_match": "recognised"}) is False
+    retired = {**bound, "form_schema_match": "org_service"}
+    assert has_taught_form_schema(retired) is False
     assert (
         has_taught_form_schema({"form_schema_fingerprint": "sfh-gynae-2ww-v1"}) is False
     )

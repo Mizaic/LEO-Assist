@@ -79,7 +79,7 @@ describe("loadTaughtLibrarySchema -- org and service ids, not letter hash", () =
               fingerprint: libraryFp,
               sections: LIBRARY_SECTIONS,
             },
-            match: "exact_hash",
+            match: "fingerprint",
           }),
         );
       }

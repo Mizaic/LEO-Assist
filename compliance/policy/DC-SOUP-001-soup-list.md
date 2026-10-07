@@ -82,6 +82,7 @@ package directly (transitive-only packages are not repeated here).
 | 21h | **scipy** | >= 1.12 | PyPI | terminology (loader) | Scientific computing support for terminology loaders | Medium |
 | 21i | **joblib** | (unpinned floor) | PyPI | terminology (loader) | Model/artifact (de)serialisation | Medium |
 | 21j | **nmslib** | >= 2.1.2 | PyPI | terminology (loader) | Approximate nearest-neighbour search for terminology matching | High |
+| 21k | **rapidfuzz** | >= 3.9, < 4 | PyPI | api, pipeline_worker (`libs/form_recognition`) | Fuzzy heading and option matching that decides which taught form a referral document is (DI-E21DF9EF). A wrong score fails closed: the document is unrecognised and the run pauses for a person | High |
 | 22 | **opentelemetry-api** | >= 1.20.0 | PyPI | api, pipeline_worker | Observability | Low |
 | 23 | **opentelemetry-sdk** | >= 1.20.0 | PyPI | api, pipeline_worker | Observability | Low |
 | 24 | **opentelemetry-exporter-otlp** | >= 1.20.0 | PyPI | api, pipeline_worker | Observability | Low |

@@ -1,0 +1,101 @@
+{
+  "_note": "Corpus-only taught form. Written the way a form teacher would teach templates/USCP-Gynaecology-Referral-Form-V8.docx: printed headings as start patterns, printed options as item patterns. Not seeded anywhere.",
+  "form_name": "Devon Suspected Gynaecological Cancer Referral Form V8",
+  "fingerprint": "devon-uscp-gynae-v8",
+  "organization_id": "",
+  "service_id": "",
+  "status": "active",
+  "sections": [
+    {
+      "section_id": "title",
+      "section_type": "admin",
+      "label": "Suspected Gynaecological Cancer Referral Form",
+      "start_pattern": "Suspected Gynaecological Cancer Referral Form",
+      "items": []
+    },
+    {
+      "section_id": "patient_details",
+      "section_type": "admin",
+      "label": "Patient Details",
+      "start_pattern": "Patient Details",
+      "items": []
+    },
+    {
+      "section_id": "patient_information",
+      "section_type": "checkbox_yesno",
+      "label": "Patient Information",
+      "start_pattern": "Patient Information",
+      "items": [
+        {"pattern": "learning disability", "entity_text": "Learning disability", "semantic_tag": "finding"},
+        {"pattern": "able to give informed consent", "entity_text": "Able to give informed consent", "semantic_tag": "finding"},
+        {"pattern": "fit for day case investigation", "entity_text": "Fit for day case investigation", "semantic_tag": "finding"},
+        {"pattern": "Clopidogrel", "entity_text": "Taking clopidogrel", "semantic_tag": "finding"},
+        {"pattern": "Warfarin", "entity_text": "Taking warfarin", "semantic_tag": "finding"}
+      ]
+    },
+    {
+      "section_id": "performance_status",
+      "section_type": "scale",
+      "label": "Performance status",
+      "start_pattern": "provide performance status information",
+      "items": [
+        {"pattern": "Fully active", "entity_text": "ECOG 0 fully active", "semantic_tag": "finding"},
+        {"pattern": "Able to carry out light work", "entity_text": "ECOG 1 light work", "semantic_tag": "finding"},
+        {"pattern": "Up & about 50% of waking time", "entity_text": "ECOG 2 up and about", "semantic_tag": "finding"}
+      ]
+    },
+    {
+      "section_id": "patient_aware",
+      "section_type": "checkbox_yesno",
+      "label": "Patient aware",
+      "start_pattern": "aware that this is a suspected cancer referral",
+      "items": []
+    },
+    {
+      "section_id": "reasons_for_referral",
+      "section_type": "free_text",
+      "label": "Reasons for Referral",
+      "start_pattern": "Reasons for Referral",
+      "items": []
+    },
+    {
+      "section_id": "referral_criteria",
+      "section_type": "checkbox_multi",
+      "label": "Referral Criteria",
+      "start_pattern": "Referral Criteria",
+      "items": [
+        {"pattern": "Ovarian cancer", "entity_text": "Suspected ovarian cancer", "semantic_tag": "finding"},
+        {"pattern": "identifies ascites and/or a pelvic or abdominal mass", "entity_text": "Ascites or pelvic mass on examination", "semantic_tag": "finding"},
+        {"pattern": "Ultrasound suggests ovarian cancer", "entity_text": "Ultrasound suggests ovarian cancer", "semantic_tag": "finding"},
+        {"pattern": "Endometrial cancer", "entity_text": "Suspected endometrial cancer", "semantic_tag": "finding"},
+        {"pattern": "Not on HRT: women with an intact uterus with post-menopausal bleeding", "entity_text": "Postmenopausal bleeding not on HRT", "semantic_tag": "finding"},
+        {"pattern": "On HRT with concern of endometrial cancer", "entity_text": "Bleeding on HRT with concern", "semantic_tag": "finding"},
+        {"pattern": "Endometrial thickness of greater than 4mm on continuous combined HRT", "entity_text": "Endometrial thickness over 4mm on continuous HRT", "semantic_tag": "finding"},
+        {"pattern": "Cervical cancer", "entity_text": "Suspected cervical cancer", "semantic_tag": "finding"},
+        {"pattern": "cervix on examination is consistent with cervical cancer", "entity_text": "Cervix consistent with cancer", "semantic_tag": "finding"},
+        {"pattern": "Vulval cancer", "entity_text": "Suspected vulval cancer", "semantic_tag": "finding"},
+        {"pattern": "Unexplained vulval lump, ulceration or bleeding", "entity_text": "Vulval lump or ulceration", "semantic_tag": "finding"},
+        {"pattern": "Vaginal cancer", "entity_text": "Suspected vaginal cancer", "semantic_tag": "finding"},
+        {"pattern": "Unexplained palpable mass in or at the entrance to the vagina", "entity_text": "Vaginal mass", "semantic_tag": "finding"}
+      ]
+    },
+    {
+      "section_id": "clinical_summary",
+      "section_type": "free_text",
+      "label": "Clinical Summary",
+      "start_pattern": "Clinical Summary",
+      "items": [
+        {"pattern": "Clinical History (significant past and current medical history)", "entity_text": "Clinical history", "semantic_tag": "finding"},
+        {"pattern": "Blood Tests (if available", "entity_text": "Blood tests", "semantic_tag": "procedure"},
+        {"pattern": "Smoking:", "entity_text": "Smoking status", "semantic_tag": "finding"}
+      ]
+    },
+    {
+      "section_id": "hospital_use",
+      "section_type": "template_noise",
+      "label": "For hospital to complete",
+      "start_pattern": "For hospital to complete",
+      "items": []
+    }
+  ]
+}

@@ -64,6 +64,10 @@ from libs.workflow.stage_lease import (
 )
 from libs.workflow.step_contract import StepProvenance, envelope_step_result
 from libs.workflow.completion_event import build_completion_event_body
+from libs.workflow.form_recognition_gate import (
+    FORM_NOT_RECOGNISED,
+    apply_recognition_gate,
+)
 from libs.workflow.step_state_loader import load_step_state
 from libs.workflow.version_admission import (
     load_rollout_for_plan,
@@ -91,20 +95,33 @@ _PAUSE_ERRORED = (
 _PAUSE_LOW_QUALITY = (
     "Check this letter by hand. We are not confident we read this form " "correctly."
 )
+_PAUSE_FORM_NOT_RECOGNISED = (
+    "We did not recognise this form. Teach it, then run extraction again."
+)
 
 
-def _pause_reason(*, degraded: bool, errored: bool, low_quality: bool) -> str:
+@dataclass(frozen=True)
+class _PauseSignals:
+    degraded: bool = False
+    errored: bool = False
+    low_quality: bool = False
+    form_not_recognised: bool = False
+
+
+def _pause_reason(signals: _PauseSignals) -> str:
     """Return the reason a person needs to look, or "" when none applies.
 
     Errors alone do not open a pause. They keep the harder stop they
     already had, so ``errored`` only chooses the wording once something
     else has already asked for one.
     """
-    if not (degraded or low_quality):
+    if not (signals.degraded or signals.low_quality or signals.form_not_recognised):
         return ""
-    if degraded:
+    if signals.degraded:
         return _PAUSE_DEGRADED
-    if errored:
+    if signals.form_not_recognised:
+        return _PAUSE_FORM_NOT_RECOGNISED
+    if signals.errored:
         return _PAUSE_ERRORED
     return _PAUSE_LOW_QUALITY
 
@@ -397,8 +414,10 @@ def _step_result_for_output(
 ) -> DurableStepResult:
     """Build a step result, pausing for a person whenever something went wrong.
 
-    Two things force a pause, and an error can never remove either:
-      - the payload is marked ``degraded`` (a safety layer could not run)
+    Three things force a pause, and an error can never remove any of them:
+      - the payload is marked ``degraded`` (a safety layer could not run,
+        including a failed form-recognition lookup)
+      - a document in the bundle is a form we did not recognise
       - the document-quality gate asks for a pause
 
     The gate now runs whether or not the step recorded errors. An error
@@ -414,20 +433,26 @@ def _step_result_for_output(
     payload = dict(output or {})
     warnings = list(payload.get("warnings") or [])
     errors = list(payload.get("errors") or [])
-    low_quality = False
+    low_quality = unrecognised = False
     if action.subgraph_id == "extraction":
         payload, low_quality = _apply_extraction_quality_gate(payload)
-    degraded = payload.get("degraded") is True
-    reason = _pause_reason(
-        degraded=degraded, errored=bool(errors), low_quality=low_quality
+        payload, unrecognised = apply_recognition_gate(payload)
+    signals = _PauseSignals(
+        degraded=payload.get("degraded") is True,
+        errored=bool(errors),
+        low_quality=low_quality,
+        form_not_recognised=unrecognised,
     )
+    reason = _pause_reason(signals)
     if not reason:
         return DurableStepResult(
             status="completed", output=payload, warnings=warnings, errors=errors
         )
     payload["pause_reason"] = reason
-    if degraded:
+    if signals.degraded:
         warnings.append(_DEGRADED_WARNING)
+    if unrecognised:
+        warnings.append(FORM_NOT_RECOGNISED)
     if low_quality:
         warnings.append("extraction_quality_pause")
     return DurableStepResult(
@@ -769,6 +794,9 @@ def _enqueue_extraction_quality_review(
             quality=quality,
             draft_entities=list(output.get("entities") or []),
             source_text=letter_from_pause_output(output),
+            form_recognition=tuple(
+                row for row in output.get("form_recognition") or [] if row
+            ),
         )
     )
     write_extraction_review_task(client, task)

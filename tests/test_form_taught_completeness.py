@@ -163,7 +163,7 @@ def test_chunk_load_payload_keeps_completeness_groups() -> None:
         {
             "encounter_text": "Section A",
             "sentences": [{"sentence_id": "c1", "text": "Section A"}],
-            "form_schema_match": "org_service",
+            "form_schema_match": "recognised",
             "form_schema_fingerprint": "sfh-breast-2ww-v1",
             "form_schema_label": "Breast Unit",
             "section_hits": _HITS,
@@ -175,8 +175,9 @@ def test_chunk_load_payload_keeps_completeness_groups() -> None:
     assert payload["section_hits"] == _HITS
 
 
-def test_rewrite_and_cover_attaches_completeness_groups() -> None:
-    from libs.pipeline.document_chunk_loader import _rewrite_and_cover
+def test_recognition_attaches_completeness_groups() -> None:
+    from libs.form_recognition.recogniser import Recognised
+    from libs.pipeline.form_recognition_apply import recognition_fields
 
     schema = FormSchema(
         schema_id="breast",
@@ -186,8 +187,9 @@ def test_rewrite_and_cover_attaches_completeness_groups() -> None:
         created_by="test",
         completeness_groups=_TAUGHT_GROUPS,
     )
-    _texts, extra = _rewrite_and_cover(
-        schema, ["Section A\nA1. Yes [X]\nSection B\nAffected side"]
+    extra = recognition_fields(
+        ["Section A\nA1. Yes [X]\nSection B\nAffected side"],
+        [Recognised(chunk_indexes=(0,), schema=schema)],
     )
     assert extra["completeness_groups"] == _TAUGHT_GROUPS
     assert extra.get("form_layout_matched") is True
@@ -361,7 +363,7 @@ def _quality_from_preloaded_letter(
             ],
             "encounter_text": letter,
             "form_schema_fingerprint": schema.fingerprint,
-            "form_schema_match": "org_service",
+            "form_schema_match": "recognised",
             "form_schema_label": schema.form_name,
             "errors": [],
             "warnings": [],

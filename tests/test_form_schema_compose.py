@@ -4,10 +4,13 @@ A specialty bloods group that is empty on the 2WW form must still match
 when the national e-RS Findings section is filled. The SBAR situation
 must stay on the specialty clinical section.
 
+Each recognised document brings its own form. Here the recognition
+outcomes are given directly, so the tests pin composition only.
+
 Atlas trace:
   UN: UN-AF530E8E, UN-89E2AE36
-  DI: DI-1A1943BB
-  DO: DO-E3AF3879
+  DI: DI-1A1943BB, DI-E21DF9EF
+  DO: DO-E3AF3879, DO-E458EEC5
 """
 
 from __future__ import annotations
@@ -16,10 +19,8 @@ import json
 from pathlib import Path
 
 from libs.completeness.evaluator import evaluate_completeness_groups
-from libs.pipeline.form_schema_compose import (
-    compose_form_sections,
-    compose_section_hits,
-)
+from libs.form_recognition.recogniser import Recognised
+from libs.pipeline.form_recognition_apply import recognition_fields
 from libs.pipeline.form_schema_normalizer import FormSchema
 from libs.pipeline.form_schema_request import build_sections_from_request
 from libs.sbar.situation_source import build_structured_situation
@@ -120,14 +121,19 @@ def _specialty_schema() -> FormSchema:
     )
 
 
+def _both_recognised(chunks: list[str]) -> dict:
+    specialty, ers = _specialty_schema(), _ers_schema()
+    outcomes = [Recognised(schema=specialty), Recognised(schema=ers)]
+    return recognition_fields(chunks, outcomes)
+
+
 def test_specialty_bloods_group_matches_from_ers_findings() -> None:
     specialty = _specialty_schema()
-    ers = _ers_schema()
     chunks = [
         "--- Document: Breast Unit Referral Form.doc ---\n" + _SPECIALTY_BLOODS,
         _ERS_FILLED_BLOODS,
     ]
-    hits = compose_section_hits(specialty, ers, chunks)
+    hits = _both_recognised(chunks)["section_hits"]
     result = evaluate_completeness_groups(
         specialty.completeness_groups,
         present_concept_ids=set(),
@@ -141,12 +147,11 @@ def test_specialty_bloods_group_matches_from_ers_findings() -> None:
 
 def test_placeholder_ers_findings_does_not_match_specialty_bloods() -> None:
     specialty = _specialty_schema()
-    ers = _ers_schema()
     chunks = [
         "--- Document: Breast Unit Referral Form.doc ---\n" + _SPECIALTY_BLOODS,
         _ERS_PLACEHOLDER,
     ]
-    hits = compose_section_hits(specialty, ers, chunks)
+    hits = _both_recognised(chunks)["section_hits"]
     result = evaluate_completeness_groups(
         specialty.completeness_groups,
         present_concept_ids=set(),
@@ -157,14 +162,12 @@ def test_placeholder_ers_findings_does_not_match_specialty_bloods() -> None:
 
 
 def test_sbar_situation_stays_on_specialty_clinical_section() -> None:
-    specialty = _specialty_schema()
-    ers = _ers_schema()
     letter = (
         "--- Document: Breast Unit Referral Form.doc ---\n"
         f"{_SPECIALTY_CLINICAL}\n"
         f"{_ERS_FILLED_BLOODS}"
     )
-    sections = compose_form_sections(specialty, ers, [letter])
+    sections = _both_recognised([letter])["form_sections"]
     result = build_structured_situation(
         referral_request=None,
         referral_reason=None,

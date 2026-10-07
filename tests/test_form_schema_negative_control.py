@@ -1,39 +1,36 @@
-"""Negative control: taught-form binding is data-driven, not hardcoded.
+"""Negative control: a taught form is recognised from text, per organisation.
 
-Atlas trace: DI-26546721 (organisation and service bind)
+Atlas trace: DI-E21DF9EF (form recognition; no hash or service fallback),
+DO-E458EEC5, VT-B13F7C48. Tenant isolation: another organisation's taught
+forms are never candidates.
 
-The same Sherwood letter text must bind to a taught :FormSchema only when the
-receiving Organization.id and Service.id on pipeline state match the ones
-stored on the schema node. Change either id and the same text must stop
-binding. That proves the pipeline reads the graph rather than recognising
-Sherwood from the letter itself.
+The same Sherwood letter is recognised only when the Sherwood form is a
+candidate for the receiving organisation. Another trust gets no Sherwood
+candidate, so the same text is unrecognised and pauses for a person. The
+service id plays no part: a service may have several forms.
 
-Every Neo4j call here goes through a stub. Nothing in this module touches a
-live graph.
+Every Neo4j call here goes through a stub that filters the way
+``LIST_ACTIVE_FORM_SCHEMAS_FOR_ORG`` does. Nothing touches a live graph.
 """
 
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
-from libs.pipeline.document_chunk_loader import bundle_fingerprint
-from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
-from libs.pipeline.form_schema_store import (
-    _schema_to_sections_json,
-    reset_schema_cache,
-    resolve_form_schema_traced,
-)
+from libs.pipeline.document_chunk_loader import build_document_chunk_state
+from libs.pipeline.form_schema_normalizer import FormSchema
+from libs.pipeline.form_schema_store import _schema_to_sections_json, reset_schema_cache
+from tests.form_recognition_corpus import load_schemas
 
 TAUGHT_ORG_ID = "RK5"
-TAUGHT_SERVICE_ID = "7980224"
-TAUGHT_FINGERPRINT = "sfh-gynae-2ww-v1"
-
 OTHER_ORG_ID = "RC9"
-OTHER_SERVICE_ID = "7956422"
+TAUGHT_FINGERPRINT = "sfh-gynae-2ww-v1"
 
 FIXTURE = (
     Path(__file__).parent
@@ -43,13 +40,6 @@ FIXTURE = (
 )
 
 
-@pytest.fixture(scope="module")
-def sherwood_letter_fingerprint() -> str:
-    """Fingerprint of the real de-identified Sherwood bundle."""
-    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    return bundle_fingerprint([c["text"] for c in payload["chunks"]])
-
-
 @pytest.fixture(autouse=True)
 def _clear_cache():
     reset_schema_cache()
@@ -57,179 +47,94 @@ def _clear_cache():
     reset_schema_cache()
 
 
-def _schema(organization_id: str, service_id: str) -> FormSchema:
-    return FormSchema(
-        schema_id="seed-1",
-        fingerprint=TAUGHT_FINGERPRINT,
-        form_name="SFH Gynae 2WW",
-        sections=[
-            FormSection(
-                section_id="section_c_clinical_details",
-                section_type="free_text",
-                label="Section C: Further Clinical details",
-                start_pattern="Section C",
-                items=[],
-            )
-        ],
-        created_by="seed",
-        status="active",
-        organization_id=organization_id,
-        service_id=service_id,
-    )
+def _sherwood(organization_id: str, service_id: str = "7980224") -> FormSchema:
+    (schema,) = [s for s in load_schemas() if s.fingerprint == TAUGHT_FINGERPRINT]
+    return replace(schema, organization_id=organization_id, service_id=service_id)
 
 
 def _row(schema: FormSchema) -> dict[str, Any]:
     return {
-        "schema_id": schema.schema_id,
+        "schema_id": schema.schema_id or "seed-1",
         "fingerprint": schema.fingerprint,
         "form_name": schema.form_name,
         "sections_json": _schema_to_sections_json(schema),
         "chunk_section_map": "[]",
-        "created_by": schema.created_by,
+        "created_by": "seed",
         "version": 1,
-        "status": schema.status,
+        "status": "active",
         "organization_id": schema.organization_id,
         "service_id": schema.service_id,
     }
 
 
 class _StubGraph:
-    """Answers the two FormSchema lookups the way Neo4j would.
+    """Returns national forms plus forms taught for the queried organisation."""
 
-    ``GET_FORM_SCHEMA_BY_FINGERPRINT`` matches on the exact fingerprint.
-    ``GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE`` matches only when BOTH the
-    organisation and the service on the node equal the query parameters,
-    which is what the real Cypher does.
-    """
-
-    def __init__(self, stored: FormSchema | None) -> None:
+    def __init__(self, stored: list[FormSchema]) -> None:
         self._stored = stored
         self.calls: list[dict[str, Any]] = []
 
-    def run(self, query: str, **params: Any) -> list[dict[str, Any]]:
+    def run(self, _query: str, **params: Any) -> list[dict[str, Any]]:
         self.calls.append(dict(params))
-        if self._stored is None:
-            return []
-        if "fingerprint: $fingerprint" in query:
-            if params.get("fingerprint") == self._stored.fingerprint:
-                return [_row(self._stored)]
-            return []
-        if params.get("organization_id") != self._stored.organization_id:
-            return []
-        if params.get("service_id") != self._stored.service_id:
-            return []
-        return [_row(self._stored)]
+        org = params.get("organization_id") or ""
+        return [
+            _row(s)
+            for s in self._stored
+            if not s.organization_id or (org and s.organization_id == org)
+        ]
 
     def close(self) -> None:
         return None
 
 
-def test_no_taught_schema_anywhere_yields_no_match(
-    sherwood_letter_fingerprint: str,
-) -> None:
-    """An untaught org and service must produce match=none, never a fingerprint."""
-    client = _StubGraph(None)
-
-    schema, match, loaded_key, label = resolve_form_schema_traced(
-        client,
-        sherwood_letter_fingerprint,
-        organization_id=OTHER_ORG_ID,
-        service_id=OTHER_SERVICE_ID,
-    )
-
-    assert schema is None
-    assert match == "none"
-    assert loaded_key == "none"
-    assert label == ""
-    assert TAUGHT_FINGERPRINT not in loaded_key
+def _sherwood_rows() -> list[dict[str, Any]]:
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    return [
+        {"chunk_id": f"c{index}", "text": chunk["text"], "ordinal": index}
+        for index, chunk in enumerate(payload["chunks"])
+    ]
 
 
-def test_different_org_does_not_inherit_the_sherwood_schema(
-    sherwood_letter_fingerprint: str,
-) -> None:
-    """Another trust must never pick up the Sherwood template."""
-    client = _StubGraph(_schema(TAUGHT_ORG_ID, TAUGHT_SERVICE_ID))
-
-    schema, match, loaded_key, _label = resolve_form_schema_traced(
-        client,
-        sherwood_letter_fingerprint,
-        organization_id=OTHER_ORG_ID,
-        service_id=TAUGHT_SERVICE_ID,
-    )
-
-    assert schema is None
-    assert match == "none"
-    assert loaded_key == "none"
+def _state(client: _StubGraph, organization_id: str) -> dict[str, Any]:
+    with patch("libs.neo4j_client.client.PatientGraphClient", return_value=client):
+        return build_document_chunk_state(
+            _sherwood_rows(), organization_id=organization_id
+        )
 
 
-def test_rebinding_the_schema_to_another_service_breaks_the_same_letter(
-    sherwood_letter_fingerprint: str,
-) -> None:
-    """Identical letter text stops binding when the schema's ids change.
-
-    This is the core negative control. The letter is byte-for-byte the same
-    in both halves of this test. Only the graph data differs.
-    """
-    correct = _StubGraph(_schema(TAUGHT_ORG_ID, TAUGHT_SERVICE_ID))
-    _schema_hit, match_hit, key_hit, _label = resolve_form_schema_traced(
-        correct,
-        sherwood_letter_fingerprint,
-        organization_id=TAUGHT_ORG_ID,
-        service_id=TAUGHT_SERVICE_ID,
-    )
-    assert match_hit == "org_service"
-    assert key_hit == TAUGHT_FINGERPRINT
-
-    reset_schema_cache()
-
-    rebound = _StubGraph(_schema(OTHER_ORG_ID, OTHER_SERVICE_ID))
-    schema_miss, match_miss, key_miss, _label2 = resolve_form_schema_traced(
-        rebound,
-        sherwood_letter_fingerprint,
-        organization_id=TAUGHT_ORG_ID,
-        service_id=TAUGHT_SERVICE_ID,
-    )
-    assert schema_miss is None
-    assert match_miss == "none"
-    assert key_miss == "none"
+def _sherwood_outcome(state: dict[str, Any]) -> dict[str, Any]:
+    return state["form_recognition"][0]
 
 
-def test_blank_service_id_can_never_bind(
-    sherwood_letter_fingerprint: str,
-) -> None:
-    """A blank service short-circuits the lookup before any query runs.
-
-    This is the failure mode a referral bundle hits today, because
-    document_chunks mode never writes healthcare_service_id onto state.
-    """
-    client = _StubGraph(_schema(TAUGHT_ORG_ID, TAUGHT_SERVICE_ID))
-
-    schema, match, loaded_key, _label = resolve_form_schema_traced(
-        client,
-        sherwood_letter_fingerprint,
-        organization_id=TAUGHT_ORG_ID,
-        service_id="",
-    )
-
-    assert schema is None
-    assert match == "none"
-    assert loaded_key == "none"
-    org_service_calls = [c for c in client.calls if "organization_id" in c]
-    assert org_service_calls == []
+def test_the_sherwood_letter_is_recognised_for_its_own_trust() -> None:
+    state = _state(_StubGraph([_sherwood(TAUGHT_ORG_ID)]), TAUGHT_ORG_ID)
+    outcome = _sherwood_outcome(state)
+    assert outcome["outcome"] == "recognised"
+    assert outcome["fingerprint"] == TAUGHT_FINGERPRINT
 
 
-def test_gp_practice_org_id_does_not_bind_the_receiving_trust_schema(
-    sherwood_letter_fingerprint: str,
-) -> None:
-    """org_id holds the patient's GP practice, which must not match RK5."""
-    client = _StubGraph(_schema(TAUGHT_ORG_ID, TAUGHT_SERVICE_ID))
+def test_another_trust_never_gets_the_sherwood_form() -> None:
+    """Same letter, other organisation: unrecognised, never bound."""
+    client = _StubGraph([_sherwood(TAUGHT_ORG_ID)])
+    state = _state(client, OTHER_ORG_ID)
+    assert _sherwood_outcome(state)["outcome"] == "unrecognised"
+    assert state["form_schema_fingerprint"] == "none"
+    assert [call["organization_id"] for call in client.calls] == [OTHER_ORG_ID]
 
-    schema, match, _key, _label = resolve_form_schema_traced(
-        client,
-        sherwood_letter_fingerprint,
-        organization_id="Y05690",
-        service_id=TAUGHT_SERVICE_ID,
-    )
 
-    assert schema is None
-    assert match == "none"
+def test_no_taught_forms_anywhere_leaves_the_letter_unrecognised() -> None:
+    state = _state(_StubGraph([]), TAUGHT_ORG_ID)
+    assert _sherwood_outcome(state)["outcome"] == "unrecognised"
+    assert state["form_schema_match"] in {"unrecognised", "failed"}
+
+
+def test_the_service_id_plays_no_part() -> None:
+    """A form taught on another service of the same trust is still recognised."""
+    other_service = _sherwood(TAUGHT_ORG_ID, service_id="9999999")
+    state = _state(_StubGraph([other_service]), TAUGHT_ORG_ID)
+    assert _sherwood_outcome(state)["outcome"] == "recognised"
+
+
+def test_a_blank_organisation_only_sees_national_forms() -> None:
+    state = _state(_StubGraph([_sherwood(TAUGHT_ORG_ID)]), "")
+    assert _sherwood_outcome(state)["outcome"] == "unrecognised"

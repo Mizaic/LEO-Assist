@@ -207,6 +207,13 @@ def test_vt134_tc001_phrase_publish_uses_kg_query():
     assert "UncodedPhrase" in COUNT_PHRASE_PUBLISH_TASKS
 
 
+def test_an_unrecognised_form_task_says_so_on_my_work():
+    """VT-B13F7C48 / VAL-BC73AA10: the My Work row names the pause reason."""
+    assert "t.reason CONTAINS 'form_not_recognised'" in GET_UNIFIED_WORK_TASKS
+    assert "'Form not recognised: '" in GET_UNIFIED_WORK_TASKS
+    assert "'Paused extraction: '" in GET_UNIFIED_WORK_TASKS
+
+
 def test_vt134_tc001_counts_query_returns_task_type_total():
     assert "task_type" in COUNT_WORK_TASKS_BY_SOURCE
     assert "count" in COUNT_WORK_TASKS_BY_SOURCE
@@ -395,9 +402,7 @@ def test_vt134_tc003_get_tasks_returns_tasks_and_counts(client_with_work_router)
 
 def test_vt134_tc003_source_filter_hits_cypher(client_with_work_router):
     client, session = client_with_work_router
-    response = client.get(
-        "/work/tasks?source=coding_review&source=safety_net_alert"
-    )
+    response = client.get("/work/tasks?source=coding_review&source=safety_net_alert")
     assert response.status_code == 200
     sources = session.last_params.get("sources")
     assert sources == ["coding_review", "safety_net_alert"]

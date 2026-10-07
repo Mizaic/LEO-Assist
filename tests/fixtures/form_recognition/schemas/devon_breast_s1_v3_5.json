@@ -1,0 +1,102 @@
+{
+  "_note": "Corpus-only taught form. Written the way a form teacher would teach templates/Breast-Cancer-Referral-FormS1-v3.5.docx: printed headings as start patterns, printed options as item patterns. Shares Devon trust chrome with devon_uscp_gynae_v8.json on purpose. Not seeded anywhere.",
+  "form_name": "Devon Suspected Breast Cancer and Symptomatic Breast Referral Form S1 v3.5",
+  "fingerprint": "devon-breast-s1-v3-5",
+  "organization_id": "",
+  "service_id": "",
+  "status": "active",
+  "sections": [
+    {
+      "section_id": "title",
+      "section_type": "admin",
+      "label": "Suspected Breast Cancer and Symptomatic Breast Referral Form",
+      "start_pattern": "Suspected Breast Cancer and Symptomatic Breast Referral Form",
+      "items": []
+    },
+    {
+      "section_id": "patient_details",
+      "section_type": "admin",
+      "label": "Patient Details",
+      "start_pattern": "Patient Details",
+      "items": []
+    },
+    {
+      "section_id": "patient_information",
+      "section_type": "checkbox_yesno",
+      "label": "Patient Information",
+      "start_pattern": "Patient Information",
+      "items": [
+        {"pattern": "learning disability", "entity_text": "Learning disability", "semantic_tag": "finding"},
+        {"pattern": "able to give informed consent", "entity_text": "Able to give informed consent", "semantic_tag": "finding"},
+        {"pattern": "Warfarin", "entity_text": "Taking warfarin", "semantic_tag": "finding"}
+      ]
+    },
+    {
+      "section_id": "performance_status",
+      "section_type": "scale",
+      "label": "Performance status",
+      "start_pattern": "provide performance status information",
+      "items": [
+        {"pattern": "Fully active", "entity_text": "ECOG 0 fully active", "semantic_tag": "finding"},
+        {"pattern": "Able to carry out light work", "entity_text": "ECOG 1 light work", "semantic_tag": "finding"}
+      ]
+    },
+    {
+      "section_id": "patient_aware",
+      "section_type": "checkbox_yesno",
+      "label": "Patient aware",
+      "start_pattern": "aware that this is a suspected cancer referral",
+      "items": []
+    },
+    {
+      "section_id": "clinical_summary",
+      "section_type": "free_text",
+      "label": "Clinical Summary",
+      "start_pattern": "Clinical Summary",
+      "items": [
+        {"pattern": "reasons for referral, clinical findings, significant PMH", "entity_text": "Clinical summary narrative", "semantic_tag": "finding"}
+      ]
+    },
+    {
+      "section_id": "referral_criteria",
+      "section_type": "template_noise",
+      "label": "Referral Criteria",
+      "start_pattern": "All breast referrals are on a TWO WEEK PATHWAY",
+      "items": []
+    },
+    {
+      "section_id": "suspected_cancer",
+      "section_type": "checkbox_multi",
+      "label": "Suspected Cancer Referral",
+      "start_pattern": "Suspected Cancer Referral Please use this red section",
+      "items": [
+        {"pattern": "Aged 30 and over and have an unexplained breast lump", "entity_text": "Unexplained breast lump aged 30 and over", "semantic_tag": "finding"},
+        {"pattern": "Aged 50 and over with any of the following symptoms in one nipple only", "entity_text": "Nipple symptoms aged 50 and over", "semantic_tag": "finding"},
+        {"pattern": "discharge (spontaneous: clear or bloody)", "entity_text": "Nipple discharge", "semantic_tag": "finding"},
+        {"pattern": "retraction (new onset and sustained)", "entity_text": "Nipple retraction", "semantic_tag": "finding"},
+        {"pattern": "unexplained lump in the axilla", "entity_text": "Axillary lump", "semantic_tag": "finding"},
+        {"pattern": "skin changes that suggest breast cancer", "entity_text": "Breast skin changes", "semantic_tag": "finding"},
+        {"pattern": "Suspected recurrence of previous breast cancer", "entity_text": "Suspected breast cancer recurrence", "semantic_tag": "finding"}
+      ]
+    },
+    {
+      "section_id": "symptomatic",
+      "section_type": "checkbox_multi",
+      "label": "Symptomatic Breast Referral",
+      "start_pattern": "Symptomatic Breast Referral Please use this blue section",
+      "items": [
+        {"pattern": "aged under 30 with an unexplained breast lump", "entity_text": "Breast lump under 30", "semantic_tag": "finding"},
+        {"pattern": "Breast pain only", "entity_text": "Breast pain only", "semantic_tag": "finding"},
+        {"pattern": "Male breast lump", "entity_text": "Male breast lump", "semantic_tag": "finding"},
+        {"pattern": "Other (please detail in Clinical details section)", "entity_text": "Other breast referral", "semantic_tag": "finding"}
+      ]
+    },
+    {
+      "section_id": "hospital_use",
+      "section_type": "template_noise",
+      "label": "For hospital to complete",
+      "start_pattern": "For hospital to complete",
+      "items": []
+    }
+  ]
+}

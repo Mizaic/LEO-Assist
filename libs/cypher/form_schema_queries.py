@@ -119,11 +119,20 @@ RETURN s.schema_id AS schema_id,
        s.completeness_groups_json AS completeness_groups_json
 """
 
-GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE = """
+# Candidates for per-document form recognition (DI-E21DF9EF): every active
+# form taught for this organisation, plus national forms (no organisation).
+# Another organisation's forms are never returned.
+LIST_ACTIVE_FORM_SCHEMAS_FOR_ORG = """
 MATCH (s:FormSchema)
 WHERE s.status = 'active'
-  AND s.organization_id = $organization_id
-  AND s.service_id = $service_id
+  AND (
+    coalesce(s.organization_id, '') = ''
+    OR (
+      $organization_id <> ''
+      AND (s.organization_id = $organization_id
+           OR s.organization_ods_code = $organization_id)
+    )
+  )
 RETURN s.schema_id AS schema_id,
        s.fingerprint AS fingerprint,
        s.form_name AS form_name,
@@ -140,32 +149,7 @@ RETURN s.schema_id AS schema_id,
        s.chunk_section_map AS chunk_section_map,
        s.prompt_contract AS prompt_contract,
        s.completeness_groups_json AS completeness_groups_json
-ORDER BY s.updated_at DESC
-LIMIT 1
-"""
-
-GET_ACTIVE_FORM_SCHEMA_BY_SERVICE = """
-MATCH (s:FormSchema)
-WHERE s.status = 'active'
-  AND s.service_id = $service_id
-RETURN s.schema_id AS schema_id,
-       s.fingerprint AS fingerprint,
-       s.form_name AS form_name,
-       s.version AS version,
-       s.status AS status,
-       s.sections_json AS sections_json,
-       s.created_at AS created_at,
-       s.created_by AS created_by,
-       s.organization_id AS organization_id,
-       s.service_id AS service_id,
-       s.organization_name AS organization_name,
-       s.service_name AS service_name,
-       s.organization_ods_code AS organization_ods_code,
-       s.chunk_section_map AS chunk_section_map,
-       s.prompt_contract AS prompt_contract,
-       s.completeness_groups_json AS completeness_groups_json
-ORDER BY s.updated_at DESC
-LIMIT 1
+ORDER BY s.fingerprint
 """
 
 LIST_FORM_SCHEMAS = """
@@ -197,15 +181,4 @@ MATCH (s:FormSchema {fingerprint: $fingerprint})
 WITH s, s.schema_id AS schema_id
 DETACH DELETE s
 RETURN schema_id
-"""
-
-RELEASE_SIBLING_FORM_SCHEMAS = """
-MATCH (s:FormSchema)
-WHERE s.status = 'active'
-  AND s.organization_id = $organization_id
-  AND s.service_id = $service_id
-  AND s.fingerprint <> $fingerprint
-SET s.status = 'draft',
-    s.updated_at = datetime()
-RETURN s.fingerprint AS fingerprint
 """

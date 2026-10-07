@@ -55,14 +55,16 @@ def _schema(*, prompt_contract: bool = False) -> FormSchema:
 
 def test_contract_omitted_when_flag_off_or_match_is_unknown() -> None:
     schema = _schema(prompt_contract=False)
-    assert build_form_contract(schema, match="exact_hash") == ""
+    assert build_form_contract(schema, match="recognised") == ""
     on = _schema(prompt_contract=True)
     assert build_form_contract(on, match="none") == ""
     assert build_form_contract(on, match="fuzzy") == ""
+    for retired in ("exact_hash", "org_service", "unrecognised", "failed"):
+        assert build_form_contract(on, match=retired) == ""
 
 
 def test_contract_lists_clinical_sections_verbatim_and_empty() -> None:
-    text = build_form_contract(_schema(prompt_contract=True), match="org_service")
+    text = build_form_contract(_schema(prompt_contract=True), match="recognised")
     assert "Section A: 2WW symptoms" in text
     assert "words from the letter" in text.lower() or "verbatim" in text.lower()
     assert "empty" in text.lower()

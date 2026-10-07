@@ -23,6 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
 COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
 COPY tests/fixtures/clinical_extraction_scenarios/ /app/tests/fixtures/clinical_extraction_scenarios/
+# Labelled set for the teach-time form clash check (libs/pipeline/form_teach_guard.py).
+COPY tests/fixtures/form_recognition/ /app/tests/fixtures/form_recognition/
+COPY tests/fixtures/form_schema/ /app/tests/fixtures/form_schema/
 COPY scripts/ /app/scripts/
 COPY services/api/ /app/services/api/
 COPY services/coding_worker/ /app/services/coding_worker/

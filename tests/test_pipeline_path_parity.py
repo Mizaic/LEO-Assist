@@ -165,23 +165,17 @@ def _reprocess_body() -> dict[str, Any]:
 
 
 @pytest.fixture
-def schema_lookups(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, str]]:
-    """Record the org/service scope every taught-schema lookup runs with."""
+def schema_lookups(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Record the organisation every form-recognition lookup runs with."""
     from libs.pipeline import document_chunk_loader
-    from libs.pipeline.form_schema_store import form_schema_state_fields
 
-    recorded: list[tuple[str, str, str]] = []
+    recorded: list[str] = []
 
-    def _fake_resolve(
-        raw_texts: list[str],
-        organization_id: str = "",
-        service_id: str = "",
-        ers_service_id: str = "",
-    ) -> tuple[Any, dict[str, str]]:
-        recorded.append((organization_id, service_id, ers_service_id))
-        return None, form_schema_state_fields("none")
+    def _fake_recognise(raw_texts: list[str], organization_id: str) -> list[Any]:
+        recorded.append(organization_id)
+        return []
 
-    monkeypatch.setattr(document_chunk_loader, "_resolve_chunk_schema", _fake_resolve)
+    monkeypatch.setattr(document_chunk_loader, "_recognise_chunks", _fake_recognise)
     return recorded
 
 
@@ -232,7 +226,7 @@ def test_source_node_type_matches_across_paths(schema_lookups) -> None:
 
 
 def test_receiving_service_scope_survives_chunk_source_type(schema_lookups) -> None:
-    """Taught-schema binding must not depend on the source node label.
+    """Receiving scope must not depend on the source node label.
 
     A referral bundle is read from :Chunk rows, so ``default_source_fields``
     reports source_node_type "Chunk" and source_node_id the
@@ -251,17 +245,16 @@ def test_receiving_service_scope_survives_chunk_source_type(schema_lookups) -> N
 
 
 def test_schema_lookup_scope_matches_across_paths(schema_lookups) -> None:
-    """The taught-schema lookup must use the same org and service everywhere."""
+    """Form recognition must use the same receiving trust everywhere."""
     _all_states()
     assert len(schema_lookups) == 3, schema_lookups
     assert len(set(schema_lookups)) == 1, schema_lookups
 
 
 def test_schema_lookup_scope_is_populated(schema_lookups) -> None:
-    """A referral bundle must look the schema up with a real org and service."""
+    """A referral bundle must recognise forms for a real receiving trust."""
     _all_states()
-    empty = [scope for scope in schema_lookups if not scope[0] or not scope[1]]
-    assert not empty, schema_lookups
+    assert all(schema_lookups), schema_lookups
 
 
 def test_chunks_load_on_every_path(schema_lookups) -> None:

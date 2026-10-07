@@ -69,10 +69,7 @@ def _stub_pg() -> Any:
 def test_get_schema_reports_none_for_a_form_never_taught() -> None:
     with (
         patch("app.routers.form_schema.PatientGraphClient", return_value=_stub_pg()),
-        patch(
-            "app.routers.form_schema.resolve_form_schema_traced",
-            return_value=(None, "none", "none", ""),
-        ),
+        patch("app.routers.form_schema.load_form_schema", return_value=None),
     ):
         resp = _client().get("/form-schemas/fp-1")
 
@@ -100,7 +97,7 @@ def test_get_schema_returns_503_when_the_lookup_fails() -> None:
     with (
         patch("app.routers.form_schema.PatientGraphClient", return_value=_stub_pg()),
         patch(
-            "app.routers.form_schema.resolve_form_schema_traced",
+            "app.routers.form_schema.load_form_schema",
             side_effect=_LOOKUP_FAILED,
         ),
     ):

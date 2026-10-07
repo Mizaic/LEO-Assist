@@ -69,10 +69,10 @@ def _rows(texts: list[str], *, supply_offsets: bool) -> list[dict[str, Any]]:
 
 
 def _build(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Build loader state with the form-schema lookup stubbed out."""
+    """Build loader state with form recognition stubbed out."""
     with patch(
-        "libs.pipeline.document_chunk_loader._resolve_chunk_schema",
-        return_value=(None, {}),
+        "libs.pipeline.document_chunk_loader._recognise_chunks",
+        return_value=[],
     ):
         return build_document_chunk_state(rows)
 

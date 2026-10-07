@@ -1,25 +1,25 @@
-"""Compose taught hits from the national e-RS form and a specialty form.
+"""Compose taught hits from the recognised forms of one referral bundle.
+
+Each recognised document brings its own form's hits. A filled national
+e-RS Findings section also credits the specialty form's bloods group.
+The SBAR situation stays on the specialty form's sections.
 
 Atlas trace:
-  DI: DI-1A1943BB
-  DO: DO-E3AF3879
+  DI: DI-1A1943BB, DI-E21DF9EF
+  DO: DO-E3AF3879, DO-E458EEC5
   UN: UN-AF530E8E
 """
 
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Any
 
-from libs.pipeline.document_role import _iter_documents
 from libs.pipeline.form_schema_normalizer import FormSchema
 from libs.pipeline.form_section_hits import collect_section_hits
 
 ERS_FINGERPRINT = "nhs-ers-clinical-information-v1"
-_ERS_MARKER_RE = re.compile(
-    r"clinical information(?:\.pdf| summary)",
-    re.IGNORECASE,
-)
 _BLOODS_SECTION_RE = re.compile(r"investigat|bloods|findings", re.IGNORECASE)
 _NEXT_DOC_SECTION = {
     "section_id": "next_document_boundary",
@@ -29,9 +29,13 @@ _NEXT_DOC_SECTION = {
 }
 
 
-def is_ers_clinical_information(text: str) -> bool:
-    """True when the text is the national Clinical Information form."""
-    return bool(_ERS_MARKER_RE.search(text or ""))
+@dataclass(frozen=True)
+class BoundDocument:
+    """One recognised document: its form and its own chunk texts."""
+
+    schema: FormSchema
+    texts: list[str]
+    chunk_section_map: list[dict[str, Any]] | None = None
 
 
 def is_ers_schema(schema: FormSchema | None) -> bool:
@@ -43,51 +47,26 @@ def is_ers_schema(schema: FormSchema | None) -> bool:
     return "clinical information" in str(schema.form_name or "").lower()
 
 
-def split_bundle_documents(chunks: list[str]) -> tuple[list[str], list[str]]:
-    """Split bundle chunks into (specialty texts, e-RS texts)."""
-    specialty: list[str] = []
-    ers: list[str] = []
-    for title, header, body in _iter_bundle_documents(chunks):
-        block = f"{header}{body}"
-        if is_ers_clinical_information(f"{title}\n{block}"):
-            ers.append(block)
-        elif block.strip():
-            specialty.append(block)
-    return specialty, ers
-
-
-def compose_section_hits(
-    specialty: FormSchema | None,
-    ers: FormSchema | None,
-    chunks: list[str],
+def hits_for_documents(
+    bound: list[BoundDocument], primary: FormSchema | None
 ) -> list[dict[str, Any]]:
-    """Union taught hits, then credit specialty bloods from filled e-RS Findings."""
-    specialty_texts, ers_texts = split_bundle_documents(chunks)
+    """Union each document's hits, then credit specialty bloods from e-RS."""
     hits: list[dict[str, Any]] = []
-    if specialty is not None and specialty_texts:
-        hits.extend(collect_section_hits(specialty, specialty_texts))
-    if ers is not None and ers_texts:
-        hits.extend(collect_section_hits(ers, ers_texts))
+    for doc in bound:
+        hits.extend(collect_section_hits(doc.schema, doc.texts, doc.chunk_section_map))
+    specialty = None if is_ers_schema(primary) else primary
     return _credit_specialty_bloods(hits, specialty)
 
 
-def compose_form_sections(
-    specialty: FormSchema | None,
-    ers: FormSchema | None,
-    chunks: list[str],
+def sections_for_documents(
+    bound: list[BoundDocument], primary: FormSchema | None
 ) -> list[dict[str, str]]:
-    """Return specialty sections when that form is present."""
-    specialty_texts, ers_texts = split_bundle_documents(chunks)
-    owner = specialty if specialty is not None and specialty_texts else ers
-    sections = _section_dicts(owner)
-    if owner is specialty and ers_texts:
+    """Return the primary form's sections, ending at the next document."""
+    sections = _section_dicts(primary)
+    others = [doc for doc in bound if doc.schema is not primary]
+    if primary is not None and not is_ers_schema(primary) and others:
         sections.append(dict(_NEXT_DOC_SECTION))
     return sections
-
-
-def _iter_bundle_documents(chunks: list[str]):
-    joined = "\n\n".join(chunk for chunk in chunks if str(chunk or "").strip())
-    yield from _iter_documents(joined)
 
 
 def _section_dicts(schema: FormSchema | None) -> list[dict[str, str]]:
@@ -136,81 +115,6 @@ def _filled_ers_findings(hits: list[dict[str, Any]]) -> bool:
         str(hit.get("section_id") or "") == "findings" and bool(hit.get("checked"))
         for hit in hits
     )
-
-
-def resolve_bundle_schema(
-    client: Any,
-    fingerprint: str,
-    raw_texts: list[str],
-    organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
-) -> tuple[FormSchema | None, str, str, str]:
-    """Resolve a taught form, then bind the national e-RS form if needed."""
-    from libs.pipeline.form_schema_store import resolve_form_schema_traced
-
-    schema, match, loaded_key, label = resolve_form_schema_traced(
-        client,
-        fingerprint,
-        organization_id=organization_id,
-        service_id=service_id,
-        ers_service_id=ers_service_id,
-    )
-    return bind_national_ers_if_needed(
-        client, schema, raw_texts, (match, loaded_key, label)
-    )
-
-
-def bind_national_ers_if_needed(
-    client: Any,
-    schema: FormSchema | None,
-    raw_texts: list[str],
-    resolved: tuple[str, str, str],
-) -> tuple[FormSchema | None, str, str, str]:
-    """Load the national e-RS schema. Prefer it on wrapper-only bundles."""
-    match, loaded_key, label = resolved
-    if not any(is_ers_clinical_information(text) for text in raw_texts):
-        return schema, match, loaded_key, label
-    from libs.pipeline.form_schema_store import load_form_schema
-
-    ers = load_form_schema(client, ERS_FINGERPRINT)
-    specialty_texts, ers_texts = split_bundle_documents(raw_texts)
-    wrapper_only = bool(ers_texts) and not specialty_texts
-    if ers is not None and (wrapper_only or schema is None):
-        return ers, "known_fingerprint", ers.fingerprint, ers.form_name
-    return schema, match, loaded_key, label
-
-
-def taught_hits_for_bundle(
-    schema: FormSchema, raw_texts: list[str]
-) -> list[dict[str, Any]]:
-    """Collect hits, composing the national e-RS form when it is also present."""
-    wrapper = _wrapper_schema(schema, raw_texts)
-    if wrapper is not None:
-        return compose_section_hits(schema, wrapper, raw_texts)
-    from libs.pipeline.form_section_hits import collect_section_hits
-
-    return collect_section_hits(schema, raw_texts, schema.chunk_section_map)
-
-
-def taught_sections_for_bundle(
-    schema: FormSchema, raw_texts: list[str]
-) -> list[dict[str, str]]:
-    """Return the form sections that should own the SBAR situation."""
-    wrapper = _wrapper_schema(schema, raw_texts)
-    if wrapper is not None:
-        return compose_form_sections(schema, wrapper, raw_texts)
-    return _section_dicts(schema)
-
-
-def _wrapper_schema(schema: FormSchema, raw_texts: list[str]) -> FormSchema | None:
-    if is_ers_schema(schema):
-        return None
-    if not any(is_ers_clinical_information(text) for text in raw_texts):
-        return None
-    from libs.pipeline.form_schema_store import get_cached_schema
-
-    return get_cached_schema(ERS_FINGERPRINT)
 
 
 def _bloods_members(specialty: FormSchema) -> list[dict[str, str]]:

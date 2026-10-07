@@ -238,9 +238,9 @@ Read the first and last 80 lines.
 | Cover sheet + form | Teach the clinical form. Mark the cover sheet `admin` or `template_noise`. |
 | Cover sheet only | Do not invent Section A boxes. |
 
-If a library schema is already bound to this org + service, load it. Say whether bind is `exact_hash` or `org_service`.
+Run `scripts/recognise_form.py` on the letter first. Say the outcome per document: `recognised` (load that schema), `unrecognised` (teach it; the closest form and missing headings are in the evidence), or `not_a_form` (a letter; do not teach).
 
-`org_service` on a free-text letter is a coarse bind. Do not "fix" it by rewriting the 2WW template.
+There is no organisation-and-service bind and no letter-hash bind. A service may use several forms. Do not "fix" an unrecognised letter by rewriting another form's template.
 
 ### 6.3 Iterate locally (no write)
 
@@ -321,7 +321,7 @@ UBRN only. One line: **Trained / Partial / Stopped**.
 
 Then:
 
-1. Letter type and bind (`exact_hash` / `org_service` / `none`).
+1. Letter type and recognition (`recognised` / `unrecognised` / `not_a_form` / `failed`).
 2. What was wrong on the first probe.
 3. What you changed (sections, skip blocks, patterns).
 4. Seeded facts after the last probe.

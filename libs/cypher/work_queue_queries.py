@@ -160,7 +160,11 @@ CALL {
         'extraction_quality_pause:' + t.task_id AS task_id,
         'extraction_quality_pause'              AS task_type,
         severity                                AS severity,
-        'Paused extraction: ' + coalesce(t.patient_id, '(unknown)') AS summary,
+        CASE
+            WHEN t.reason CONTAINS 'form_not_recognised'
+                THEN 'Form not recognised: '
+            ELSE 'Paused extraction: '
+        END + coalesce(t.patient_id, '(unknown)') AS summary,
         age_days                                AS age_days,
         toString(coalesce(t.created_at, datetime())) AS created_at,
         '/admin/knowledge?tab=validation-lab&hitl_task_id=' + t.task_id AS resolve_url,

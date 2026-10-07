@@ -290,6 +290,7 @@ export async function saveTaughtForm(args: {
   organizationName?: string;
   serviceName?: string;
   completenessGroups: CompletenessLogicGroup[];
+  sourceText: string;
 }): Promise<void> {
   const fingerprint = args.fingerprint.trim();
   if (!fingerprint || fingerprint === "unknown") {
@@ -314,6 +315,7 @@ export async function saveTaughtForm(args: {
       organization_name: args.organizationName ?? "",
       service_name: args.serviceName ?? "",
       completeness_groups: args.completenessGroups,
+      source_text: args.sourceText,
     }),
   });
   if (!res.ok) {
@@ -322,7 +324,7 @@ export async function saveTaughtForm(args: {
   }
 }
 
-async function readApiErrorDetail(res: Response): Promise<string> {
+export async function readApiErrorDetail(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: string | Array<{ msg?: string }> };
     const detail = body.detail;

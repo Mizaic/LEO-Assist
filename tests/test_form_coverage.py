@@ -49,10 +49,7 @@ def _schema() -> FormSchema:
 
 
 def test_claimed_section_is_not_incomplete() -> None:
-    text = (
-        "Section A: cancer type suspected\n"
-        "Cervix [X] Ovary [ ]\n"
-    )
+    text = "Section A: cancer type suspected\n" "Cervix [X] Ovary [ ]\n"
     report = measure_form_coverage(_schema(), [text])
     assert report.incomplete is False
     assert any(region.section_id == "A" for region in report.claimed_regions)
@@ -92,18 +89,14 @@ def test_document_banner_is_not_unclaimed_narrative() -> None:
 
 
 def test_blank_lines_do_not_make_coverage_incomplete() -> None:
-    text = (
-        "\n\n"
-        "Section A: cancer type suspected\n"
-        "Cervix [X]\n"
-    )
+    text = "\n\n" "Section A: cancer type suspected\n" "Cervix [X]\n"
     report = measure_form_coverage(_schema(), [text])
     assert report.incomplete is False
 
 
 def test_chunk_state_degrades_when_coverage_incomplete() -> None:
     from libs.pipeline.document_chunk_loader import build_document_chunk_state
-    from libs.pipeline.form_schema_store import form_schema_state_fields
+    from tests.form_recognition_stubs import recognise_all_as
 
     rows = [
         {
@@ -118,10 +111,9 @@ def test_chunk_state_degrades_when_coverage_incomplete() -> None:
             "char_end": None,
         }
     ]
-    fields = form_schema_state_fields("exact_hash", "cov", "Coverage test form")
     with patch(
-        "libs.pipeline.document_chunk_loader._resolve_chunk_schema",
-        return_value=(_schema(), fields),
+        "libs.pipeline.document_chunk_loader._recognise_chunks",
+        recognise_all_as(_schema()),
     ):
         state = build_document_chunk_state(rows)
     assert state.get("form_coverage_incomplete") is True

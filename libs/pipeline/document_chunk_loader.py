@@ -4,32 +4,32 @@ Atlas trace:
   DO: DO-728930A1
   DI: DI-16CE412B, DI-B5C78811
   Also: DI-5C9CA57B / DO-7010394B (form checkbox normalisation at extract input)
+  Also: DI-E21DF9EF / DO-E458EEC5 (per-document form recognition)
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 """
 
 from __future__ import annotations
 
 import re
+from functools import partial
 from typing import Any
 
-from libs.ner.form_checkbox_normalizer import normalize_form_checkbox_text
+from libs.form_recognition.recogniser import Outcome
+from libs.neo4j_client import client as neo4j_client
+from libs.pipeline.document_role import seal_administrative_documents
+from libs.pipeline.form_recognition_apply import (
+    recognise_texts,
+    recognition_fields,
+    rewrite_chunks,
+)
+from libs.pipeline.form_schema_candidates import load_candidate_schemas
+from libs.pipeline.form_schema_normalizer import FormSchema
+from libs.pipeline.form_schema_store import form_schema_state_fields
 from libs.pipeline_contracts.text import (
     Deletion,
     RawChunk,
     SourceText,
     build_source_text,
-)
-
-# The HCCP bundle assembler (combine_referral_markdown in HCCP-Agents) writes a
-# header line before each document:  --- Document: {title} ---
-# PDF attachments vary between referrals of one form. Including them in the
-# fingerprint would unbind a taught :FormSchema. This pattern strips the
-# first PDF-titled section for hashing only. Extraction still reads the
-# attachment: the national e-RS Clinical Information.pdf often carries the
-# only reason-for-referral narrative.
-_PDF_BOUNDARY_RE = re.compile(
-    r"\n*---\s*Document:[^\n]+\.pdf\s*---.*$",
-    re.DOTALL | re.IGNORECASE,
 )
 
 # Printed guidance blocks must not become findings. Document role already
@@ -78,29 +78,6 @@ def _mark_non_extractable_chunk(text: str) -> str:
     return "\n".join(marked_lines)
 
 
-def strip_pdf_attachments(text: str) -> str:
-    """Remove PDF attachment sections, for fingerprinting only.
-
-    The HCCP bundle assembler prefixes every document with a header line:
-        --- Document: {title} ---
-    This removes the first PDF-titled section and everything after it,
-    keeping only the primary referral form content (the .doc file).
-
-    The only caller is ``bundle_fingerprint``. The attachment differs
-    between referrals of the same form, so hashing it would give one form
-    a different fingerprint per referral and the taught :FormSchema would
-    never bind. This deliberately does NOT touch ``encounter_text``:
-    extraction reads the whole bundle, because on some referrals the
-    attachment carries clinical content found nowhere else.
-    """
-    stripped = _PDF_BOUNDARY_RE.sub("", text).strip()
-    if stripped:
-        return stripped
-    # A bundle that is nothing but the attachment would otherwise hash the
-    # empty string, and every such referral would collide on one hash.
-    return (text or "").strip()
-
-
 def bundle_trim_deletions(text: str) -> tuple[Deletion, ...]:
     """Return the ranges trimmed from ``text`` to build ``encounter_text``.
 
@@ -142,21 +119,6 @@ def build_chunk_source_text(chunk_id_texts: list[tuple[str, str]]) -> SourceText
     )
 
 
-def bundle_fingerprint(chunk_texts: list[str]) -> str:
-    """Return the form fingerprint for a referral bundle's chunk texts.
-
-    The fingerprint covers only the primary referral document. PDF
-    attachments vary between referrals of the same form, so including
-    them would give the same form a different fingerprint each time and
-    the taught :FormSchema would never be found. The teach dialog
-    fingerprints the same stripped text, so both sides agree.
-    """
-    from libs.pipeline.document_quality import form_fingerprint
-
-    joined = CHUNK_TEXT_SEPARATOR.join(chunk_texts)
-    return form_fingerprint(strip_pdf_attachments(joined))
-
-
 def merge_referral_message_fields(body: dict[str, Any]) -> dict[str, Any]:
     """Copy top-level referral chunk fields into context for durable steps."""
     context = dict(body.get("context") or {})
@@ -187,111 +149,80 @@ def chunk_ids_from_state(state: dict[str, Any]) -> list[str]:
     return [str(item).strip() for item in raw if str(item).strip()]
 
 
-def _resolve_chunk_schema(
-    raw_texts: list[str],
-    organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
-) -> tuple[Any, dict[str, str]]:
-    """Return the taught schema and inspector state fields for these chunks."""
-    from libs.neo4j_client.client import PatientGraphClient
-    from libs.pipeline.form_schema_store import form_schema_state_fields
-
-    if not raw_texts:
-        return None, form_schema_state_fields("none")
-    fingerprint = bundle_fingerprint(raw_texts)
-    client = PatientGraphClient()
+def _candidate_schemas(organization_id: str) -> list[FormSchema]:
+    """Active taught forms for this organisation, plus national forms."""
+    client = neo4j_client.PatientGraphClient()
     try:
-        from libs.pipeline.form_schema_compose import resolve_bundle_schema
-
-        schema, match, loaded_key, label = resolve_bundle_schema(
-            client,
-            fingerprint,
-            raw_texts,
-            organization_id=organization_id,
-            service_id=service_id,
-            ers_service_id=ers_service_id,
-        )
+        return load_candidate_schemas(client, organization_id)
     finally:
         client.close()
-    return schema, form_schema_state_fields(match, loaded_key, label)
+
+
+def _recognise_chunks(raw_texts: list[str], organization_id: str) -> list[Outcome]:
+    """Recognise each document. A failed lookup is RecognitionFailed."""
+    return recognise_texts(raw_texts, partial(_candidate_schemas, organization_id))
+
+
+_RECOGNITION_KEYS = (
+    "form_schema_fingerprint",
+    "form_schema_match",
+    "form_schema_label",
+    "form_recognition",
+)
+_SETTLED_MATCHES = frozenset(
+    {"recognised", "unrecognised", "not_a_form", "failed", "not_applicable"}
+)
+
+
+def recognition_fields_from_state(
+    state: dict[str, Any], encounter_text: str, organization_id: str = ""
+) -> dict[str, Any]:
+    """Reuse the bundle's recognition, or recognise the letter text now.
+
+    A retired match value (``exact_hash``, ``org_service``) is not reused:
+    the letter is recognised again, so it can never skip the check.
+    """
+    match = str(state.get("form_schema_match") or "").strip()
+    if match in _SETTLED_MATCHES:
+        fields: dict[str, Any] = dict(
+            form_schema_state_fields(
+                match,
+                str(state.get("form_schema_fingerprint") or "none"),
+                str(state.get("form_schema_label") or ""),
+            )
+        )
+        fields["form_recognition"] = list(state.get("form_recognition") or [])
+        return fields
+    if not (encounter_text or "").strip():
+        return {**form_schema_state_fields("none"), "form_recognition": []}
+    outcomes = _recognise_chunks([encounter_text], organization_id)
+    fields = recognition_fields([encounter_text], outcomes)
+    return {key: fields[key] for key in _RECOGNITION_KEYS}
 
 
 def _normalise_chunk_texts(
     raw_texts: list[str],
     organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
     resolve_schema: bool = True,
 ) -> tuple[list[str], dict[str, Any]]:
-    """Normalise chunk texts, using chunk_section_map when a schema is known.
+    """Normalise each document with its recognised form, or generic rules.
 
-    ``resolve_schema=False`` skips the taught-form lookup for callers whose
-    chunks are not a referral form bundle, such as an attachment on a
-    clinician's email. There is nothing to resolve, and the lookup would
-    otherwise make the caller depend on the graph being reachable.
+    ``resolve_schema=False`` skips recognition for callers whose chunks
+    are not a referral form bundle, such as an attachment on a
+    clinician's email. There is nothing to recognise, and the lookup
+    would otherwise make the caller depend on the graph being reachable.
     """
     if not resolve_schema:
-        from libs.pipeline.form_schema_store import form_schema_state_fields
-
         return list(raw_texts), form_schema_state_fields("not_applicable")
-
-    schema, fields = _resolve_chunk_schema(
-        raw_texts,
-        organization_id=organization_id,
-        service_id=service_id,
-        ers_service_id=ers_service_id,
-    )
     if not raw_texts:
-        return [], fields
-    match = str(fields.get("form_schema_match") or "none")
-    normalised, extra = _rewrite_and_cover(schema, raw_texts, match=match)
-    return [_mark_non_extractable_chunk(t) for t in normalised], {**fields, **extra}
-
-
-def _rewrite_and_cover(
-    schema: Any, raw_texts: list[str], match: str = ""
-) -> tuple[list[str], dict[str, Any]]:
-    """Rewrite chunk texts and attach taught-form coverage fields."""
-    from libs.ner.form_layout_rules import apply_form_layout_rules
-    from libs.pipeline.document_role import seal_administrative_documents
-    from libs.pipeline.form_schema_normalizer import normalise_chunks_with_schema
-
-    extra: dict[str, Any] = {}
-    if schema is not None and schema.sections:
-        extra = _taught_form_coverage_extra(schema, raw_texts, match)
-        rewritten = [
-            apply_form_layout_rules(text)
-            for text in normalise_chunks_with_schema(
-                schema, raw_texts, schema.chunk_section_map
-            )
-        ]
-    else:
-        rewritten = [normalize_form_checkbox_text(text) for text in raw_texts]
-    return [seal_administrative_documents(text) for text in rewritten], extra
-
-
-def _taught_form_coverage_extra(
-    schema: Any, raw_texts: list[str], match: str
-) -> dict[str, Any]:
-    """Coverage, hits, and completeness groups only when the page matches."""
-    from libs.pipeline.form_coverage import (
-        coverage_state_fields,
-        form_layout_allows_completeness,
-    )
-    from libs.pipeline.form_schema_compose import (
-        taught_hits_for_bundle,
-        taught_sections_for_bundle,
-    )
-
-    extra = coverage_state_fields(schema, raw_texts, schema.chunk_section_map)
-    extra["section_hits"] = taught_hits_for_bundle(schema, raw_texts)
-    extra["form_sections"] = taught_sections_for_bundle(schema, raw_texts)
-    layout_ok = form_layout_allows_completeness(match, schema, raw_texts)
-    extra["form_layout_matched"] = layout_ok
-    if schema.completeness_groups and layout_ok:
-        extra["completeness_groups"] = list(schema.completeness_groups)
-    return extra
+        return [], form_schema_state_fields("none")
+    outcomes = _recognise_chunks(raw_texts, organization_id)
+    fields = recognition_fields(raw_texts, outcomes)
+    rewritten = [
+        _mark_non_extractable_chunk(seal_administrative_documents(text))
+        for text in rewrite_chunks(raw_texts, outcomes)
+    ]
+    return rewritten, fields
 
 
 def _prepare_chunk_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -369,21 +300,17 @@ def _build_legacy_sentences(
 def build_document_chunk_state(
     rows: list[dict[str, Any]],
     organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
     resolve_schema: bool = True,
 ) -> dict[str, Any]:
     """Map Neo4j chunk rows to pipeline state (sentences + encounter_text).
 
     Set ``resolve_schema=False`` when the chunks are not a referral form
-    bundle, so no taught-form lookup is attempted.
+    bundle, so form recognition is not attempted.
     """
     prepared = _prepare_chunk_rows(rows)
     normalised_texts, schema_fields = _normalise_chunk_texts(
         [p["text_raw"] for p in prepared],
         organization_id=organization_id,
-        service_id=service_id,
-        ers_service_id=ers_service_id,
         resolve_schema=resolve_schema,
     )
     sentences, chunk_id_by_sentence_id = _build_legacy_sentences(
@@ -413,12 +340,8 @@ def load_document_chunks_from_neo4j(
     client: Any,
     chunk_ids: list[str],
     organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
 ) -> dict[str, Any]:
     if not chunk_ids:
-        from libs.pipeline.form_schema_store import form_schema_state_fields
-
         return {
             "sentences": [],
             "chunk_id_by_sentence_id": {},
@@ -429,12 +352,7 @@ def load_document_chunks_from_neo4j(
             **form_schema_state_fields("none"),
         }
     rows = client.run(GET_CHUNKS_BY_IDS, chunk_ids=chunk_ids)
-    loaded = build_document_chunk_state(
-        rows or [],
-        organization_id=organization_id,
-        service_id=service_id,
-        ers_service_id=ers_service_id,
-    )
+    loaded = build_document_chunk_state(rows or [], organization_id=organization_id)
     if not loaded.get("sentences"):
         loaded["errors"] = ["no Chunk nodes found for supplied chunk_ids"]
     return loaded

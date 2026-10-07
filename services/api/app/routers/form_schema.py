@@ -56,6 +56,7 @@ from libs.pipeline.form_schema_request import (
     schema_summary_from_row,
     schema_to_dict,
 )
+from libs.pipeline.form_schema_normalizer import FormSchema
 from libs.pipeline.form_schema_section_types import validate_section_type
 from libs.pipeline.form_schema_store import (
     FormSchemaLookupError,
@@ -63,12 +64,18 @@ from libs.pipeline.form_schema_store import (
     delete_form_schema,
     load_form_schema,
     rebind_form_schema_ids,
-    resolve_form_schema_traced,
     save_form_schema,
 )
 from libs.pipeline.form_schema_template import (
     build_chunk_section_map,
     generate_normalised_template,
+)
+from libs.pipeline.form_teach_guard import (
+    CHECK_UNAVAILABLE,
+    TeachCheckRequest,
+    TeachCheckUnavailable,
+    TeachRefused,
+    check_new_form,
 )
 from libs.pipeline.document_quality import form_fingerprint
 from libs.cypher.form_schema_queries import (
@@ -147,6 +154,7 @@ class SaveFormSchemaRequest(BaseModel):
     organization_name: str = ""
     service_name: str = ""
     completeness_groups: list[CompletenessGroupRequest] = Field(default_factory=list)
+    source_text: str = ""
 
 
 _schema_to_dict = schema_to_dict
@@ -311,27 +319,46 @@ def _seed_builtin_templates(client: Any) -> dict[str, Any]:
 @router.get("/{fingerprint}")
 def get_schema(
     fingerprint: str,
-    organization_id: str = Query(""),
-    service_id: str = Query(""),
-    ers_service_id: str = Query(""),
     _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
+    """Load the taught form saved under this key, for editing.
+
+    Only the exact key is used. There is no fallback by organisation and
+    service: a service may have several forms, so a guess could open the
+    wrong one.
+    """
     client = PatientGraphClient()
     try:
-        schema, match, _key, _label = resolve_form_schema_traced(
-            client,
-            fingerprint,
-            organization_id=organization_id,
-            service_id=service_id,
-            ers_service_id=ers_service_id,
-        )
+        schema = load_form_schema(client, fingerprint)
     except FormSchemaLookupError as exc:
         raise HTTPException(status_code=503, detail=_LOOKUP_UNAVAILABLE) from exc
     finally:
         client.close()
     if schema is None:
         return {"schema": None, "match": "none"}
-    return {"schema": _schema_to_dict(schema), "match": match}
+    return {"schema": _schema_to_dict(schema), "match": "fingerprint"}
+
+
+def _check_before_save(client: Any, write: FormSchemaWrite, source_text: str) -> None:
+    """Refuse an active form that would not be recognised safely."""
+    if write.status != "active":
+        return
+    schema = FormSchema(
+        schema_id="",
+        fingerprint=write.fingerprint,
+        form_name=write.form_name,
+        sections=write.sections,
+        created_by=write.created_by,
+    )
+    req = TeachCheckRequest(schema, source_text, write.organization_id)
+    try:
+        check_new_form(client, req)
+    except TeachRefused as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except TeachCheckUnavailable as exc:
+        raise HTTPException(status_code=503, detail=CHECK_UNAVAILABLE) from exc
+    except FormSchemaLookupError as exc:
+        raise HTTPException(status_code=503, detail=_LOOKUP_UNAVAILABLE) from exc
 
 
 @router.put("/{fingerprint}")
@@ -348,25 +375,25 @@ def save_schema(
             status_code=422,
             detail="At least one section with a start pattern is required.",
         )
-    sections = build_sections_from_request(raw_sections)
+    write = FormSchemaWrite(
+        fingerprint=fingerprint,
+        form_name=body.form_name,
+        sections=build_sections_from_request(raw_sections),
+        created_by=(_session.get("email") or "").strip() or "unknown",
+        status=body.status,
+        organization_id=body.organization_id.strip(),
+        service_id=body.service_id.strip(),
+        organization_name=body.organization_name.strip(),
+        service_name=body.service_name.strip(),
+        organization_ods_code=body.organization_id.strip(),
+        completeness_groups=[g.model_dump() for g in body.completeness_groups],
+    )
     client = PatientGraphClient()
     try:
-        schema = save_form_schema(
-            client,
-            FormSchemaWrite(
-                fingerprint=fingerprint,
-                form_name=body.form_name,
-                sections=sections,
-                created_by=(_session.get("email") or "").strip() or "unknown",
-                status=body.status,
-                organization_id=body.organization_id.strip(),
-                service_id=body.service_id.strip(),
-                organization_name=body.organization_name.strip(),
-                service_name=body.service_name.strip(),
-                organization_ods_code=body.organization_id.strip(),
-                completeness_groups=[g.model_dump() for g in body.completeness_groups],
-            ),
-        )
+        _check_before_save(client, write, body.source_text)
+        schema = save_form_schema(client, write)
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:

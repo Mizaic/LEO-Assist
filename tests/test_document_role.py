@@ -152,8 +152,8 @@ def test_chunk_state_seals_cover_sheet_but_keeps_raw_text() -> None:
         },
     ]
     with patch(
-        "libs.pipeline.document_chunk_loader._resolve_chunk_schema",
-        return_value=(None, {}),
+        "libs.pipeline.document_chunk_loader._recognise_chunks",
+        return_value=[],
     ):
         state = build_document_chunk_state(rows)
     cover = state["sentences"][1]["text"]

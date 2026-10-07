@@ -28,3 +28,5 @@ openai>=2.0
 jsonschema>=4.23
 langgraph>=0.4
 beautifulsoup4>=4.12
+# Form recognition (libs/form_recognition): teach-time clash check.
+rapidfuzz>=3.9,<4

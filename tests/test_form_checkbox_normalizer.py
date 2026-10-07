@@ -170,7 +170,9 @@ def test_extraction_path_invokes_normalizer() -> None:
         encoding="utf-8"
     )
     loader = Path("libs/pipeline/document_chunk_loader.py").read_text(encoding="utf-8")
+    apply = Path("libs/pipeline/form_recognition_apply.py").read_text(encoding="utf-8")
     assert "normalize_form_checkbox_text" in windowed
     assert "normalise_chunks_for_llm" in windowed
     assert "_normalise_chunks_for_llm" in extraction
-    assert "normalize_form_checkbox_text" in loader
+    assert "rewrite_chunks" in loader
+    assert "normalize_form_checkbox_text" in apply

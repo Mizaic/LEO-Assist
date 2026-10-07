@@ -20,6 +20,7 @@ from typing import Any
 
 from libs.referral_quality.dry_run_enrichment import enrich_dry_run_state
 from libs.workflow.engine import ActionDefinition, WorkflowEngine
+from libs.workflow.form_recognition_gate import recognition_verdict
 from libs.workflow.plan_manifest import PlanAction, PlanManifest, load_plan_manifest
 
 _WRITE_CYPHER = re.compile(
@@ -186,6 +187,21 @@ def _fired_guidelines(state: dict[str, Any]) -> list[Any]:
     return []
 
 
+def _recognition_report(state: dict[str, Any]) -> dict[str, Any]:
+    """What the live runner would do with this bundle's form recognition.
+
+    The dry run never pauses (it uses ``trace_run``), so it says instead.
+    """
+    verdict = recognition_verdict(state)
+    return {
+        "match": state.get("form_schema_match") or "none",
+        "fingerprint": state.get("form_schema_fingerprint") or "none",
+        "would_pause": verdict.unrecognised or verdict.failed,
+        "would_degrade": verdict.failed,
+        "documents": list(state.get("form_recognition") or []),
+    }
+
+
 def build_quality_report(referral_id: str, state: dict[str, Any]) -> dict[str, Any]:
     """Quality snapshot for one UBRN. No patient identifier fields."""
     entities = [e for e in (state.get("entities") or []) if isinstance(e, dict)]
@@ -194,6 +210,7 @@ def build_quality_report(referral_id: str, state: dict[str, Any]) -> dict[str, A
         "dry_run": True,
         "status": state.get("status") or state.get("sbar_status") or "completed",
         "chunk_ids": list(state.get("chunk_ids") or []),
+        "form_recognition": _recognition_report(state),
         "facts": [_fact_row(e) for e in entities],
         "scope": {
             "completeness_domain": state.get("completeness_domain") or "",

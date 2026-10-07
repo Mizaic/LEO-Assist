@@ -26,8 +26,8 @@ from libs.completeness.schema import (
 from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
+    load_form_schema,
     reset_schema_cache,
-    resolve_form_schema,
     save_form_schema,
 )
 
@@ -55,13 +55,9 @@ def pg_client():
 
 def test_persist_pcb_completeness_member(pg_client) -> None:
     reset_schema_cache()
-    schema = resolve_form_schema(
-        pg_client,
-        _FINGERPRINT,
-        organization_id=_ORG,
-        service_id=_SERVICE,
-    )
+    schema = load_form_schema(pg_client, _FINGERPRINT)
     assert schema is not None, "Taught SFH gynae FormSchema missing"
+    assert (schema.organization_id, schema.service_id) == (_ORG, _SERVICE)
     groups = add_optional_concept_member(
         schema.completeness_groups,
         name="Postcoital bleeding",
@@ -102,12 +98,7 @@ def test_persist_pcb_completeness_member(pg_client) -> None:
         ),
     )
     reset_schema_cache()
-    reloaded = resolve_form_schema(
-        pg_client,
-        saved.fingerprint,
-        organization_id=saved.organization_id,
-        service_id=saved.service_id,
-    )
+    reloaded = load_form_schema(pg_client, saved.fingerprint)
     assert reloaded is not None
     assert _PCB_ID in collect_concept_ids(reloaded.completeness_groups)
     assert _PCB_ID in concept_ids_for_item_pattern(

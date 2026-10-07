@@ -9,11 +9,6 @@ lands on the bundle's first line, a ``--- Document: ... ---`` banner. ConText
 then reads that banner instead of the clinical sentence and the persisted
 assertion is decided by the wrong text.
 
-Stripping still belongs in ``bundle_fingerprint``: the attachment differs
-between referrals of the same form, so fingerprinting it would stop the
-taught :FormSchema ever binding. That is a separate boundary and these tests
-pin it in place.
-
 Atlas trace:
   DO: DO-728930A1
   DI: DI-16CE412B, DI-B5C78811
@@ -21,10 +16,7 @@ Atlas trace:
 
 from __future__ import annotations
 
-from libs.pipeline.document_chunk_loader import (
-    bundle_fingerprint,
-    build_document_chunk_state,
-)
+from libs.pipeline.document_chunk_loader import build_document_chunk_state
 
 _GP_FORM_CHUNK = (
     "--- Document: 23 Jun 2026 Two Week Wait Referral to Gynaecology .doc ---\n"
@@ -94,26 +86,3 @@ def test_attachment_medication_reaches_the_resolver() -> None:
     encounter_text = _state()["encounter_text"]
     assert "Apixaban 5mg tablets" in encounter_text
     assert "anticoagulant" in encounter_text
-
-
-def test_fingerprint_still_ignores_the_attachment() -> None:
-    """Schema binding is unaffected: the attachment stays out of the hash.
-
-    The attachment differs between referrals of the same form. If it reached
-    the fingerprint, each referral would hash differently and the taught
-    schema would never be found.
-    """
-    with_attachment = bundle_fingerprint([_GP_FORM_CHUNK, _ATTACHMENT_CHUNK])
-    form_only = bundle_fingerprint([_GP_FORM_CHUNK])
-    assert with_attachment == form_only
-
-
-def test_fingerprint_ignores_which_attachment_arrived() -> None:
-    """Two referrals of one form hash alike however their attachments differ."""
-    other_attachment = (
-        "--- Document: Clinical Information.pdf ---\n"
-        "Findings\nNo Information Provided\nUBRN: 0004 8182 7411"
-    )
-    assert bundle_fingerprint(
-        [_GP_FORM_CHUNK, _ATTACHMENT_CHUNK]
-    ) == bundle_fingerprint([_GP_FORM_CHUNK, other_attachment])

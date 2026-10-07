@@ -12,11 +12,15 @@ Clinical consequence: a taught form's checkbox normalisation is skipped
 when the database blips. Ticked boxes on a referral form are read as
 untouched, so real findings never reach the record.
 
+The candidate lookup used by recognition has the same guarantee; see
+tests/test_form_schema_candidates.py and
+tests/test_document_chunk_loader_recognition.py.
+
 Atlas trace:
   UN: UN-89E2AE36
   DI: DI-B7A69F26 (fail-closed boundary for clinical safety layers)
   DI: DI-5C9CA57B (form checkbox normalisation)
-  DI: DI-26546721 (organisation and service bind)
+  DI: DI-E21DF9EF (form recognition; no hash or service fallback)
   DO: DO-42331CE1
   VT: VT-AA8ED00F
   Risk: R-294446BF
@@ -28,17 +32,14 @@ from typing import Any
 
 import pytest
 
-from libs.cypher.form_schema_queries import GET_FORM_SCHEMA_BY_FINGERPRINT
 from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
     _schema_to_sections_json,
     get_cached_schema,
-    is_known_schema,
     load_form_schema,
     rebind_form_schema_ids,
     reset_schema_cache,
-    resolve_form_schema_traced,
 )
 
 FINGERPRINT = "fingerprint-abc"
@@ -107,15 +108,6 @@ class _MissClient:
         return []
 
 
-class _HitThenRaiseClient:
-    """The exact-hash query misses; the org/service query then fails."""
-
-    def run(self, query: str, **_kwargs: Any) -> list[dict[str, Any]]:
-        if query == GET_FORM_SCHEMA_BY_FINGERPRINT:
-            return []
-        raise ConnectionError("neo4j unreachable")
-
-
 class _HitClient:
     def __init__(self) -> None:
         self.calls = 0
@@ -155,15 +147,6 @@ def test_a_found_schema_is_cached() -> None:
     assert get_cached_schema(FINGERPRINT) is not None
 
 
-def test_resolve_reports_none_for_a_form_that_was_never_taught() -> None:
-    schema, match, key, _label = resolve_form_schema_traced(
-        _MissClient(), FINGERPRINT, organization_id=ORG_ID, service_id=SERVICE_ID
-    )
-    assert schema is None
-    assert match == "none"
-    assert key == "none"
-
-
 # ---------------------------------------------------------------------------
 # Site 3 -- LookupFailed is a third answer, never NotFound
 # ---------------------------------------------------------------------------
@@ -191,32 +174,6 @@ def test_the_lookup_error_says_what_happened_in_plain_english() -> None:
     assert message.isascii()
     assert FINGERPRINT in message
     assert "could not" in message.lower()
-
-
-def test_resolve_does_not_report_match_none_when_the_lookup_failed() -> None:
-    with pytest.raises(Exception):
-        resolve_form_schema_traced(
-            _RaisingClient(),
-            FINGERPRINT,
-            organization_id=ORG_ID,
-            service_id=SERVICE_ID,
-        )
-
-
-def test_an_org_service_lookup_error_also_raises() -> None:
-    """The second lookup swallowed the same way as the first."""
-    with pytest.raises(Exception):
-        resolve_form_schema_traced(
-            _HitThenRaiseClient(),
-            FINGERPRINT,
-            organization_id=ORG_ID,
-            service_id=SERVICE_ID,
-        )
-
-
-def test_is_known_schema_raises_rather_than_answering_false() -> None:
-    with pytest.raises(Exception):
-        is_known_schema(_RaisingClient(), FINGERPRINT)
 
 
 def test_a_lookup_error_does_not_overwrite_a_taught_form() -> None:

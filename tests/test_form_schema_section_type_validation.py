@@ -143,9 +143,10 @@ def test_api_rejects_checkbox_and_never_saves(_mock_pg, mock_save) -> None:
     mock_save.assert_not_called()
 
 
+@patch("app.routers.form_schema.check_new_form", return_value=None)
 @patch("app.routers.form_schema.save_form_schema")
 @patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
-def test_api_accepts_a_recognised_type(_mock_pg, mock_save) -> None:
+def test_api_accepts_a_recognised_type(_mock_pg, mock_save, _mock_check) -> None:
     resp = _client().put(
         "/form-schemas/fp-1",
         json={"form_name": "Gynae 2WW", "sections": [_section("checkbox_multi")]},

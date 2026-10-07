@@ -1,20 +1,13 @@
-"""A referral bundle must never lose every word to attachment stripping.
+"""A referral bundle must never lose every word of an attachment.
 
 Some referrals arrive with only an e-RS "Clinical Information" document.
 That document is not a rendering of the GP form -- it is a separate
 clinical record carrying presenting complaint, examination findings,
-medication and past medical history.
+medication and past medical history. Extraction reads the whole bundle.
 
-``strip_pdf_attachments`` now has exactly one caller,
-``bundle_fingerprint``, because the attachment varies between referrals of
-one form and hashing it would stop the taught :FormSchema binding. It no
-longer touches ``encounter_text``: extraction reads the whole bundle. These
-tests hold both halves of that boundary in place -- the fingerprint keeps
-ignoring the attachment, and extraction keeps reading it.
-
-The "never empty" guard inside ``strip_pdf_attachments`` still matters. A
-bundle holding nothing but the attachment would otherwise fingerprint the
-empty string, and every such referral would collide on one hash.
+There is no letter hash any more, so nothing strips the attachment for
+fingerprinting either. Each document is recognised on its own text
+(DI-E21DF9EF).
 
 Production witness (patient graph, read-only):
   000478696630:leo-referral-bundle -- 1 chunk, 3480 chars, one banner
@@ -30,10 +23,8 @@ from typing import Any
 from unittest.mock import patch
 
 from libs.pipeline.document_chunk_loader import (
-    CHUNK_TEXT_SEPARATOR,
     build_document_chunk_state,
     bundle_trim_deletions,
-    strip_pdf_attachments,
 )
 
 # Shape copied from 000478696630:leo-referral-bundle, content paraphrased.
@@ -70,15 +61,10 @@ def _rows(*texts: str) -> list[dict[str, Any]]:
 
 def _build(rows: list[dict[str, Any]]) -> dict[str, Any]:
     with patch(
-        "libs.pipeline.document_chunk_loader._resolve_chunk_schema",
-        return_value=(None, {}),
+        "libs.pipeline.document_chunk_loader._recognise_chunks",
+        return_value=[],
     ):
         return build_document_chunk_state(rows)
-
-
-# ---------------------------------------------------------------------------
-# Extraction reads the whole bundle
-# ---------------------------------------------------------------------------
 
 
 def test_encounter_text_survives_a_clinical_information_only_bundle() -> None:
@@ -113,25 +99,3 @@ def test_trim_deletions_reproduce_the_encounter_text_for_a_pdf_only_bundle() -> 
         cursor = deletion.raw_end
     kept.append(raw[cursor:])
     assert "".join(kept) == raw.strip()
-
-
-# ---------------------------------------------------------------------------
-# The fingerprint still ignores the attachment
-# ---------------------------------------------------------------------------
-
-
-def test_strip_keeps_text_when_the_bundle_is_only_a_pdf_document() -> None:
-    """Fingerprinting an empty string would collide every such referral."""
-    result = strip_pdf_attachments(_CLINICAL_INFO_ONLY)
-    assert result != ""
-    assert "Patchy erythematous rash" in result
-    assert "Appendicectomy" in result
-
-
-def test_strip_still_removes_the_pdf_section_from_a_mixed_bundle() -> None:
-    """000481914514 binds a taught schema by exact hash -- do not move it."""
-    raw = _GP_FORM + CHUNK_TEXT_SEPARATOR + _CLINICAL_INFO_ONLY
-    result = strip_pdf_attachments(raw)
-    assert "Section A: cancer type suspected" in result
-    assert "Patchy erythematous rash" not in result
-    assert "Clinical Information Summary" not in result

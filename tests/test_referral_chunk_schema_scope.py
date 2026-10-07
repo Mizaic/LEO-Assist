@@ -1,16 +1,12 @@
 """Referral bundles in document_chunks mode must carry receiving-service scope.
 
-Atlas trace: DI-26546721 (organisation and service bind)
+Atlas trace: DI-26546721 (receiving scope), DI-E21DF9EF (form recognition)
 
 A referral bundle is loaded as :Chunk rows, so ``default_source_fields``
-returns source_node_type "Chunk". ``_apply_healthcare_service_scope`` only
-runs for "ReferralRequest" or "CommunicationRequest", so the receiving trust
-and service are never written onto pipeline state. ``_schema_scope`` then
-falls back to ``org_id`` (the patient's GP practice) and a blank service, and
-the organisation-plus-service lookup for a taught :FormSchema can never match.
-
-These tests are RED against the current code and describe the behaviour the
-fix must deliver. Do not weaken them to make them pass.
+returns source_node_type "Chunk". The receiving trust and service must still
+reach pipeline state. Without them ``_schema_scope`` falls back to ``org_id``
+(the patient's GP practice), and the receiving trust's taught forms are
+never candidates for recognition. Do not weaken these tests.
 """
 
 from __future__ import annotations
@@ -118,15 +114,8 @@ def referral_state(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         lambda client, run_id, state: None,
     )
     monkeypatch.setattr(
-        "libs.pipeline.document_chunk_loader._resolve_chunk_schema",
-        lambda *args, **kwargs: (
-            None,
-            {
-                "form_schema_fingerprint": "none",
-                "form_schema_match": "none",
-                "form_schema_label": "",
-            },
-        ),
+        "libs.pipeline.document_chunk_loader._recognise_chunks",
+        lambda *args, **kwargs: [],
     )
     return load_step_state(_FakeGraphClient(), _FakeStageStore(), _request())
 
@@ -157,6 +146,6 @@ def test_schema_scope_resolves_receiving_org_and_service(
 def test_schema_scope_service_is_never_blank(
     referral_state: dict[str, Any],
 ) -> None:
-    """A blank service id makes _load_schema_by_org_service return None."""
+    """Downstream service scoping (guidelines, completeness) needs the id."""
     _org_id, service_id, _ers_id = _schema_scope(referral_state)
     assert service_id.strip() != ""

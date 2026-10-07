@@ -36,6 +36,10 @@ tests/*
 tests/fixtures/*
 !tests/fixtures/clinical_extraction_scenarios/
 !tests/fixtures/clinical_extraction_scenarios/**
+!tests/fixtures/form_recognition/
+!tests/fixtures/form_recognition/**
+!tests/fixtures/form_schema/
+!tests/fixtures/form_schema/**
 e2e/
 compliance/
 infra/

@@ -57,6 +57,9 @@ scikit-learn>=1.6
 scipy>=1.14
 joblib>=1.4
 
+# --- Form recognition (libs/form_recognition fuzzy anchor matching) ---
+rapidfuzz>=3.9,<4
+
 # --- Auth (libs/auth JWT validation, session store) ---
 python-jose[cryptography]>=3.4.0
 redis>=5.2

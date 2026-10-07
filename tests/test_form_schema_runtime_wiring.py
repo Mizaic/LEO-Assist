@@ -36,14 +36,12 @@ FBC_ITEM = FormSchemaItem(
     value_placeholder="{{NUMERIC_VALUE}} {{UNIT}}",
 )
 
-ORDERED_TESTS_TEXT = textwrap.dedent(
-    """\
+ORDERED_TESTS_TEXT = textwrap.dedent("""\
     Section D: Investigations performed
     MANDATORY the following tests must be undertaken
     FBC | 124 g/L | 12.5 |
     BLOODS DONE TODAY
-    """
-)
+    """)
 
 ORDERED_TESTS_SCHEMA = FormSchema(
     schema_id="test-ordered-tests",
@@ -66,14 +64,12 @@ ORDERED_TESTS_SCHEMA = FormSchema(
 # The same section with each value beside the analyte it belongs to.
 # GGT is taught but is not one of the abbreviations the deterministic
 # blood-panel extractor knows, so only schema seeding can produce it.
-RESULTED_TESTS_TEXT = textwrap.dedent(
-    """\
+RESULTED_TESTS_TEXT = textwrap.dedent("""\
     Section D: Investigations performed
     MANDATORY the following tests must be undertaken
     FBC | 23.06.26 | Hb 124 g/L , WCC 12.5 x10^9/L , GGT 30 U/L |
     BLOODS DONE TODAY
-    """
-)
+    """)
 
 RESULTED_FBC_ITEM = replace(
     FBC_ITEM,
@@ -112,21 +108,29 @@ def _clear_schema_cache() -> None:
     reset_schema_cache()
 
 
-def test_known_schema_bypass_in_extraction_merge() -> None:
-    """merge_results sets score 1.0 when schema is cached."""
+def test_a_cached_schema_alone_does_not_bypass_the_quality_gate() -> None:
+    """The letter-hash cache no longer binds a form (DI-E21DF9EF).
+
+    With no taught candidate recognised from the text, the quality gate
+    still scores the letter.
+    """
+    from unittest.mock import patch
+
     from libs.pipeline_graph.subgraphs.extraction import merge_results
 
     _cache_schema(ORDERED_TESTS_SCHEMA)
-    out = merge_results(
-        {
-            "encounter_text": ORDERED_TESTS_TEXT,
-            "entities": [],
-            "few_shot_max_similarity": 0.05,
-        }
-    )
-    quality = out["document_quality"]
-    assert quality["document_quality_score"] == 1.0
-    assert quality["quality_reasons"] == []
+    with patch(
+        "libs.pipeline.document_chunk_loader._candidate_schemas", return_value=[]
+    ):
+        out = merge_results(
+            {
+                "encounter_text": ORDERED_TESTS_TEXT,
+                "entities": [],
+                "few_shot_max_similarity": 0.05,
+            }
+        )
+    assert out["form_schema_match"] != "recognised"
+    assert out["document_quality"]["document_quality_score"] < 1.0
 
 
 def test_merge_results_loads_taught_schema_from_neo4j_when_cache_empty() -> None:
@@ -216,15 +220,31 @@ def test_enrichment_seeds_taught_analytes_from_schema() -> None:
         _enrich_with_blood_panel_entities,
     )
 
-    _cache_schema(RESULTED_TESTS_SCHEMA)
     result = _enrich_with_blood_panel_entities(
-        {"entities": [], "extraction_route": "llm"}, RESULTED_TESTS_TEXT, []
+        {"entities": [], "extraction_route": "llm"},
+        RESULTED_TESTS_TEXT,
+        [],
+        schema=RESULTED_TESTS_SCHEMA,
     )
     texts = {e.get("text") for e in result["entities"]}
     labels = {e.get("label") for e in result["entities"]}
     assert {"Hb", "WCC"} <= texts
     assert "GGT" in labels
     assert "schema-seed" in result["extraction_route"]
+
+
+def test_enrichment_does_not_seed_from_a_cached_schema_alone() -> None:
+    """Only the recognised schema seeds; the hash cache is not a bind."""
+    from libs.pipeline_graph.subgraphs.extraction import (
+        _enrich_with_blood_panel_entities,
+    )
+
+    _cache_schema(RESULTED_TESTS_SCHEMA)
+    result = _enrich_with_blood_panel_entities(
+        {"entities": [], "extraction_route": "llm"}, RESULTED_TESTS_TEXT, []
+    )
+    labels = {e.get("label") for e in result["entities"]}
+    assert "GGT" not in labels
 
 
 def test_seed_ordered_tests_entities_for_cached_schema() -> None:

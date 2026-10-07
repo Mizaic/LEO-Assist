@@ -2,11 +2,14 @@
 
 Atlas trace:
   DI: DI-5C9CA57B  (form checkbox normalisation)
-  DI: DI-26546721  (organisation and service bind)
+  DI: DI-26546721  (organisation and service select the completeness dataset)
+  DI: DI-E21DF9EF  (form recognition; no hash or service fallback)
   DO: DO-020C7B5C
 
-The store keeps a process-level cache of known schemas keyed by fingerprint.
-The pipeline normaliser checks this cache before falling back to generic rules.
+A schema is loaded here only by its own key. Which form a document is,
+is decided by ``libs.form_recognition``, never by a letter hash or by the
+organisation and service. A service may have several active forms.
+The store keeps a process-level cache of loaded schemas keyed by key.
 """
 
 from __future__ import annotations
@@ -20,10 +23,7 @@ from typing import Any
 from libs.completeness.service_domain import ensure_service_completeness_domain
 from libs.cypher.form_schema_queries import (
     DELETE_FORM_SCHEMA,
-    GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
-    GET_ACTIVE_FORM_SCHEMA_BY_SERVICE,
     GET_FORM_SCHEMA_BY_FINGERPRINT,
-    RELEASE_SIBLING_FORM_SCHEMAS,
     UPSERT_FORM_SCHEMA,
 )
 from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
@@ -212,74 +212,13 @@ def load_form_schema(client: Any, fingerprint: str) -> FormSchema | None:
     return schema
 
 
-def _load_schema_by_org_service(
-    client: Any,
-    organization_id: str,
-    service_id: str,
-) -> FormSchema | None:
-    """Return the newest active schema for this organisation and service.
-
-    ``None`` means no active schema is bound. A database error raises
-    :class:`FormSchemaLookupError`.
-    """
-    org = organization_id.strip()
-    service = service_id.strip()
-    if not service:
-        return None
-    if not org:
-        row = _first_row(
-            client,
-            GET_ACTIVE_FORM_SCHEMA_BY_SERVICE,
-            f"service {service}",
-            service_id=service,
-        )
-    else:
-        row = _first_row(
-            client,
-            GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
-            f"service {org}/{service}",
-            organization_id=org,
-            service_id=service,
-        )
-    if not row:
-        return None
-    try:
-        return _record_to_schema(row)
-    except Exception:
-        logger.warning(
-            "Stored FormSchema for org=%s service=%s is unusable; ignoring it",
-            org,
-            service,
-            exc_info=True,
-        )
-        return None
-
-
-def _load_schema_by_node_ids(
-    client: Any,
-    organization_id: str,
-    service_id: str,
-    ers_service_id: str = "",
-) -> FormSchema | None:
-    """Match FormSchema to Organization.id and Service.id or ers_service_id."""
-    schema = _load_schema_by_org_service(client, organization_id, service_id)
-    if schema is not None:
-        return schema
-    ers = ers_service_id.strip()
-    if not ers or ers == service_id.strip():
-        return None
-    return _load_schema_by_org_service(client, organization_id, ers)
-
-
-def _schema_label(schema: FormSchema) -> str:
-    name = (schema.form_name or "").strip()
-    if name:
-        return name
-    org = (schema.organization_id or "").strip()
-    service = (schema.service_id or "").strip()
-    if org and service:
-        return f"{org}/{service}"
-    return org or service
+MATCH_RECOGNISED = "recognised"
+MATCH_UNRECOGNISED = "unrecognised"
+MATCH_NOT_A_FORM = "not_a_form"
+MATCH_FAILED = "failed"
+_MATCHES_WITHOUT_KEY = frozenset(
+    {"none", "not_applicable", MATCH_UNRECOGNISED, MATCH_NOT_A_FORM, MATCH_FAILED}
+)
 
 
 def form_schema_state_fields(
@@ -289,207 +228,46 @@ def form_schema_state_fields(
 ) -> dict[str, str]:
     """Top-level extraction-state keys for Validation Lab INPUT KEYS chips.
 
-    ``match="not_applicable"`` means no lookup was attempted, because these
-    chunks are not a referral form bundle. It is deliberately distinct from
-    ``"none"``, which means we looked and found nothing. Collapsing the two
-    would hide a skipped lookup behind a miss.
+    ``match`` is the bundle's recognition result: ``recognised``,
+    ``unrecognised``, ``not_a_form`` or ``failed``. ``not_applicable``
+    means recognition was not attempted, because these chunks are not a
+    referral form bundle. ``none`` means there was nothing to recognise.
+    Only ``recognised`` names a taught form. Any other value -- including
+    the retired ``exact_hash`` and ``org_service`` -- reads as ``none``.
     """
     resolved_match = str(match or "none").strip() or "none"
-    resolved_key = str(loaded_key or "").strip()
-    if resolved_match == "not_applicable":
+    resolved_key = str(loaded_key or "").strip() or "none"
+    if resolved_match == MATCH_RECOGNISED and resolved_key != "none":
         return {
-            "form_schema_fingerprint": "none",
-            "form_schema_match": "not_applicable",
-            "form_schema_label": "",
+            "form_schema_fingerprint": resolved_key,
+            "form_schema_match": MATCH_RECOGNISED,
+            "form_schema_label": str(label or ""),
         }
-    if resolved_match != "none" and (not resolved_key or resolved_key == "none"):
+    if resolved_match not in _MATCHES_WITHOUT_KEY:
         logger.warning(
-            "form_schema_state inconsistent match=%s fingerprint=%r; using none",
+            "form_schema_state unusable match=%s fingerprint=%r; using none",
             resolved_match,
             loaded_key,
         )
         resolved_match = "none"
-        resolved_key = "none"
-    if resolved_match == "none":
-        return {
-            "form_schema_fingerprint": "none",
-            "form_schema_match": "none",
-            "form_schema_label": "",
-        }
     return {
-        "form_schema_fingerprint": resolved_key,
+        "form_schema_fingerprint": "none",
         "form_schema_match": resolved_match,
-        "form_schema_label": str(label or ""),
+        "form_schema_label": "",
     }
 
 
 def has_taught_form_schema(state: dict[str, Any]) -> bool:
-    """True when a taught FormSchema is bound on pipeline state.
+    """True only when every form-like document in the bundle was recognised.
 
-    Reads the resolved keys that :func:`form_schema_state_fields` writes,
-    so this is the same signal the non-windowed extractor derives from
-    ``form_schema_match``. Both keys must agree: a stale fingerprint on
-    its own is not a taught form, and treating it as one would switch off
-    generic checkbox normalisation for an untaught referral form.
+    Reads the keys that :func:`form_schema_state_fields` writes. An
+    unrecognised, failed or legacy match is never a taught form: treating
+    it as one would switch off generic checkbox normalisation and the
+    document-quality check for a form nobody taught.
     """
     match = str(state.get("form_schema_match") or "none").strip()
     fingerprint = str(state.get("form_schema_fingerprint") or "none").strip()
-    if match in ("", "none"):
-        return False
-    return fingerprint not in ("", "none")
-
-
-def form_schema_fields_from_state(
-    state: dict[str, Any],
-    encounter_text: str,
-    organization_id: str = "",
-    service_id: str = "",
-) -> dict[str, str]:
-    """Reuse a resolved form key, or look it up from the letter text."""
-    existing = str(state.get("form_schema_fingerprint") or "").strip()
-    existing_match = str(state.get("form_schema_match") or "none").strip() or "none"
-    if existing and existing != "none" and existing_match != "none":
-        return {
-            "form_schema_fingerprint": existing,
-            "form_schema_match": existing_match,
-            "form_schema_label": str(state.get("form_schema_label") or ""),
-        }
-    from libs.neo4j_client.client import PatientGraphClient
-    from libs.pipeline.document_quality import form_fingerprint
-    from libs.pipeline.form_schema_compose import resolve_bundle_schema
-
-    client = PatientGraphClient()
-    try:
-        _schema, match, loaded_key, label = resolve_bundle_schema(
-            client,
-            form_fingerprint(encounter_text),
-            [encounter_text],
-            organization_id=organization_id,
-            service_id=service_id,
-            ers_service_id=str(state.get("healthcare_service_ers_id") or ""),
-        )
-    finally:
-        client.close()
-    return form_schema_state_fields(match, loaded_key, label)
-
-
-def resolve_form_schema_traced(
-    client: Any,
-    fingerprint: str,
-    organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
-) -> tuple[FormSchema | None, str, str, str]:
-    """Resolve a taught schema from letter hash, then live node ids.
-
-    Returns ``(schema, match, loaded_key, label)``. ``match`` is
-    ``exact_hash``, ``org_service``, or ``none``. ``loaded_key`` is the
-    fingerprint that was actually used, or ``none``.
-
-    Organisation and service ids are :Organization.id and :Service.id
-    (or Service.ers_service_id). They are not invented slugs.
-    """
-    schema = load_form_schema(client, fingerprint)
-    if schema is not None:
-        return schema, "exact_hash", schema.fingerprint, _schema_label(schema)
-    schema = _load_schema_by_node_ids(
-        client,
-        organization_id,
-        service_id,
-        ers_service_id=ers_service_id,
-    )
-    if schema is None:
-        logger.info(
-            "form_schema_resolve known_schema=false match=none "
-            "fingerprint=%s org_id=%s service_id=%s ers_service_id=%s",
-            fingerprint,
-            organization_id,
-            service_id,
-            ers_service_id,
-        )
-        return None, "none", "none", ""
-    loaded_fp = str(schema.fingerprint or "").strip()
-    if not loaded_fp:
-        logger.warning(
-            "form_schema_resolve org_service hit but FormSchema.fingerprint is empty "
-            "org_id=%s service_id=%s schema_id=%s",
-            organization_id,
-            service_id,
-            schema.schema_id,
-        )
-        return None, "none", "none", ""
-    _SCHEMA_CACHE[fingerprint] = schema
-    logger.info(
-        "form_schema_resolve known_schema=true match=org_service "
-        "fingerprint=%s loaded=%s org_id=%s service_id=%s",
-        fingerprint,
-        schema.fingerprint,
-        organization_id,
-        service_id,
-    )
-    return schema, "org_service", loaded_fp, _schema_label(schema)
-
-
-def resolve_form_schema(
-    client: Any,
-    fingerprint: str,
-    organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
-) -> FormSchema | None:
-    """Load a taught schema by letter hash, then by Organisation and Service ids.
-
-    Extraction hashes the letter. Seeded templates may use a stable alias
-    such as ``sfh-gynae-2ww-v1``. When the hash misses, an active schema
-    bound to the same Organization.id and Service.id (or ers_service_id)
-    is used. The alias is then cached under the letter hash.
-    """
-    schema, _match, _key, _label = resolve_form_schema_traced(
-        client,
-        fingerprint,
-        organization_id=organization_id,
-        service_id=service_id,
-        ers_service_id=ers_service_id,
-    )
-    return schema
-
-
-def is_known_schema(
-    client: Any,
-    fingerprint: str,
-    organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
-) -> bool:
-    """Return True when a taught :FormSchema exists in cache or Neo4j."""
-    return (
-        resolve_form_schema(
-            client,
-            fingerprint,
-            organization_id=organization_id,
-            service_id=service_id,
-            ers_service_id=ers_service_id,
-        )
-        is not None
-    )
-
-
-def _release_sibling_form_schemas(client: Any, schema: FormSchema) -> None:
-    """Draft other active schemas bound to the same organisation and service."""
-    org = (schema.organization_id or "").strip()
-    service = (schema.service_id or "").strip()
-    if not org or not service:
-        return
-    rows = client.run(
-        RELEASE_SIBLING_FORM_SCHEMAS,
-        organization_id=org,
-        service_id=service,
-        fingerprint=schema.fingerprint,
-    )
-    for row in rows or []:
-        fp = str((row or {}).get("fingerprint") or "").strip()
-        if fp:
-            _SCHEMA_CACHE.pop(fp, None)
+    return match == MATCH_RECOGNISED and fingerprint not in ("", "none")
 
 
 def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
@@ -522,7 +300,6 @@ def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
             groups=write.completeness_groups,
             require_blocking_groups=False,
         )
-    _release_sibling_form_schemas(client, schema)
     _SCHEMA_CACHE[schema.fingerprint] = schema
     logger.info(
         "Saved FormSchema %s for fingerprint %s",
@@ -598,18 +375,19 @@ def _build_schema(write: FormSchemaWrite) -> FormSchema:
 __all__ = [
     "FormSchemaLookupError",
     "FormSchemaWrite",
+    "MATCH_FAILED",
+    "MATCH_NOT_A_FORM",
+    "MATCH_RECOGNISED",
+    "MATCH_UNRECOGNISED",
     "build_sections_from_request",
     "delete_form_schema",
-    "form_schema_fields_from_state",
     "form_schema_state_fields",
     "get_cached_schema",
     "has_taught_form_schema",
-    "is_known_schema",
     "load_form_schema",
     "normalize_sections_for_request",
     "rebind_form_schema_ids",
+    "remember_schema",
     "reset_schema_cache",
-    "resolve_form_schema",
-    "resolve_form_schema_traced",
     "save_form_schema",
 ]

@@ -21,6 +21,8 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from libs.ner.schema_mapper import normalise_label
+from libs.pipeline.form_recognition_apply import document_scoped_text
+from libs.pipeline.form_schema_store import has_taught_form_schema
 from libs.nlp.sentence_splitter import (
     SentenceChunk,
     SentenceSplitter,
@@ -92,6 +94,7 @@ class ExtractionState(TypedDict, total=False):
     form_schema_fingerprint: str
     form_schema_match: str
     form_schema_label: str
+    form_recognition: list[dict[str, Any]]
     section_hits: list[dict[str, Any]]
     completeness_groups: list[dict[str, Any]]
     form_sections: list[dict[str, Any]]
@@ -416,6 +419,7 @@ def _chunk_load_payload(
     else:
         fields = form_schema_state_fields("none")
     payload = {
+        "form_recognition": list(loaded.get("form_recognition") or []),
         "encounter_text": loaded.get("encounter_text") or "",
         "sentences": loaded.get("sentences") or [],
         "chunk_id_by_sentence_id": dict(loaded.get("chunk_id_by_sentence_id") or {}),
@@ -456,21 +460,19 @@ def _taught_form_hit_fields(state: dict[str, Any], texts: list[str]) -> dict[str
         if state.get("completeness_groups") is not None:
             extra["completeness_groups"] = list(state.get("completeness_groups") or [])
         return extra
-    from libs.pipeline.form_coverage import form_layout_allows_completeness
     from libs.pipeline.form_schema_store import get_cached_schema
     from libs.pipeline.form_section_hits import collect_section_hits
 
-    fingerprint = str(state.get("form_schema_fingerprint") or "").strip()
-    schema = get_cached_schema(fingerprint) if fingerprint not in {"", "none"} else None
+    if not has_taught_form_schema(state):
+        return extra
+    schema = get_cached_schema(str(state.get("form_schema_fingerprint") or ""))
     if schema is None or not schema.sections or not texts:
         return extra
     extra["section_hits"] = collect_section_hits(
         schema, texts, schema.chunk_section_map
     )
-    match = str(state.get("form_schema_match") or "none")
-    layout_ok = form_layout_allows_completeness(match, schema, texts)
-    extra["form_layout_matched"] = layout_ok
-    if schema.completeness_groups and layout_ok:
+    extra["form_layout_matched"] = True
+    if schema.completeness_groups:
         extra["completeness_groups"] = list(schema.completeness_groups)
     return extra
 
@@ -519,13 +521,9 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
 
     from libs.neo4j_client.client import PatientGraphClient
 
-    org_id, service_id, ers_id = _schema_scope(state)
+    org_id, _service_id, _ers_id = _schema_scope(state)
     loaded = load_document_chunks_from_neo4j(
-        PatientGraphClient(),
-        chunk_ids,
-        organization_id=org_id,
-        service_id=service_id,
-        ers_service_id=ers_id,
+        PatientGraphClient(), chunk_ids, organization_id=org_id
     )
     if loaded.get("sentences"):
         return _chunk_load_payload(loaded, list(loaded.get("errors") or []))
@@ -803,7 +801,7 @@ def _run_llm_extraction(
         tier = "small"
 
     schema_fields = _form_schema_fields_from_state(state, encounter_text)
-    known_form = schema_fields["form_schema_match"] != "none"
+    known_form = has_taught_form_schema(schema_fields)
     from libs.referral_quality.form_contract import contract_for_state
 
     contract = contract_for_state(schema_fields)
@@ -886,61 +884,66 @@ def _enrich_from_state(
     chunks: list[SentenceChunk],
     state: dict[str, Any],
 ) -> dict[str, Any]:
-    org_id, service_id, ers_id = _schema_scope(state)
+    fields = _form_schema_fields_from_state(state, encounter_text)
+    schema = _recognised_schema(fields)
+    seed_text = encounter_text
+    if schema is not None:
+        seed_text = document_scoped_text(
+            encounter_text, fields.get("form_recognition") or [], schema.fingerprint
+        )
     return _enrich_with_blood_panel_entities(
-        result,
-        encounter_text,
-        chunks,
-        organization_id=org_id,
-        service_id=service_id,
-        ers_service_id=ers_id,
+        result, encounter_text, chunks, schema=schema, seed_text=seed_text
     )
+
+
+def _recognised_schema(fields: dict[str, Any]) -> Any:
+    """The form recognised for this bundle, loaded by its own key only."""
+    if not has_taught_form_schema(fields):
+        return None
+    from libs.neo4j_client.client import PatientGraphClient
+    from libs.pipeline.form_schema_store import get_cached_schema, load_form_schema
+
+    fingerprint = str(fields.get("form_schema_fingerprint") or "")
+    schema = get_cached_schema(fingerprint)
+    if schema is not None:
+        return schema
+    client = PatientGraphClient()
+    try:
+        return load_form_schema(client, fingerprint)
+    finally:
+        client.close()
 
 
 def _enrich_with_blood_panel_entities(
     result: dict[str, Any],
     encounter_text: str,
     chunks: list[SentenceChunk],
-    organization_id: str = "",
-    service_id: str = "",
-    ers_service_id: str = "",
+    schema: Any = None,
+    seed_text: str | None = None,
 ) -> dict[str, Any]:
+    """Add blood-table rows, and seeds from the recognised form if there is one.
+
+    ``seed_text`` is ``encounter_text`` with every other document blanked,
+    so the recognised form seeds only from its own document.
+    """
     from libs.pipeline.blood_panel_table import (
         extract_blood_panel_table_entities,
         merge_blood_panel_entities,
     )
-    from libs.pipeline.document_quality import form_fingerprint
     from libs.pipeline.form_checkbox_seed import (
         merge_checkbox_seed_entities,
         seed_checkbox_entities,
     )
     from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
-    from libs.pipeline.form_schema_store import get_cached_schema, resolve_form_schema
 
     panel = extract_blood_panel_table_entities(encounter_text, chunks)
     merged = merge_blood_panel_entities(list(result.get("entities") or []), panel)
 
-    fingerprint = form_fingerprint(encounter_text)
-    schema = get_cached_schema(fingerprint)
-    if schema is None:
-        from libs.neo4j_client.client import PatientGraphClient
-
-        client = PatientGraphClient()
-        try:
-            schema = resolve_form_schema(
-                client,
-                fingerprint,
-                organization_id=organization_id,
-                service_id=service_id,
-                ers_service_id=ers_service_id,
-            )
-        finally:
-            client.close()
-
     seeded: list[dict[str, Any]] = []
     if schema is not None:
-        seeded = seed_ordered_tests_entities(encounter_text, schema)
-        boxes = seed_checkbox_entities(encounter_text, schema)
+        text = encounter_text if seed_text is None else seed_text
+        seeded = seed_ordered_tests_entities(text, schema)
+        boxes = seed_checkbox_entities(text, schema)
         merged = merge_blood_panel_entities(merged, seeded)
         merged = merge_checkbox_seed_entities(merged, boxes)
         seeded = seeded + boxes
@@ -1117,17 +1120,12 @@ _EMPTY_EXTRACTION_WARNING = (
 def _form_schema_fields_from_state(
     state: dict[str, Any],
     encounter_text: str,
-) -> dict[str, str]:
-    """Resolve the taught form and return inspector state keys."""
-    from libs.pipeline.form_schema_store import form_schema_fields_from_state
+) -> dict[str, Any]:
+    """Reuse the bundle's form recognition, or recognise the letter now."""
+    from libs.pipeline.document_chunk_loader import recognition_fields_from_state
 
-    org_id, service_id, _ers_id = _schema_scope(state)
-    return form_schema_fields_from_state(
-        state,
-        encounter_text,
-        organization_id=org_id,
-        service_id=service_id,
-    )
+    org_id, _service_id, _ers_id = _schema_scope(state)
+    return recognition_fields_from_state(state, encounter_text, org_id)
 
 
 def merge_results(state: ExtractionState) -> dict[str, Any]:
@@ -1144,7 +1142,7 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
         encounter_text,
         few_shot_max_similarity=state.get("few_shot_max_similarity"),
         known_fingerprints=known_fingerprints(),
-        known_schema=schema_fields["form_schema_match"] != "none",
+        known_schema=has_taught_form_schema(schema_fields),
     )
     return {
         "entities": entities,

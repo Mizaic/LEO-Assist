@@ -90,7 +90,7 @@ def test_collect_section_hits_emits_checked_and_unchecked_boxes() -> None:
 
 def test_chunk_state_carries_section_hits() -> None:
     from libs.pipeline.document_chunk_loader import build_document_chunk_state
-    from libs.pipeline.form_schema_store import form_schema_state_fields
+    from tests.form_recognition_stubs import recognise_all_as
 
     rows = [
         {
@@ -101,10 +101,9 @@ def test_chunk_state_carries_section_hits() -> None:
             "char_end": None,
         }
     ]
-    fields = form_schema_state_fields("exact_hash", "hits", "Hits test form")
     with patch(
-        "libs.pipeline.document_chunk_loader._resolve_chunk_schema",
-        return_value=(_schema(), fields),
+        "libs.pipeline.document_chunk_loader._recognise_chunks",
+        recognise_all_as(_schema()),
     ):
         state = build_document_chunk_state(rows)
     hits = state.get("section_hits") or []
@@ -144,6 +143,8 @@ def test_quality_check_matches_ticked_box_without_snomed(monkeypatch) -> None:
             "completeness_subdomain": "minimum_dataset",
             "entities": [],
             "episodes": [{}],
+            "form_schema_match": "recognised",
+            "form_schema_fingerprint": "hits",
             "section_hits": [
                 {
                     "section_id": "section_a_cancer_type",
@@ -322,7 +323,7 @@ def test_chunk_load_payload_keeps_section_hits() -> None:
         {
             "encounter_text": "Section A",
             "sentences": [{"sentence_id": "c1", "text": "Section A"}],
-            "form_schema_match": "org_service",
+            "form_schema_match": "recognised",
             "form_schema_fingerprint": "sfh-breast-2ww-v1",
             "form_schema_label": "Breast Unit",
             "section_hits": hits,
@@ -483,9 +484,9 @@ def test_gynae_ticked_cervix_and_b1_satisfies_completeness_groups() -> None:
         section_hits=hits,
     )
     names = {row["name"] for row in result["matched_groups"]}
-    assert "cancer_type_required" in names, (
-        f"Section A tick must satisfy cancer_type_required; matched={names}"
-    )
+    assert (
+        "cancer_type_required" in names
+    ), f"Section A tick must satisfy cancer_type_required; matched={names}"
     assert "symptom_criterion_required" in names, (
         "Section B B1 tick must satisfy symptom_criterion_required -- "
         "check that item_pattern in the fixture matches the completeness group member"

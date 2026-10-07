@@ -13,7 +13,7 @@ from typing import Any
 
 from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
 
-_ALLOWED_MATCH = frozenset({"exact_hash", "org_service"})
+_ALLOWED_MATCH = frozenset({"recognised"})
 _SKIP_TYPES = frozenset({"admin", "template_noise"})
 
 

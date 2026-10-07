@@ -54,6 +54,7 @@ class PersistReviewRequest:
     quality: DocumentQuality
     draft_entities: list[dict[str, Any]]
     source_text: str = ""
+    form_recognition: tuple[dict[str, Any], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -114,7 +115,10 @@ def persist_extraction_review_task(req: PersistReviewRequest) -> dict[str, Any]:
     task["step_id"] = req.step_id
     task["next_action_id"] = req.next_action_id
     task["draft_entities_json"] = json.dumps(draft, ensure_ascii=True)
-    task["document_quality_json"] = json.dumps(req.quality.to_dict(), ensure_ascii=True)
+    quality = req.quality.to_dict()
+    if req.form_recognition:
+        quality["form_recognition"] = list(req.form_recognition)
+    task["document_quality_json"] = json.dumps(quality, ensure_ascii=True, default=str)
     task["source_text"] = req.source_text or ""
     return task
 
@@ -281,6 +285,7 @@ def load_extraction_review_detail(
         "reason": task.get("reason") or "",
         "draft_entities": json.loads(draft_raw) if draft_raw else [],
         "document_quality": quality,
+        "form_recognition": list(quality.get("form_recognition") or []),
         "form_fingerprint": fp_hash,
         "source_text": letter,
         "nhs_number": format_nhs_number(ids.nhs_number),

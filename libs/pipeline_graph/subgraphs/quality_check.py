@@ -107,12 +107,34 @@ def _load_completeness_schema(domain: str, subdomain: str) -> list[dict[str, Any
     return _pick_assessable_schema(rows or [])
 
 
+_SETTLED_MATCHES = frozenset(
+    {"", "none", "not_applicable", "recognised", "unrecognised", "not_a_form", "failed"}
+)
+
+
 def _taught_form_layout_blocks_completeness(state: QualityCheckState) -> bool:
-    """True when a taught form was bound but the page is not that form."""
+    """True when state carries a retired match the recogniser never checked.
+
+    Recognition proves the page is the taught form, and an unrecognised
+    bundle carries no taught completeness groups. A retired value such as
+    ``org_service`` still needs the old layout proof.
+    """
     match = str(state.get("form_schema_match") or "none").strip()
-    if match in ("", "none", "not_applicable", "exact_hash"):
+    if match in _SETTLED_MATCHES:
         return False
     return state.get("form_layout_matched") is not True
+
+
+def _needs_form_hits(group: dict[str, Any]) -> bool:
+    """True when a group was built from a taught form's sections or boxes."""
+    if str(group.get("section_id") or "").strip():
+        return True
+    if str(group.get("item_pattern") or "").strip():
+        return True
+    return any(
+        isinstance(member, dict) and _needs_form_hits(member)
+        for member in group.get("members") or []
+    )
 
 
 def _resolve_completeness_schema(state: QualityCheckState) -> list[dict[str, Any]]:
@@ -129,7 +151,12 @@ def _resolve_completeness_schema(state: QualityCheckState) -> list[dict[str, Any
     subdomain = str(state.get("completeness_subdomain") or "").strip()
     if not domain or not subdomain:
         return []
-    return _load_completeness_schema(domain, subdomain)
+    schema = _load_completeness_schema(domain, subdomain)
+    if str(state.get("form_schema_match") or "").strip() == "recognised":
+        return schema
+    # A group built from a form's sections or boxes belongs to that form.
+    # Scoring it on anything else marks it incomplete for ticks it never had.
+    return [group for group in schema if not _needs_form_hits(group)]
 
 
 def _all_required_concept_ids(schema: list[dict[str, Any]]) -> set[int]:

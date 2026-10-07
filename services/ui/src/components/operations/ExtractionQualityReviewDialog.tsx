@@ -17,6 +17,7 @@ import Typography from "@mui/material/Typography";
 import SchoolIcon from "@mui/icons-material/School";
 
 import ExtractionReviewHeader from "./ExtractionReviewHeader";
+import FormRecognitionNotice from "./FormRecognitionNotice";
 import FormSchemaAnnotator from "./FormSchemaAnnotator";
 import type { FormSchemaSection } from "./formSchemaDetector";
 import {
@@ -52,6 +53,7 @@ interface ReviewData {
   organization_name: string;
   service_id: string;
   service_name: string;
+  formRecognition: unknown;
 }
 
 interface Props {
@@ -110,6 +112,7 @@ export default function ExtractionQualityReviewDialog({
           organization_name: String(raw.organization_name ?? ""),
           service_id: String(raw.service_id ?? ""),
           service_name: String(raw.service_name ?? ""),
+          formRecognition: raw.form_recognition ?? [],
         };
         setData(loaded);
         setEntities(loaded.entities);
@@ -256,6 +259,10 @@ export default function ExtractionQualityReviewDialog({
           ubrn={data?.ubrn ?? ""}
           onClose={onClose}
           onRemoveTask={() => setCancelOpen(true)}
+        />
+        <FormRecognitionNotice
+          rows={data?.formRecognition}
+          onTeach={() => setRightTab("teach")}
         />
         <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
           <ReviewLetterPane

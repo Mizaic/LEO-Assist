@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
@@ -31,6 +32,13 @@ from app.routers.form_schema import (
     save_schema,
 )
 from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
+
+
+@pytest.fixture(autouse=True)
+def _pass_teach_check():
+    """The clash check has its own suite: test_form_schema_router_teach_guard."""
+    with patch("app.routers.form_schema.check_new_form", return_value=None):
+        yield
 
 
 def _dep_callables(fn):
@@ -557,26 +565,34 @@ def test_list_schemas_source_has_no_hardcoded_trust_ids():
     assert "sfh-nhs-trust" not in src
 
 
-@patch("app.routers.form_schema.resolve_form_schema_traced")
+@patch("app.routers.form_schema.load_form_schema")
 @patch("app.routers.form_schema.PatientGraphClient")
-def test_get_schema_resolves_by_live_org_and_service_ids(mock_pg, mock_resolve):
-    """GET uses Organization.id and Service.id after a letter-hash miss."""
+def test_get_schema_loads_only_by_its_own_key(mock_pg, mock_load):
+    """GET is an exact load by key; org and service never bind a form."""
     seeded = _saved_schema()
-    seeded.organization_id = "RK5"
-    seeded.service_id = "7980224"
     seeded.fingerprint = "sfh-gynae-2ww-v1"
-    mock_resolve.return_value = (seeded, "org_service", "sfh-gynae-2ww-v1", "Gynae 2WW")
+    mock_load.return_value = seeded
 
+    resp = _client(_session("validation")).get(
+        "/form-schemas/sfh-gynae-2ww-v1",
+        params={"organization_id": "RK5", "service_id": "7980224"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["match"] == "fingerprint"
+    assert body["schema"]["fingerprint"] == "sfh-gynae-2ww-v1"
+    assert mock_load.call_args.args[1] == "sfh-gynae-2ww-v1"
+    assert mock_load.call_args.kwargs == {}
+
+
+@patch("app.routers.form_schema.load_form_schema", return_value=None)
+@patch("app.routers.form_schema.PatientGraphClient")
+def test_get_schema_misses_an_untaught_key_even_with_org_and_service(
+    mock_pg, mock_load
+):
     resp = _client(_session("validation")).get(
         "/form-schemas/abc123def4567890",
         params={"organization_id": "RK5", "service_id": "7980224"},
     )
     assert resp.status_code == 200
-    body = resp.json()
-    assert body["match"] == "org_service"
-    assert body["schema"]["fingerprint"] == "sfh-gynae-2ww-v1"
-    assert body["schema"]["organization_id"] == "RK5"
-    assert body["schema"]["service_id"] == "7980224"
-    kwargs = mock_resolve.call_args.kwargs
-    assert kwargs["organization_id"] == "RK5"
-    assert kwargs["service_id"] == "7980224"
+    assert resp.json() == {"schema": None, "match": "none"}

@@ -1,0 +1,88 @@
+{
+  "_note": "Labelled set for the per-document form recogniser (DI-E21DF9EF, VT-B13F7C48). Every document is a blank template, a synthetic letter, or de-identified production chunk text. Source kinds: 'fixture' = JSON with a 'text' field built by scripts/build_form_recognition_fixtures.py through the HCCP-Agents conversion path; 'markdown' = a plain .md file; 'bundle_document' = document N (0-based) of a stored chunk bundle split on '--- Document:' markers.",
+  "schemas": [
+    {"fingerprint": "sfh-gynae-2ww-v1", "path": "tests/fixtures/form_schema/sfh_gynae_2ww_template.json"},
+    {"fingerprint": "sfh-breast-2ww-v1", "path": "tests/fixtures/form_schema/sfh_breast_2ww_template.json"},
+    {"fingerprint": "nhs-ers-clinical-information-v1", "path": "tests/fixtures/form_schema/nhs_ers_clinical_information.json"},
+    {"fingerprint": "devon-uscp-gynae-v8", "path": "tests/fixtures/form_recognition/schemas/devon_uscp_gynae_v8.json"},
+    {"fingerprint": "devon-breast-s1-v3-5", "path": "tests/fixtures/form_recognition/schemas/devon_breast_s1_v3_5.json"}
+  ],
+  "gaps": [
+    "No production-path markdown of the Sherwood breast 2WW form is held locally, so sfh-breast-2ww-v1 has no positive yet. It still competes as a candidate in every case.",
+    "No PDF or image (JPEG) conversion of a taught specialty form is held locally. The e-RS positives are pdfplumber output from production chunks; flattened-PDF style is simulated in the corpus test by stripping table pipes."
+  ],
+  "documents": [
+    {"id": "devon-gynae-docx", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/uscp_gynae_v8.docx.json"}, "expect": "recognised", "schema": "devon-uscp-gynae-v8"},
+    {"id": "devon-gynae-doc", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/uscp_gynae_v8.doc.json"}, "expect": "recognised", "schema": "devon-uscp-gynae-v8"},
+    {"id": "devon-gynae-rtf", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/uscp_gynae_v8.rtf.json"}, "expect": "recognised", "schema": "devon-uscp-gynae-v8"},
+    {"id": "devon-gynae-other-converter", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/template_markdown/uscp_gynaecology_referral_form_v8.md"}, "expect": "recognised", "schema": "devon-uscp-gynae-v8"},
+    {"id": "devon-breast-docx", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/breast_s1_v3_5.docx.json"}, "expect": "recognised", "schema": "devon-breast-s1-v3-5"},
+    {"id": "devon-breast-doc", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/breast_s1_v3_5.doc.json"}, "expect": "recognised", "schema": "devon-breast-s1-v3-5"},
+    {"id": "devon-breast-rtf", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/breast_s1_v3_5.rtf.json"}, "expect": "recognised", "schema": "devon-breast-s1-v3-5"},
+    {"id": "devon-breast-other-converter", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/template_markdown/breast_cancer_referral_forms1_v3_5.md"}, "expect": "recognised", "schema": "devon-breast-s1-v3-5"},
+    {"id": "sfh-gynae-production-deid", "source": {"kind": "bundle_document", "path": "tests/fixtures/form_schema/sherwood_gynae_2ww_chunks_deid.json", "document": 0}, "expect": "recognised", "schema": "sfh-gynae-2ww-v1"},
+    {"id": "sfh-gynae-synthetic", "source": {"kind": "bundle_document", "path": "tests/fixtures/form_schema/gynae_2ww_markdown_chunks.json", "document": 0}, "expect": "recognised", "schema": "sfh-gynae-2ww-v1"},
+    {"id": "ers-production-deid", "source": {"kind": "bundle_document", "path": "tests/fixtures/form_schema/sherwood_gynae_2ww_chunks_deid.json", "document": 1}, "expect": "recognised", "schema": "nhs-ers-clinical-information-v1"},
+    {"id": "ers-synthetic", "source": {"kind": "bundle_document", "path": "tests/fixtures/form_schema/gynae_2ww_markdown_chunks.json", "document": 1}, "expect": "recognised", "schema": "nhs-ers-clinical-information-v1"},
+
+    {"id": "sfh-gynae-new-version", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/sfh_gynae_new_version.doc.json"}, "expect": "unrecognised"},
+    {"id": "eoe-gynae-lookalike", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/eoe_gynae_feb25.docx.json"}, "expect": "unrecognised"},
+    {"id": "lower-gi-v6-docx", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/lower_gi_v6.docx.json"}, "expect": "unrecognised"},
+    {"id": "lower-gi-v6-rtf", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/lower_gi_v6.rtf.json"}, "expect": "unrecognised"},
+    {"id": "eoe-lower-gi", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/eoe_lower_gi_v6_1.docx.json"}, "expect": "unrecognised"},
+    {"id": "upper-gi", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/upper_gi_s1s.docx.json"}, "expect": "unrecognised"},
+    {"id": "haematology", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/haem_s1s.docx.json"}, "expect": "unrecognised"},
+    {"id": "lung", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/lung_s1_v3.docx.json"}, "expect": "unrecognised"},
+    {"id": "nss-systmone", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/nss_systmone.docx.json"}, "expect": "unrecognised"},
+    {"id": "head-neck", "source": {"kind": "fixture", "path": "tests/fixtures/form_recognition/markdown/head_neck_v6.docx.json"}, "expect": "unrecognised"},
+    {"id": "synthetic-lower-gi-form", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/lower_gi_form_001.md"}, "expect": "unrecognised"},
+    {"id": "letter-brain", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/brain_cns_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-breast", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/breast_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-gynae", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/gynaecology_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-haematology", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/haematology_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-head-neck", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/head_neck_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-lower-gi", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/lower_gi_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-lung", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/lung_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-nss", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/nss_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-prostate", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/prostate_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-sarcoma", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/sarcoma_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-skin", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/skin_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-upper-gi", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/upper_gi_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-urology", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/urology_letter_001.md"}, "expect": "not_a_form"},
+    {"id": "email-brain", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/brain_cns_email_001.md"}, "expect": "not_a_form"},
+    {"id": "email-lower-gi", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/lower_gi_email_001.md"}, "expect": "not_a_form"},
+    {"id": "email-nss", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/nss_email_001.md"}, "expect": "not_a_form"},
+    {"id": "email-prostate", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/prostate_email_001.md"}, "expect": "not_a_form"},
+    {"id": "letter-in-tables", "_note": "A routine clinical letter laid out with markdown tables and headings. It has a salutation and sign-off, so it is a letter, not a form.", "source": {"kind": "markdown", "path": "tests/fixtures/clinical_extraction_scenarios/markdown/negative_control_form_001.md"}, "expect": "not_a_form"}
+  ],
+  "bundles": [
+    {
+      "id": "ubrn-shaped-untaught-lower-gi-plus-ers",
+      "_note": "Shape of production run 000482149083:8baa50f99bc2: an untaught specialty Word form plus the national e-RS PDF.",
+      "documents": [
+        {"title": "Lower GI Urgent Suspected Cancer Referral.docx", "ref": "lower-gi-v6-docx"},
+        {"title": "Clinical Information.pdf", "ref": "ers-synthetic"}
+      ],
+      "expect": ["unrecognised", "recognised"],
+      "expect_pause": true
+    },
+    {
+      "id": "letter-plus-ers",
+      "documents": [
+        {"title": "Referral letter.docx", "ref": "letter-gynae"},
+        {"title": "Clinical Information.pdf", "ref": "ers-synthetic"}
+      ],
+      "expect": ["not_a_form", "recognised"],
+      "expect_pause": false
+    },
+    {
+      "id": "taught-gynae-plus-ers",
+      "documents": [
+        {"title": "Two Week Wait Referral to Gynaecology .doc", "ref": "sfh-gynae-synthetic"},
+        {"title": "Clinical Information.pdf", "ref": "ers-synthetic"}
+      ],
+      "expect": ["recognised", "recognised"],
+      "expect_pause": false
+    }
+  ]
+}
