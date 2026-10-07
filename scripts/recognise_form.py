@@ -8,6 +8,8 @@ Usage:
     python scripts/recognise_form.py --chunks chunks.json --json
     python scripts/recognise_form.py --file f.md --templates tests/fixtures/form_schema
     python scripts/recognise_form.py --file f.md --from-graph --organization-id RK5
+    python scripts/recognise_form.py --referral-id 000481914514
+    python scripts/recognise_form.py --referral-id <UBRN> --from-bundle <dir>
 
 ``--chunks`` takes a JSON list of chunk strings, or ``{"chunks": [...]}``
 where each chunk is a string or ``{"text": ...}``. ``--from-graph`` reads
@@ -42,7 +44,8 @@ from libs.form_recognition.recogniser import (  # noqa: E402
 )
 from libs.form_recognition.schema_files import load_schema_dir  # noqa: E402
 from libs.keyvault.loader import load_keyvault_secrets  # noqa: E402
-from libs.pipeline.form_schema_candidates import load_candidate_schemas  # noqa: E402
+from libs.pipeline import form_schema_candidates  # noqa: E402
+from scripts import recognise_referral  # noqa: E402
 from libs.pipeline.form_schema_normalizer import FormSchema  # noqa: E402
 from libs.pipeline.form_schema_store import FormSchemaLookupError  # noqa: E402
 
@@ -96,9 +99,24 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--file", type=Path, help="A markdown form or bundle")
     source.add_argument("--chunks", type=Path, help="A JSON list of stored chunks")
+    source.add_argument(
+        "--referral-id", help="One UBRN. Read-only. Nothing is written to Neo4j."
+    )
     parser.add_argument("--templates", type=Path, default=DEFAULT_TEMPLATES)
     parser.add_argument("--from-graph", action="store_true")
     parser.add_argument("--organization-id", default="")
+    parser.add_argument("--output-dir", type=Path, default=Path("output/chunks"))
+    parser.add_argument("--converter-url", default="http://localhost:8012")
+    parser.add_argument(
+        "--agents-repo",
+        type=Path,
+        default=ROOT.parent / "HCCP-Agents",
+    )
+    parser.add_argument(
+        "--from-bundle",
+        type=Path,
+        help="Score a saved bundle again. Does not download or convert.",
+    )
     parser.add_argument("--json", action="store_true", help="Print JSON")
     return parser.parse_args(argv)
 
@@ -124,7 +142,9 @@ def load_schemas(args: argparse.Namespace) -> list[FormSchema]:
     print(f"NEO4J_URI: {_graph_uri()}", flush=True)
     graph = open_read_only_graph()
     try:
-        return load_candidate_schemas(graph, args.organization_id)
+        return form_schema_candidates.load_candidate_schemas(
+            graph, args.organization_id
+        )
     finally:
         graph.close()
 
@@ -191,8 +211,85 @@ def _report(args: argparse.Namespace, results: list[Any]) -> dict[str, Any]:
     }
 
 
+def _pdf_reader(args: argparse.Namespace) -> Any:
+    try:
+        return recognise_referral.load_pdf_reader(args.agents_repo)
+    except ModuleNotFoundError as exc:
+        print(
+            f"PDFs will not be scored: {exc}. Run "
+            "'.venv\\Scripts\\pip install pdfplumber==0.11.9' to read them.",
+            file=sys.stderr,
+        )
+        return None
+
+
+def _converters(args: argparse.Namespace) -> dict[str, Any]:
+    """Match production: Word and RTF go to the converter, PDFs to pdfplumber."""
+    parser = recognise_referral.load_markdown_parser(args.agents_repo)
+
+    def to_html(content: bytes, filename: str, content_type: str) -> str:
+        return recognise_referral.post_convert_html(
+            content,
+            filename=filename,
+            content_type=content_type,
+            converter_url=args.converter_url,
+        )
+
+    def to_markdown(html: str) -> str:
+        return parser.convert_html_to_markdown(html_content=html)
+
+    return {
+        "to_html": to_html,
+        "to_markdown": to_markdown,
+        "pdf_to_markdown": _pdf_reader(args),
+    }
+
+
+def _main_referral(args: argparse.Namespace) -> int:
+    """Score one UBRN from its blob. Reads Neo4j. Writes only a disk bundle."""
+    load_keyvault_secrets()
+    recognise_referral.load_storage_keys()
+    graph = open_read_only_graph()
+    try:
+        context = recognise_referral.load_referral_context(graph, args.referral_id)
+        schemas: list[Any] = []
+        if context is not None:
+            schemas = form_schema_candidates.load_candidate_schemas(
+                graph, context.organization_id
+            )
+    except FormSchemaLookupError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    finally:
+        graph.close()
+    if context is None:
+        return recognise_referral.run_referral(
+            args.referral_id,
+            graph_uri=_graph_uri(),
+            context=None,
+            schemas=[],
+            output_dir=args.output_dir,
+            fetch=recognise_referral.download_blob,
+            to_html=lambda content, filename, content_type: "",
+            to_markdown=lambda html: "",
+            bundle_dir=args.from_bundle,
+        )
+    return recognise_referral.run_referral(
+        args.referral_id,
+        graph_uri=_graph_uri(),
+        context=context,
+        schemas=schemas,
+        output_dir=args.output_dir,
+        fetch=recognise_referral.download_blob,
+        bundle_dir=args.from_bundle,
+        **_converters(args),
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    if args.referral_id:
+        return _main_referral(args)
     try:
         schemas = load_schemas(args)
     except FormSchemaLookupError as exc:
