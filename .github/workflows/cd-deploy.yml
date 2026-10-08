@@ -74,6 +74,7 @@ jobs:
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
           EVENT_NAME: ${{ github.event_name }}
           GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -84,24 +85,33 @@ jobs:
           BUILD_ALL="false"
 
           if [ "$EVENT_NAME" = "workflow_run" ]; then
-            TAG="sha-${WORKFLOW_RUN_HEAD_SHA}"
+            TAG=""
             mkdir -p /tmp/ci-manifest
             if gh run download "$WORKFLOW_RUN_ID" \
               --name built-services \
               --dir /tmp/ci-manifest; then
               SERVICES="$(jq -r '.services // [] | join(",")' /tmp/ci-manifest/built-services.json)"
               BUILD_ALL="$(jq -r 'if .build_all then "true" else "false" end' /tmp/ci-manifest/built-services.json)"
+              TAG="$(jq -r '.image_tag // empty' /tmp/ci-manifest/built-services.json)"
             else
               echo "No built-services artifact; deploying no image retags."
               SERVICES=""
             fi
+            if [ -n "$SERVICES" ] && [ -z "$TAG" ]; then
+              echo "Rebuilt services listed but image_tag is missing" >&2
+              exit 1
+            fi
             if [ "$BUILD_ALL" = "true" ]; then
+              if [ -z "$TAG" ]; then
+                echo "Full build has no image_tag" >&2
+                exit 1
+              fi
               BICEP_TAG="$TAG"
               SERVICES="$(echo "$ALL_SERVICES" | tr ' ' ',')"
             fi
           else
             if [ -z "$TAG" ]; then
-              TAG="sha-${GITHUB_SHA}"
+              TAG="$(python3 scripts/ci/image_tag.py)"
             fi
             if [ -n "$INPUT_SERVICES" ]; then
               SERVICES="$(echo "$INPUT_SERVICES" | tr ',' ' ' | xargs | tr ' ' ',')"
@@ -111,7 +121,7 @@ jobs:
             BICEP_TAG="$TAG"
           fi
 
-          if ! [[ "$TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
+          if [ -n "$TAG" ] && ! [[ "$TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
             echo "image_tag $TAG contains disallowed characters" >&2
             exit 1
           fi

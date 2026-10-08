@@ -6,6 +6,8 @@ name: CI - Build and Push Images
 #   Look up via: get_design_control(dc_type="design-output", dc_id="DO-6036D724")
 #
 # Selective builds:
+#   Every push builds changed images. The tag is sha-<commit>-<branch>.
+#   :latest is pushed only from main.
 #   detect-changes maps git paths -> affected images. Shared blast-radius
 #   paths (libs/, root requirements, this workflow) rebuild everything.
 #   Weekly schedule + workflow_dispatch force_all rebuild the full matrix.
@@ -18,7 +20,8 @@ name: CI - Build and Push Images
 
 on:
   push:
-    branches: [main]
+    branches:
+      - "**"
   schedule:
     # Weekly full rebuild (Sunday 03:17 UTC) to warm caches and catch
     # shared-path misses.
@@ -370,28 +373,38 @@ jobs:
           echo "$MIZAIC_ACR_PASSWORD" | docker login "$MIZAIC_ACR_NAME" \
             --username "$MIZAIC_ACR_USERNAME" --password-stdin
 
+      - name: Resolve image tag
+        id: image-tag
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: python3 scripts/ci/image_tag.py
+
       - name: Build and push
         env:
           SERVICE: ${{ matrix.service }}
           DOCKERFILE: ${{ matrix.dockerfile }}
-          GITHUB_SHA: ${{ github.sha }}
+          TAG: ${{ steps.image-tag.outputs.tag }}
+          PUSH_LATEST: ${{ steps.image-tag.outputs.push_latest }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           IMAGE="${ACR_LOGIN_SERVER}/${SERVICE}"
           MIZAIC_IMAGE="${MIZAIC_ACR_NAME}/${SERVICE}"
-          TAG="sha-${GITHUB_SHA}"
           HF_BUILD_ARG=""
           if [ -n "$HF_TOKEN" ]; then
             HF_BUILD_ARG="--build-arg HF_TOKEN=${HF_TOKEN}"
+          fi
+          latest_args=()
+          if [ "$PUSH_LATEST" = "true" ]; then
+            latest_args+=(--tag "${IMAGE}:latest" --tag "${MIZAIC_IMAGE}:latest")
           fi
           build_ok=0
           for attempt in 1 2 3; do
             if docker build \
               --file "$DOCKERFILE" \
               --tag "${IMAGE}:${TAG}" \
-              --tag "${IMAGE}:latest" \
               --tag "${MIZAIC_IMAGE}:${TAG}" \
-              --tag "${MIZAIC_IMAGE}:latest" \
+              "${latest_args[@]}" \
               --cache-from "${IMAGE}:latest" \
               ${HF_BUILD_ARG} \
               .; then
@@ -406,16 +419,18 @@ jobs:
             exit 1
           fi
           docker push "${IMAGE}:${TAG}"
-          docker push "${IMAGE}:latest"
           docker push "${MIZAIC_IMAGE}:${TAG}"
-          docker push "${MIZAIC_IMAGE}:latest"
+          if [ "$PUSH_LATEST" = "true" ]; then
+            docker push "${IMAGE}:latest"
+            docker push "${MIZAIC_IMAGE}:latest"
+          fi
 
       - name: Output image digest
         env:
           SERVICE: ${{ matrix.service }}
-          GITHUB_SHA: ${{ github.sha }}
+          TAG: ${{ steps.image-tag.outputs.tag }}
         run: |
-          docker inspect --format='{{index .RepoDigests 0}}' "${ACR_LOGIN_SERVER}/${SERVICE}:sha-${GITHUB_SHA}"
+          docker inspect --format='{{index .RepoDigests 0}}' "${ACR_LOGIN_SERVER}/${SERVICE}:${TAG}"
 
   build-push-ui:
     name: Build ui
@@ -461,31 +476,43 @@ jobs:
           echo "$MIZAIC_ACR_PASSWORD" | docker login "$MIZAIC_ACR_NAME" \
             --username "$MIZAIC_ACR_USERNAME" --password-stdin
 
-      - name: Build and push
+      - name: Resolve image tag
+        id: image-tag
         env:
           GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: python3 scripts/ci/image_tag.py
+
+      - name: Build and push
+        env:
+          TAG: ${{ steps.image-tag.outputs.tag }}
+          PUSH_LATEST: ${{ steps.image-tag.outputs.push_latest }}
         run: |
           IMAGE="${ACR_LOGIN_SERVER}/ui"
           MIZAIC_IMAGE="${MIZAIC_ACR_NAME}/ui"
-          TAG="sha-${GITHUB_SHA}"
+          latest_args=()
+          if [ "$PUSH_LATEST" = "true" ]; then
+            latest_args+=(--tag "${IMAGE}:latest" --tag "${MIZAIC_IMAGE}:latest")
+          fi
           docker build \
             --file infra/dockerfiles/Dockerfile.ui \
             --tag "${IMAGE}:${TAG}" \
-            --tag "${IMAGE}:latest" \
             --tag "${MIZAIC_IMAGE}:${TAG}" \
-            --tag "${MIZAIC_IMAGE}:latest" \
+            "${latest_args[@]}" \
             --cache-from "${IMAGE}:latest" \
             .
           docker push "${IMAGE}:${TAG}"
-          docker push "${IMAGE}:latest"
           docker push "${MIZAIC_IMAGE}:${TAG}"
-          docker push "${MIZAIC_IMAGE}:latest"
+          if [ "$PUSH_LATEST" = "true" ]; then
+            docker push "${IMAGE}:latest"
+            docker push "${MIZAIC_IMAGE}:latest"
+          fi
 
       - name: Output image digest
         env:
-          GITHUB_SHA: ${{ github.sha }}
+          TAG: ${{ steps.image-tag.outputs.tag }}
         run: |
-          docker inspect --format='{{index .RepoDigests 0}}' "${ACR_LOGIN_SERVER}/ui:sha-${GITHUB_SHA}"
+          docker inspect --format='{{index .RepoDigests 0}}' "${ACR_LOGIN_SERVER}/ui:${TAG}"
 
   publish-build-manifest:
     name: Publish build manifest
@@ -503,6 +530,7 @@ jobs:
           BUILD_UI: ${{ needs.detect-changes.outputs.build_ui }}
           HAS_BACKEND: ${{ needs.detect-changes.outputs.has_backend }}
           GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
           BACKEND_RESULT: ${{ needs.build-push.result }}
           UI_RESULT: ${{ needs.build-push-ui.result }}
         run: |

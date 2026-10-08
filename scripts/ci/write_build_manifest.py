@@ -11,7 +11,20 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
+
+_CI_DIR = str(Path(__file__).resolve().parent)
+if _CI_DIR not in sys.path:
+    sys.path.insert(0, _CI_DIR)
+from image_tag import build_image_tag  # noqa: E402
+
+
+def _image_tag(sha: str) -> str:
+    explicit = os.environ.get("IMAGE_TAG", "").strip()
+    if explicit:
+        return explicit
+    return build_image_tag(sha, os.environ.get("GITHUB_REF_NAME", ""))
 
 
 def main() -> int:
@@ -19,7 +32,7 @@ def main() -> int:
     sha = os.environ["GITHUB_SHA"]
     manifest = {
         "sha": sha,
-        "image_tag": f"sha-{sha}",
+        "image_tag": _image_tag(sha),
         "build_all": os.environ.get("BUILD_ALL") == "true",
         "services": services,
     }
