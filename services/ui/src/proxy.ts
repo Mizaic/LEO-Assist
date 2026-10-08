@@ -168,6 +168,10 @@ const PREFIX_RULES: PrefixRule[] = [
     prefix: "/api/completeness-domains/",
     rewrite: (r) => `${coreApi()}/completeness-domains/${r}`,
   },
+  {
+    prefix: "/api/completeness-domains",
+    rewrite: () => `${coreApi()}/completeness-domains`,
+  },
 ];
 
 function proxyRewrite(request: NextRequest, dest: string): NextResponse {

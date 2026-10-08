@@ -120,3 +120,16 @@ describe("admin router source", () => {
     expect(src).toMatch(/ensure_service_completeness_domain/);
   });
 });
+
+describe("completeness domains proxy", () => {
+  const PROXY = "services/ui/src/proxy.ts";
+
+  test("TC-018: proxy rewrites exact GET /api/completeness-domains to core API", () => {
+    const src = read(PROXY);
+    const slashAt = src.indexOf('prefix: "/api/completeness-domains/"');
+    const exactAt = src.indexOf('prefix: "/api/completeness-domains"');
+    expect(slashAt).toBeGreaterThanOrEqual(0);
+    expect(exactAt).toBeGreaterThan(slashAt);
+    expect(src).toMatch(/\$\{coreApi\(\)\}\/completeness-domains`/);
+  });
+});
