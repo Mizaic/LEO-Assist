@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Local Teach-this-form probe. No Neo4j write.
 
+It fills skipped sections with their tick boxes and runs the save check,
+as the product save does, so a green probe will not be refused on save.
+
 Usage:
     .venv/bin/python .cursor/skills/teach-paused-form/scripts/probe_form_schema.py \\
         --letter tmp/teach-form/UBRN-letter.txt \\
@@ -20,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[4]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from libs.form_recognition.labelled_set import LabelledSetUnavailable
 from libs.ner.form_checkbox_normalizer import NON_EXTRACTABLE_MARKER
 from libs.pipeline.form_checkbox_seed import seed_checkbox_entities
 from libs.pipeline.form_schema_normalizer import (
@@ -28,6 +32,8 @@ from libs.pipeline.form_schema_normalizer import (
     apply_schema_to_text,
 )
 from libs.pipeline.form_schema_request import build_sections_from_request
+from libs.pipeline.form_skip_boxes import fill_skip_section_boxes
+from libs.pipeline.form_teach_guard import CHECK_UNAVAILABLE, teach_problems
 
 _TICKED_LINE = re.compile(r"\[(?:X|x|\*|YES|yes)\]|\((?:X|x)\)")
 _GUIDANCE = re.compile(
@@ -114,35 +120,53 @@ def clinical_sections(schema: FormSchema) -> int:
     return sum(1 for section in schema.sections if section.section_type not in skip)
 
 
+def save_check_problems(schema: FormSchema, letter: str) -> list[str]:
+    """Run the product save check, without the graph clash part.
+
+    The clash with other active forms for the organisation needs the
+    graph, so only the product save (PUT) checks it.
+    """
+    try:
+        return teach_problems(schema, letter, [])
+    except LabelledSetUnavailable:
+        return [CHECK_UNAVAILABLE]
+
+
+def _seeded_rows(seeded: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "pattern": row.get("text"),
+            "entity_text": row.get("entity_text"),
+            "assertion": row.get("assertion"),
+        }
+        for row in seeded
+    ]
+
+
 def probe(letter: str, payload: dict[str, Any]) -> dict[str, Any]:
-    schema = schema_from_payload(payload)
-    normalised = apply_schema_to_text(letter, schema)
+    body = _load_schema_payload(payload)
+    filled = fill_skip_section_boxes(list(body.get("sections") or []), letter)
+    schema = schema_from_payload({**body, "sections": filled})
+    leaks = leaked_guidance(apply_schema_to_text(letter, schema))
     seeded = seed_checkbox_entities(letter, schema)
-    labels = {str(row.get("text") or "") for row in seeded}
-    misses = unmatched_ticks(letter, labels)
-    leaks = leaked_guidance(normalised)
-    vacant = vacant_completeness(schema.completeness_groups)
+    misses = unmatched_ticks(letter, {str(row.get("text") or "") for row in seeded})
     clinical = clinical_sections(schema)
+    problems = save_check_problems(schema, letter)
     green = bool(seeded) and not misses and not leaks and clinical > 0
     if not seeded and not _TICKED_LINE.search(letter):
         green = not leaks and clinical > 0
     return {
-        "green": green,
+        "green": green and not problems,
         "form_name": schema.form_name,
         "fingerprint": schema.fingerprint,
         "section_count": len(schema.sections),
         "clinical_sections": clinical,
-        "seeded": [
-            {
-                "pattern": row.get("text"),
-                "entity_text": row.get("entity_text"),
-                "assertion": row.get("assertion"),
-            }
-            for row in seeded
-        ],
+        "seeded": _seeded_rows(seeded),
         "unmatched_ticks": misses,
         "guidance_leaks": leaks,
-        "vacant_completeness": vacant,
+        "vacant_completeness": vacant_completeness(schema.completeness_groups),
+        "teach_problems": problems,
+        "filled_sections": filled,
     }
 
 

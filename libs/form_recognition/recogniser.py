@@ -119,7 +119,8 @@ def _rank(score: Score) -> tuple[float, float]:
     return (score.recall, score.precision)
 
 
-def _explains_layout(best: Score) -> bool:
+def explains_layout(best: Score) -> bool:
+    """True when the form explains enough of the letter's headings and boxes."""
     if len(best.unexplained) <= MAX_UNEXPLAINED:
         return True
     return best.precision >= PRECISION_MIN
@@ -128,7 +129,7 @@ def _explains_layout(best: Score) -> bool:
 def _passes(best: Score, runner_up: Score | None) -> bool:
     if best.recall < RECALL_MIN or best.option_coverage < OPTION_COVERAGE_MIN:
         return False
-    if best.order < ORDER_MIN or not _explains_layout(best):
+    if best.order < ORDER_MIN or not explains_layout(best):
         return False
     return runner_up is None or best.recall - runner_up.recall >= MARGIN_MIN
 

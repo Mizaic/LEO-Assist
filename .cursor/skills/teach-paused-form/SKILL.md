@@ -20,8 +20,10 @@ Read [watch-outs.md](watch-outs.md) before you edit sections.
 - Print `NEO4J_URI` before any graph read or write. If MCP fails, stop.
 - Patient reads: `user-neo4j-mcp` first. Named tools before raw Cypher.
   `user-user-leo-neo4j` / `user-leo-neo4j` may be the wrong graph.
-- Writes go through `save_form_schema` or `PUT /api/form-schemas/{fingerprint}`.
-  Never `scripts/seed_* --write-graph`. Never hand-written `MERGE (:FormSchema)`.
+- Writes go through `PUT /api/form-schemas/{fingerprint}` only. It runs the
+  skip-box fill and the save check. Never call `save_form_schema` directly:
+  it skips both. Never `scripts/seed_* --write-graph`. Never hand-written
+  `MERGE (:FormSchema)`.
 - Ask before you write a schema to the graph that `NEO4J_URI` names.
 - Never `--reset`. Never Azure Service Bus unless the user asked to
   unlock or re-run that paused task.
@@ -99,6 +101,13 @@ The probe is green only when:
 - unticked boxes do not seed
 - guidance / cover-sheet lines are sealed (`[NON_EXTRACTABLE]`)
 - no skip-only schema (at least one clinical section with items or free text)
+- `teach_problems` is empty (the same save check as PUT, without the
+  clash against other forms for the organisation, which needs the graph)
+
+The probe fills `admin` and `template_noise` sections with their printed
+tick boxes first, as the save does. `filled_sections` shows the result.
+If `teach_problems` names lines that are not in the form, add a section
+that covers them (often `admin`).
 
 If red, patch the schema JSON:
 
@@ -127,9 +136,12 @@ Then persist with the same payload the UI sends:
 
 - `form_name`, `sections`, `organization_id`, `service_id`,
   `organization_name`, `service_name`, `completeness_groups`
-- `PUT /api/form-schemas/{fingerprint}` if core-api is up, **or**
-- `.venv/bin/python` calling `libs.pipeline.form_schema_store.save_form_schema`
-  (the function the API uses)
+- plus `source_text`: the letter you taught from (the save check needs it)
+- `PUT /api/form-schemas/{fingerprint}`. If core-api is not up, start it
+  or stop and report. There is no direct-write fallback.
+
+A 422 that says "does not match the letter" means the save check refused
+it. Nothing was saved. Fix the schema and re-run the probe.
 
 Fingerprint must not be `unknown`.
 At least one section needs a start pattern (label fills it if blank).

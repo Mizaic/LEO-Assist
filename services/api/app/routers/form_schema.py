@@ -11,6 +11,7 @@ POST /form-schemas/seed-defaults   -- seed built-in templates (skips existing)
 
 Atlas trace:
   DI: DI-5C9CA57B  (form checkbox normalisation)
+  DI: DI-455C4EF1  (skip sections carry their tick boxes)
 """
 
 from __future__ import annotations
@@ -22,7 +23,6 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, field_validator
 
 from fastapi import Query
 
@@ -41,6 +41,12 @@ from seed_sfh_gynae_2ww_template import (  # noqa: E402
 
 from app.deps import require_role
 from app.org_catalog_auth import FORM_TEACHER_ROLES
+from app.routers._form_schema_models import (
+    DetectFormRequest,
+    FingerprintRequest,
+    GenerateTemplateRequest,
+    SaveFormSchemaRequest,
+)
 from libs.cypher.chunk_queries import GET_CHUNKS_BY_UBRN
 from libs.llm_client.form_schema_detector import detect_form_sections
 from libs.neo4j_client.client import PatientGraphClient
@@ -57,7 +63,6 @@ from libs.pipeline.form_schema_request import (
     schema_to_dict,
 )
 from libs.pipeline.form_schema_normalizer import FormSchema
-from libs.pipeline.form_schema_section_types import validate_section_type
 from libs.pipeline.form_schema_store import (
     FormSchemaLookupError,
     FormSchemaWrite,
@@ -70,6 +75,7 @@ from libs.pipeline.form_schema_template import (
     build_chunk_section_map,
     generate_normalised_template,
 )
+from libs.pipeline.form_skip_boxes import fill_skip_section_boxes
 from libs.pipeline.form_teach_guard import (
     CHECK_UNAVAILABLE,
     TeachCheckRequest,
@@ -99,64 +105,6 @@ _LOOKUP_UNAVAILABLE = (
 
 require_form_teacher = require_role(*FORM_TEACHER_ROLES)
 
-
-class AnalyteEntryRequest(BaseModel):
-    label: str = ""
-    snomed_code: str = ""
-    display: str = ""
-
-
-class FormSchemaItemRequest(BaseModel):
-    pattern: str = ""
-    entity_text: str = ""
-    semantic_tag: str = "finding"
-    assertion: str = "present"
-    procedure_snomed: str = ""
-    procedure_display: str = ""
-    analytes: list[AnalyteEntryRequest] = Field(default_factory=list)
-    value_placeholder: str = ""
-
-
-class FormSectionRequest(BaseModel):
-    section_id: str = Field(..., min_length=1)
-    section_type: str = Field(..., min_length=1)
-    label: str = ""
-    start_pattern: str = ""
-    items: list[FormSchemaItemRequest] = Field(default_factory=list)
-    semantic_tags: list[str] = Field(default_factory=list)
-
-    @field_validator("section_type")
-    @classmethod
-    def _known_section_type(cls, value: str) -> str:
-        """Reject a section type the checkbox normaliser cannot dispatch on."""
-        return validate_section_type(value)
-
-
-class CompletenessGroupRequest(BaseModel):
-    name: str = Field(..., min_length=1)
-    kind: str = ""
-    required: bool = True
-    min_count: int = 1
-    semantic_categories: list[str] = Field(default_factory=list)
-    concept_ids: list[int] = Field(default_factory=list)
-    members: list[dict[str, Any]] = Field(default_factory=list)
-    if_group: dict[str, Any] | None = None
-    then_group: dict[str, Any] | None = None
-
-
-class SaveFormSchemaRequest(BaseModel):
-    form_name: str = Field(..., min_length=1)
-    sections: list[FormSectionRequest] = Field(..., min_items=1)
-    saved_by: str = "unknown"
-    status: str = "active"
-    organization_id: str = ""
-    service_id: str = ""
-    organization_name: str = ""
-    service_name: str = ""
-    completeness_groups: list[CompletenessGroupRequest] = Field(default_factory=list)
-    source_text: str = ""
-
-
 _schema_to_dict = schema_to_dict
 
 
@@ -179,10 +127,6 @@ def list_schemas(
             service_id=service_id,
         )
     }
-
-
-class FingerprintRequest(BaseModel):
-    text: str = Field(..., min_length=10)
 
 
 @router.post("/fingerprint")
@@ -368,7 +312,9 @@ def save_schema(
     _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
     raw_sections = normalize_sections_for_request(
-        [s.model_dump() for s in body.sections]
+        fill_skip_section_boxes(
+            [s.model_dump() for s in body.sections], body.source_text
+        )
     )
     if not raw_sections:
         raise HTTPException(
@@ -423,10 +369,6 @@ def remove_schema(
     return {"deleted": True, "fingerprint": fp}
 
 
-class GenerateTemplateRequest(BaseModel):
-    text: str = Field(..., min_length=10)
-
-
 @router.post("/{fingerprint}/template")
 def generate_template(
     fingerprint: str,
@@ -479,10 +421,6 @@ def generate_template(
     }
 
 
-class DetectFormRequest(BaseModel):
-    text: str = Field(..., min_length=10)
-
-
 @router.post("/detect")
 async def detect_schema(
     body: DetectFormRequest,
@@ -510,12 +448,14 @@ async def detect_schema(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     if not known_schemas:
-        return {"sections": llm_sections, "borrowed_count": 0}
+        sections = fill_skip_section_boxes(llm_sections, body.text)
+        return {"sections": sections, "borrowed_count": 0}
 
     chunks = body.text.split("\n\n")
     borrowed = find_similar_sections(chunks, known_schemas)
     merged = merge_borrowed_and_detected(borrowed, llm_sections)
-    return {"sections": merged, "borrowed_count": len(borrowed)}
+    sections = fill_skip_section_boxes(merged, body.text)
+    return {"sections": sections, "borrowed_count": len(borrowed)}
 
 
 def _load_known_schema_dicts() -> list[dict[str, Any]]:

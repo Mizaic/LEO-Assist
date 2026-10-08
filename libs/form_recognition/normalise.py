@@ -63,6 +63,14 @@ class Segment:
         return bool(_SECTION_RE.match(_MARKUP_RE.sub("", self.raw).strip()))
 
 
+def split_at_first_box(text: str) -> tuple[str, str]:
+    """Return the text before and after the first tick box in *text*."""
+    match = _BOX_RE.search(text or "")
+    if match is None:
+        return text or "", ""
+    return text[: match.start()], text[match.end() :]
+
+
 def normalise_text(text: str) -> str:
     """Fold *text* to lower-case words, with every tick box as BOX_TOKEN."""
     folded = unicodedata.normalize("NFKC", text or "")

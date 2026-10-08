@@ -19,6 +19,7 @@ Run `probe_form_schema.py` on the saved schema and this letter.
 - "Points to remember", mastalgia advice, NICE reminder, and cover-sheet
   contract lines are sealed.
 - Free-text history / exam lines stay unsealed.
+- `teach_problems` in the probe report is empty.
 
 ## Bind
 
@@ -29,7 +30,7 @@ Run `probe_form_schema.py` on the saved schema and this letter.
 
 ## After save
 
-- `save_form_schema` / PUT returned the schema.
+- `PUT /api/form-schemas/{fingerprint}` returned the schema.
 - A later letter of the **same** form should resolve `known_schema=true`
   and should not pause for `unknown_form_template` or `few_shot_ood`.
 

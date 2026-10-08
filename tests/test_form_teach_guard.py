@@ -20,7 +20,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from libs.form_recognition.labelled_set import LabelledSetUnavailable
-from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
+from libs.pipeline.form_schema_normalizer import (
+    FormSchema,
+    FormSchemaItem,
+    FormSection,
+)
 from libs.pipeline.form_schema_store import FormSchemaLookupError
 from libs.pipeline.form_teach_guard import (
     TeachCheckRequest,
@@ -121,6 +125,56 @@ def test_problems_are_plain_ascii() -> None:
     assert problems
     for problem in problems:
         assert problem.isascii()
+
+
+_LEFTOVER_LETTER = (
+    "## Symptoms\n"
+    "[ ] Rectal bleeding\n"
+    "[ ] Change in bowel habit\n"
+    "[ ] Unexplained weight loss\n"
+    "## Hospital Use Only\n"
+    "Pt Contacted Y [ ]\n"
+    "Interpreter Booked Y [ ]\n"
+    "Transport Booked Y [ ]\n"
+    "Accepted Y [ ]\n"
+)
+
+
+def _symptoms_with_empty_admin() -> FormSchema:
+    options = ["Rectal bleeding", "Change in bowel habit", "Unexplained weight loss"]
+    items = [FormSchemaItem(pattern=o, entity_text=o) for o in options]
+    return FormSchema(
+        schema_id="leftover",
+        fingerprint="leftover-boxes",
+        form_name="Leftover boxes",
+        sections=[
+            FormSection(
+                section_id="S1",
+                section_type="checkbox_multi",
+                label="Symptoms",
+                start_pattern="Symptoms",
+                items=items,
+            ),
+            FormSection(
+                section_id="S2",
+                section_type="admin",
+                label="Hospital Use Only",
+                start_pattern="Hospital Use Only",
+                items=[],
+            ),
+        ],
+        created_by="test",
+    )
+
+
+def test_the_refusal_names_the_lines_the_form_does_not_cover() -> None:
+    problems = teach_problems(_symptoms_with_empty_admin(), _LEFTOVER_LETTER, [], [])
+    assert problems and "does not match the letter it was taught from" in problems[0]
+    assert "Pt Contacted, Interpreter Booked, Transport Booked." in problems[0]
+    assert "Accepted" not in problems[0]
+    assert "Contacted Y" not in problems[0]
+    assert "Add them to a section" in problems[0]
+    assert problems[0].isascii()
 
 
 def _request(schema: FormSchema, text: str) -> TeachCheckRequest:

@@ -11,7 +11,11 @@ The check fails closed. A failed candidate lookup raises
 ``FormSchemaLookupError`` and a missing labelled set raises
 ``TeachCheckUnavailable``; neither is a pass.
 
+When the letter has headings or tick boxes the form does not cover, the
+refusal names the first few, so the teacher knows what to add.
+
 Atlas trace: UN-AF530E8E -> DI-E21DF9EF -> DO-E458EEC5 -> VT-B13F7C48.
+UN-AF530E8E -> DI-455C4EF1 -> DO-B7A3AF41 -> VT-8E71E0F1 (named lines).
 Risk R-B88CCFD6.
 """
 
@@ -25,14 +29,17 @@ from libs.form_recognition.labelled_set import (
     LabelledSetUnavailable,
     labelled_documents,
 )
+from libs.form_recognition.normalise import segments
 from libs.form_recognition.recogniser import (
     Outcome,
     Recognised,
+    explains_layout,
     recognise_bundle,
     recognise_document,
 )
 from libs.pipeline.form_schema_candidates import load_candidate_schemas
 from libs.pipeline.form_schema_normalizer import FormSchema
+from libs.pipeline.form_skip_boxes import printed_label
 
 _NOTHING_SAVED = "Nothing was saved."
 _NO_LETTER = (
@@ -42,6 +49,12 @@ _OWN_LETTER = (
     "This form does not match the letter it was taught from. Check the "
     "section headings, then save again."
 )
+_LEFTOVER = (
+    "This form does not match the letter it was taught from. These lines on "
+    "the letter are not in the form: {names}. Add them to a section, then "
+    "save again."
+)
+_MAX_LEFTOVERS = 3
 _CLASH = (
     'This form looks too like the taught form "{name}". Add the headings '
     "that make it different, then save again."
@@ -89,13 +102,36 @@ def _clashing_name(outcome: Outcome, fingerprint: str) -> str:
     return "another form"
 
 
+def _leftover_names(source_text: str, unexplained: Iterable[str]) -> list[str]:
+    wanted = set(unexplained)
+    names: list[str] = []
+    for segment in segments(source_text):
+        if segment.words not in wanted:
+            continue
+        name = printed_label(segment.raw).encode("ascii", "ignore").decode().strip()
+        if name and name not in names:
+            names.append(name)
+    return names[:_MAX_LEFTOVERS]
+
+
+def _own_letter_problem(alone: list[Outcome], source_text: str) -> str:
+    for outcome in alone:
+        best = getattr(outcome, "best", None)
+        if best is None or explains_layout(best):
+            continue
+        names = _leftover_names(source_text, best.unexplained)
+        if names:
+            return _LEFTOVER.format(names=", ".join(names))
+    return _OWN_LETTER
+
+
 def _clash_problems(
     schema: FormSchema, source_text: str, others: list[FormSchema]
 ) -> list[str]:
     alone = recognise_bundle([source_text], [schema])
     own = [i for i, o in enumerate(alone) if _is_new_form(o, schema.fingerprint)]
     if not own:
-        return [_OWN_LETTER]
+        return [_own_letter_problem(alone, source_text)]
     together = recognise_bundle([source_text], [schema, *others])
     for index in own:
         if not _is_new_form(together[index], schema.fingerprint):

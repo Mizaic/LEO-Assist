@@ -61,7 +61,8 @@ def pattern_text(pattern: str) -> str:
     return re.sub(r"[()\[\]{}|*+?.]", " ", text)
 
 
-def _usable(norm: str) -> bool:
+def is_usable_anchor(norm: str) -> bool:
+    """True when normalised text is long enough to search for."""
     if len(norm) < _MIN_ALT_CHARS:
         return False
     return any(len(word) >= _MIN_WORD_CHARS for word in norm.split())
@@ -71,7 +72,7 @@ def _alternatives(texts: Iterable[str]) -> tuple[str, ...]:
     seen: list[str] = []
     for text in texts:
         norm = normalise_text(text)
-        if _usable(norm) and norm not in seen:
+        if is_usable_anchor(norm) and norm not in seen:
             seen.append(norm)
     return tuple(seen)
 

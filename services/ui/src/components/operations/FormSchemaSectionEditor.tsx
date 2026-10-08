@@ -1,7 +1,7 @@
 /**
  * One editable section in Teach this form.
  *
- * Atlas trace: DI-5C9CA57B
+ * Atlas trace: DI-5C9CA57B, DI-455C4EF1 (skipped section tick boxes)
  */
 "use client";
 
@@ -28,6 +28,7 @@ import { SnomedLookupField } from "@/components/SnomedLookupField";
 import { BloodPanelPresetButton } from "./BloodPanelPresetButton";
 import { BorrowedFromBadge } from "./BorrowedFromBadge";
 import { mergePresetBatteries } from "./bloodPanelPresets";
+import { SkipSectionBoxes } from "./SkipSectionBoxes";
 import {
   type AnalyteEntry,
   type FormSchemaItem,
@@ -284,6 +285,7 @@ export function FormSchemaSectionEditor({
                 next section are kept for extraction.
               </Typography>
             ) : null}
+            <SkipSectionBoxes section={section} />
           </Box>
         </Collapse>
       )}
