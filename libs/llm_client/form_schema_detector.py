@@ -17,16 +17,16 @@ from typing import Any
 
 from libs.llm_client.context_budget import fleet_safe_char_budget
 from libs.llm_client.factory import create_llm
+from libs.llm_client.form_completeness_rules import parse_rules
 from libs.llm_client.form_detection import DetectionReason, FormDetection
+from libs.llm_client.form_detector_schema import OUTPUT_SCHEMA
 from libs.llm_client.prompt_safety import (
     INJECTION_GUARD,
     cap_llm_response,
     sanitise_for_prompt,
 )
-from libs.pipeline.form_schema_section_types import (
-    VALID_SECTION_TYPES,
-    coerce_section_type,
-)
+from libs.pipeline.form_pattern_dates import drop_dated_sentences
+from libs.pipeline.form_schema_section_types import coerce_section_type
 from libs.pipeline.form_section_splitter import (
     is_incomplete_schema,
     split_form_sections,
@@ -63,6 +63,10 @@ cells separated by "|", and apply these rules:
   administrative wrapper. Classify it as admin.
 
 start_pattern must be the heading text WITHOUT the surrounding pipes.
+It is the form's printed heading only, never a date, name, number or
+result the referrer entered. For "Blood results ... eGFR. Bloods taken
+25/6/26" the start_pattern is "Blood results ... eGFR". Write it as
+plain text copied from the form.
 When a table's first header cell is only a date column, such as
 "Start date" or "Consultation date", the start_pattern must be the whole
 header row, for example "Start date | Full description". A bare
@@ -222,6 +226,23 @@ Use precise clinical language for entity_text. Examples:
   "1. Very Fit" in frailty scale    -> "Clinical Frailty Scale: 1 - Very Fit"
   B1 lesion suspicious...           -> "Suspicious lesion on cervix or vagina"
 
+COMPLETENESS RULES -- completeness_rules:
+List what the form itself says must be filled in, at most 12 rules.
+Each rule needs "evidence": an exact quote of the form's printed words
+that make it required, such as "Blood results are mandatory" or "Please
+tick at least one". Copy the quote word for word. Never quote a date,
+name, number or result the referrer entered.
+Do not guess. If the form does not say a part is required, leave it out.
+An empty list is a good answer for a form with no such wording.
+- kind "mandatory": every target must be filled in.
+- kind "one_of": at least one target must be ticked.
+- kind "n_of": at least min_count targets must be ticked.
+- kind "if_then": two targets; if the first is ticked, the second is needed.
+- kind "optional": the form asks for it but does not require it.
+Each target is {"section_id": <an id from your sections>, "item_pattern":
+<one of that section's item patterns, or "" for the whole section>}.
+Set min_count to 1 unless the kind is "n_of".
+
 Return one JSON object matching the supplied schema. No prose.
 """
 
@@ -235,84 +256,8 @@ _MAX_TOKENS = 6000
 _MAX_RESPONSE_CHARS = 48_000
 _TABLE_PIPE = re.compile(r"(?<!\\)(\s)\|(\s)")
 
-_OUTPUT_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["sections"],
-    "properties": {
-        "sections": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": [
-                    "section_id",
-                    "label",
-                    "section_type",
-                    "start_pattern",
-                    "items",
-                    "default_semantic_tags",
-                ],
-                "properties": {
-                    "section_id": {"type": "string"},
-                    "label": {"type": "string"},
-                    "section_type": {
-                        "type": "string",
-                        "enum": sorted(VALID_SECTION_TYPES),
-                    },
-                    "start_pattern": {"type": "string"},
-                    "default_semantic_tags": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                    },
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "additionalProperties": False,
-                            "required": [
-                                "pattern",
-                                "entity_text",
-                                "semantic_tag",
-                                "assertion",
-                                "procedure_snomed",
-                                "procedure_display",
-                                "analytes",
-                                "value_placeholder",
-                            ],
-                            "properties": {
-                                "pattern": {"type": "string"},
-                                "entity_text": {"type": "string"},
-                                "semantic_tag": {"type": "string"},
-                                "assertion": {"type": "string"},
-                                "procedure_snomed": {"type": "string"},
-                                "procedure_display": {"type": "string"},
-                                "analytes": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "additionalProperties": False,
-                                        "required": [
-                                            "label",
-                                            "snomed_code",
-                                            "display",
-                                        ],
-                                        "properties": {
-                                            "label": {"type": "string"},
-                                            "snomed_code": {"type": "string"},
-                                            "display": {"type": "string"},
-                                        },
-                                    },
-                                },
-                                "value_placeholder": {"type": "string"},
-                            },
-                        },
-                    },
-                },
-            },
-        }
-    },
-}
+_OUTPUT_SCHEMA = OUTPUT_SCHEMA
+_ModelAnswer = tuple[list[dict[str, Any]], list[dict[str, Any]], DetectionReason]
 
 
 def detect_form_sections(text: str) -> list[dict[str, Any]]:
@@ -329,7 +274,7 @@ def detect_form_schema(text: str) -> FormDetection:
     """
     letter_cut = len(text or "") > _MAX_FORM_CHARS
     cleaned = sanitise_for_prompt(text, max_chars=_MAX_FORM_CHARS)
-    sections, reason = _ask_model(cleaned)
+    sections, rules, reason = _ask_model(cleaned)
     used_fallback = False
     if reason != "model":
         fallback = split_form_sections(text)
@@ -340,6 +285,7 @@ def detect_form_schema(text: str) -> FormDetection:
         log.info("form-detect: %d sections detected by LLM", len(sections))
     return FormDetection(
         sections=sections,
+        completeness_rules=rules,
         reason=reason,
         used_fallback=used_fallback,
         letter_cut=letter_cut,
@@ -347,20 +293,26 @@ def detect_form_schema(text: str) -> FormDetection:
     )
 
 
-def _ask_model(form_text: str) -> tuple[list[dict[str, Any]], DetectionReason]:
+def _ask_model(form_text: str) -> _ModelAnswer:
     try:
         response = _call_detector(form_text)
     except Exception:
         log.warning("form-detect: LLM call failed", exc_info=True)
-        return [], "model_failed"
-    sections = _parse_response(response.text or "")
+        return [], [], "model_failed"
+    parsed = _read_answer(response.text or "")
+    sections = _sections_from(parsed)
     if sections is None:
         log.warning("form-detect: LLM answer could not be read")
-        return [], "model_unreadable"
+        return [], [], "model_unreadable"
     if is_incomplete_schema(sections):
         log.warning("form-detect: LLM found no clinical sections")
-        return sections, "model_no_clinical"
-    return sections, "model"
+        return sections, [], "model_no_clinical"
+    rules = (
+        parse_rules(parsed.get("completeness_rules"))
+        if isinstance(parsed, dict)
+        else []
+    )
+    return sections, rules, "model"
 
 
 def _call_detector(form_text: str) -> Any:
@@ -378,9 +330,16 @@ def _call_detector(form_text: str) -> Any:
 
 def _parse_response(text: str) -> list[dict[str, Any]] | None:
     """Extract and validate the sections list from the LLM response."""
+    return _sections_from(_read_answer(text))
+
+
+def _read_answer(text: str) -> Any | None:
     cleaned = cap_llm_response(text, max_chars=_MAX_RESPONSE_CHARS)
     cleaned = re.sub(r"```(?:json)?|```", "", cleaned).strip()
-    parsed = _load_json(cleaned)
+    return _load_json(cleaned)
+
+
+def _sections_from(parsed: Any | None) -> list[dict[str, Any]] | None:
     if parsed is None:
         return None
     sections = parsed.get("sections") if isinstance(parsed, dict) else parsed
@@ -419,7 +378,9 @@ def _validate_section(raw: dict[str, Any]) -> dict[str, Any]:
             raw.get("section_type", "free_text"),
             source="llm form-schema detector",
         ),
-        "start_pattern": _escape_table_pipes(str(raw.get("start_pattern", ""))),
+        "start_pattern": _escape_table_pipes(
+            drop_dated_sentences(str(raw.get("start_pattern", "")))
+        ),
         "default_semantic_tags": _coerce_semantic_tags(raw),
         "items": [
             _validate_item(i) for i in raw.get("items", []) if isinstance(i, dict)

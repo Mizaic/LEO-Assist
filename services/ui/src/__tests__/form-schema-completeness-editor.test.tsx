@@ -22,16 +22,12 @@ function readFile(relPath: string): string {
 
 const EDITOR_PATH =
   "services/ui/src/components/operations/FormSchemaCompletenessEditor.tsx";
-const SEED_PATH =
-  "services/ui/src/components/operations/formSchemaCompletenessSeed.ts";
 
 describe("FormSchemaCompletenessEditor - SNOMED concept picker", () => {
   let src: string;
-  let seedSrc: string;
 
   beforeAll(() => {
     src = readFile(EDITOR_PATH);
-    seedSrc = readFile(SEED_PATH);
   });
 
   test("TC-001: imports SnomedLookupField", () => {
@@ -59,12 +55,5 @@ describe("FormSchemaCompletenessEditor - SNOMED concept picker", () => {
   test("TC-005: if-then arms each have a SNOMED lookup", () => {
     expect(src).toMatch(/if-arm-snomed/);
     expect(src).toMatch(/then-arm-snomed/);
-  });
-
-  test("TC-006: seed does not hardcode cervix or section B concept ids", () => {
-    expect(seedSrc).not.toMatch(/363354003/);
-    expect(seedSrc).not.toMatch(/b1:\s*\[/);
-    expect(seedSrc).toMatch(/75367002/);
-    expect(seedSrc).toMatch(/364075005/);
   });
 });

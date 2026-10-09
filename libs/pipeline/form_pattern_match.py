@@ -68,24 +68,26 @@ def _literal_fallback(pattern: str) -> str:
 def safe_search(pattern: str, text: str) -> re.Match[str] | None:
     """Search *text* for *pattern*, never raising on a bad pattern.
 
-    Falls back to a whitespace-tolerant literal match built from the
-    pattern's word tokens when the pattern will not compile.
+    A pattern that misses as a regex is also tried as plain text, and one
+    that will not compile falls back to a whitespace-tolerant match built
+    from its word tokens.
     """
     if not pattern or not text:
         return None
     try:
-        return re.search(pattern, text, re.IGNORECASE)
+        found = re.search(pattern, text, re.IGNORECASE)
+        broken = False
     except re.error:
-        pass
-    try:
-        exact = re.search(re.escape(pattern), text, re.IGNORECASE)
-    except re.error:
-        exact = None
-    # An escaped pattern always compiles. A miss must not skip the
-    # token fallback -- that is what matches a taught heading after
-    # a broken regex such as ``(?i)Patient\s+Fitness\s+(ECOG``.
-    if exact is not None:
+        found, broken = None, True
+    if found is not None:
+        return found
+    # A printed heading such as "Radiology: (In last 6 months)" compiles as
+    # a regex whose group drops the brackets, so it would miss its own line.
+    exact = re.search(re.escape(pattern), text, re.IGNORECASE)
+    if exact is not None or not broken:
         return exact
+    # The token fallback is what matches a taught heading after a broken
+    # regex such as ``(?i)Patient\s+Fitness\s+(ECOG``.
     fallback = _literal_fallback(pattern)
     if not fallback:
         return None

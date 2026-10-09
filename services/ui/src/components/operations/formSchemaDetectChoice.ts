@@ -7,7 +7,7 @@
  * Atlas trace: DI-C1744ED5, DO-1C8E7598, R-98702FED
  */
 import type { FormSchemaSection } from "./formSchemaDetector";
-import { isIncompleteSchema } from "./formSchemaTeach";
+import { isIncompleteSchema, type CompletenessLogicGroup } from "./formSchemaTeach";
 
 export const BROWSER_READER_NOTICE =
   "Ask LEO could not find the sections, so we used a simpler reader in your " +
@@ -16,6 +16,7 @@ export const BROWSER_READER_NOTICE =
 export type ApiDetectResult = {
   sections: FormSchemaSection[];
   notice: string;
+  groups?: CompletenessLogicGroup[];
 };
 
 export type DetectChoice = ApiDetectResult & { usedBrowserReader: boolean };

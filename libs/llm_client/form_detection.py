@@ -39,6 +39,7 @@ class FormDetection:
     """Sections proposed for a form, and how they were found."""
 
     sections: list[dict[str, Any]] = field(default_factory=list)
+    completeness_rules: list[dict[str, Any]] = field(default_factory=list)
     reason: DetectionReason = "model"
     used_fallback: bool = False
     letter_cut: bool = False

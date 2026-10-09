@@ -1,7 +1,7 @@
 /**
  * Completeness groups for a taught form: mandatory, optional, 1-of, n-of, if-then.
  *
- * Atlas trace: UN-3B25A20E
+ * Atlas trace: UN-3B25A20E, DI-9BF69EC9
  */
 "use client";
 
@@ -19,6 +19,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import { SnomedLookupField, type SnomedLookupValue } from "@/components/SnomedLookupField";
 
+import { FormSchemaRuleEvidence } from "./FormSchemaRuleEvidence";
 import {
   emptyCompletenessGroup,
   type CompletenessLogicGroup,
@@ -47,13 +48,18 @@ interface Props {
 
 function leafHasCodes(group: CompletenessLogicGroup | null | undefined): boolean {
   if (!group) return false;
-  return Boolean(group.concept_ids?.length || group.semantic_categories?.length);
+  return Boolean(
+    group.concept_ids?.length ||
+      group.semantic_categories?.length ||
+      group.section_id ||
+      group.item_pattern,
+  );
 }
 
-/** True when the evaluator cannot match this group to any extracted fact. */
+/** True when the evaluator cannot match this group to any extracted fact or taught box. */
 export function hasNoCodes(group: CompletenessLogicGroup): boolean {
   const kind = group.kind || (group.required ? "mandatory" : "optional");
-  if (kind === "one_of" || kind === "n_of") {
+  if (kind === "one_of" || kind === "n_of" || group.members?.length) {
     const members = group.members ?? [];
     return !members.length || members.every((member) => !leafHasCodes(member));
   }
@@ -72,6 +78,15 @@ export function FormSchemaCompletenessEditor({ groups, onChange }: Props) {
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
         Say what this service must have. Search SNOMED so each rule can match facts.
       </Typography>
+      {groups.length === 0 ? (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          data-testid="completeness-empty"
+        >
+          No completeness rules yet. Add a rule if part of this form must be filled in.
+        </Typography>
+      ) : null}
       <Stack spacing={1.25}>
         {groups.map((group, idx) => (
           <GroupRow
@@ -104,6 +119,7 @@ function GroupRow({
   return (
     <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1 }}>
       <GroupHeader group={group} kind={kind} onChange={onChange} />
+      <FormSchemaRuleEvidence group={group} onChange={onChange} />
       {hasNoCodes(group) ? (
         <Alert severity="warning" sx={{ mt: 0.75, py: 0.25 }} data-testid="completeness-no-codes">
           No SNOMED code - this rule cannot match extracted facts. Search for a concept above.
@@ -172,7 +188,7 @@ function GroupBody({
   kind: string;
   onChange: (group: CompletenessLogicGroup) => void;
 }) {
-  if (kind === "one_of" || kind === "n_of") {
+  if (kind === "one_of" || kind === "n_of" || group.members?.length) {
     return (
       <MemberListEditor
         members={group.members ?? []}

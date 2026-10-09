@@ -1,10 +1,9 @@
 /**
- * Sherwood Forest 2WW gynae letter -- local detect and completeness seed.
+ * Sherwood Forest 2WW gynae letter -- local detect.
  *
  * Atlas trace: DI-26546721, DI-A0E69E38, UN-3B25A20E
  */
 import { detectFormName, detectSections } from "../components/operations/formSchemaDetector";
-import { seedCompletenessGroups } from "../components/operations/formSchemaCompletenessSeed";
 
 export const SHERWOOD_GYNAE_LETTER = `
 Sherwood Forest Hospitals NHS Foundation Trust
@@ -168,76 +167,5 @@ describe("detect response-to-state mapping -- empty label guard", () => {
       expect(item.pattern.trim()).not.toBe("");
       expect(item.entity_text.trim()).not.toBe("");
     }
-  });
-
-  it("seedCompletenessGroups Section A group has non-empty member names", () => {
-    const sections = detectSections(SHERWOOD_GYNAE_LETTER);
-    const groups = seedCompletenessGroups(SHERWOOD_GYNAE_LETTER, sections);
-    const group = groups.find((g) => /section a|site/i.test(g.name));
-    expect(group).toBeDefined();
-    expect((group?.members ?? []).length).toBeGreaterThan(0);
-    for (const member of group!.members ?? []) {
-      expect(member.name.trim()).not.toBe("");
-    }
-  });
-
-  it("seedCompletenessGroups does not create Section A group when all item patterns are empty strings", () => {
-    const emptySections = [
-      {
-        section_id: "A",
-        section_type: "checkbox_single" as const,
-        label: "Section A",
-        start_pattern: "",
-        items: [
-          { pattern: "", entity_text: "", semantic_tag: "finding", assertion: "present" },
-        ],
-      },
-    ];
-    const groups = seedCompletenessGroups("text", emptySections);
-    const group = groups.find((g) => /section a|site/i.test(g.name));
-    expect(group).toBeUndefined();
-  });
-});
-
-describe("seedCompletenessGroups Sherwood 2WW gynae", () => {
-  const sections = detectSections(SHERWOOD_GYNAE_LETTER);
-  const groups = seedCompletenessGroups(SHERWOOD_GYNAE_LETTER, sections);
-
-  it("seeds Section A as 1-of suspected sites", () => {
-    const group = groups.find((item) => /section a|cancer type|site/i.test(item.name));
-    expect(group?.kind).toBe("one_of");
-    expect((group?.members ?? []).length).toBeGreaterThanOrEqual(4);
-  });
-
-  it("seeds Section B as 1-of B1-B9", () => {
-    const group = groups.find((item) => /section b|criteria|signs/i.test(item.name));
-    expect(group?.kind).toBe("one_of");
-    expect((group?.members ?? []).map((m) => m.name).join(" ")).toMatch(/B1/);
-    expect((group?.members ?? []).map((m) => m.name).join(" ")).toMatch(/B9/);
-  });
-
-  it("seeds if Endometrium then TVUS", () => {
-    const group = groups.find((item) => item.kind === "if_then" && /endometr/i.test(item.if_group?.name ?? ""));
-    expect(group?.then_group?.name.toLowerCase()).toMatch(/tvus|ultrasound/);
-  });
-
-  it("seeds if Ovary then Ca125", () => {
-    const group = groups.find((item) => item.kind === "if_then" && /ovar/i.test(item.if_group?.name ?? ""));
-    expect(group?.then_group?.name.toLowerCase()).toMatch(/ca125|ca 125/);
-  });
-
-  it("seeds Section D bloods as at-least-one of the panel", () => {
-    const group = groups.find((item) => /blood|section d|mandatory test/i.test(item.name));
-    expect(group?.kind).toBe("n_of");
-    expect(group?.required).toBe(true);
-    expect((group?.members ?? []).map((m) => m.name.toLowerCase())).toEqual(
-      expect.arrayContaining(["fbc", "lft", "ue", "calcium"]),
-    );
-  });
-
-  it("seeds Minimum Dataset BP and HR as mandatory observables", () => {
-    const names = groups.map((item) => item.name.toLowerCase()).join(" | ");
-    expect(names).toMatch(/blood pressure|bp/);
-    expect(names).toMatch(/heart rate|hr/);
   });
 });

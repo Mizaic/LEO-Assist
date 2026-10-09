@@ -3,7 +3,7 @@
  *
  * Persists the result as a :FormSchema node via PUT /api/form-schemas/{fingerprint}.
  *
- * Atlas trace: DI-5C9CA57B, DI-26546721, DO-D0C19842, DO-020C7B5C
+ * Atlas trace: DI-5C9CA57B, DI-26546721, DO-D0C19842, DO-020C7B5C, DI-9BF69EC9
  */
 "use client";
 
@@ -25,8 +25,7 @@ import { FormSchemaCompletenessEditor } from "./FormSchemaCompletenessEditor";
 import { FormSchemaScopeFields } from "./FormSchemaScopeFields";
 import { FormSchemaSectionEditor } from "./FormSchemaSectionEditor";
 import type { FormSchemaSection } from "./formSchemaDetector";
-import { seedCompletenessGroups } from "./formSchemaCompletenessSeed";
-import { saveTaughtForm, type CompletenessLogicGroup } from "./formSchemaTeach";
+import { saveTaughtForm } from "./formSchemaTeach";
 import { useFormSchemaTeach } from "./useFormSchemaTeach";
 import { FormSchemaDetectionNotice } from "./FormSchemaDetectionNotice";
 
@@ -68,7 +67,6 @@ export default function FormSchemaAnnotator({
   const [organizationId, setOrganizationId] = useState(initialOrganizationId);
   const [serviceId, setServiceId] = useState(initialServiceId);
   const scopeLocked = Boolean(initialOrganizationId || initialServiceId);
-  const [groups, setGroups] = useState<CompletenessLogicGroup[]>([]);
   const [scopeSaving, setScopeSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [template, setTemplate] = useState<string | null>(null);
@@ -132,7 +130,7 @@ export default function FormSchemaAnnotator({
         serviceId,
         organizationName: initialOrganizationName,
         serviceName: initialServiceName,
-        completenessGroups: groups,
+        completenessGroups: teach.groups,
         sourceText,
       });
       teach.setSaved(true);
@@ -152,12 +150,6 @@ export default function FormSchemaAnnotator({
   useEffect(() => {
     onSectionsChange?.(teach.sections);
   }, [teach.sections, onSectionsChange]);
-
-  useEffect(() => {
-    if (!teach.sections.length || groups.length) return;
-    setGroups(seedCompletenessGroups(sourceText, teach.sections));
-  }, [teach.sections, sourceText, groups.length]);
-
   if (teach.loading) {
     return (
       <Box
@@ -218,9 +210,9 @@ export default function FormSchemaAnnotator({
           ))
         )}
         <FormSchemaCompletenessEditor
-          groups={groups}
+          groups={teach.groups}
           onChange={(next) => {
-            setGroups(next);
+            teach.setGroups(next);
             teach.setSaved(false);
           }}
         />

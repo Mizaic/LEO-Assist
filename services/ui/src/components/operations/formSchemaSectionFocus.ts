@@ -40,6 +40,13 @@ function compileStartPattern(pattern: string): RegExp | null {
   }
 }
 
+/** Regex first, then plain text: "Radiology: (In last 6 months)" is a heading, not a group. */
+function startPatternMatches(pattern: string, line: string): boolean {
+  if (compileStartPattern(pattern)?.test(line)) return true;
+  const literal = pattern.trim().toLowerCase();
+  return Boolean(literal) && line.toLowerCase().includes(literal);
+}
+
 /** Walk letter lines and map free_text body lines to their section id. */
 export function buildFreeTextBodyLineOwners(
   text: string,
@@ -50,12 +57,9 @@ export function buildFreeTextBodyLineOwners(
   for (const raw of text.replace(/\r\n/g, "\n").split("\n")) {
     const line = raw.trim();
     if (!line) continue;
-    const header = sections.find((section) => {
-      const compiled = section.start_pattern
-        ? compileStartPattern(section.start_pattern)
-        : null;
-      return compiled?.test(line);
-    });
+    const header = sections.find((section) =>
+      startPatternMatches(section.start_pattern ?? "", line),
+    );
     if (header) {
       activeFreeText = header.section_type === "free_text" ? header : undefined;
       continue;

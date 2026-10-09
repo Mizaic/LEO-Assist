@@ -10,6 +10,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import Collapse from "@mui/material/Collapse";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -17,9 +18,16 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import FormSchemaAnnotator from "@/components/operations/FormSchemaAnnotator";
 import { fetchFormSchema, fetchLetterTextByUbrn } from "./formSchemaApi";
+
+const LETTER_PANEL_ID = "form-schema-sample-letter-panel";
+
+function countLines(text: string): number {
+  return text.split("\n").filter((line) => line.trim()).length;
+}
 
 interface Props {
   open: boolean;
@@ -79,6 +87,7 @@ export default function FormSchemaTeachDialog({
   const [ubrnInput, setUbrnInput] = useState("");
   const [ubrnLoading, setUbrnLoading] = useState(false);
   const [ubrnError, setUbrnError] = useState("");
+  const [letterOpen, setLetterOpen] = useState(true);
   const { ready, setReady, savedHasSections, schemaLoading } =
     useSavedSchemaEditor(open, fingerprint);
 
@@ -87,8 +96,15 @@ export default function FormSchemaTeachDialog({
       setSourceText("");
       setUbrnInput("");
       setUbrnError("");
+      setLetterOpen(true);
     }
   }, [open, fingerprint]);
+
+  useEffect(() => {
+    if (savedHasSections && !sourceText.trim()) setLetterOpen(false);
+    // Only fold when the saved schema arrives, not on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedHasSections]);
 
   const canTeach = sourceText.trim().length >= 10;
   const canOpenEditor = canTeach || savedHasSections;
@@ -101,6 +117,7 @@ export default function FormSchemaTeachDialog({
     try {
       const result = await fetchLetterTextByUbrn(ubrn, organizationId);
       setSourceText(result.text);
+      setLetterOpen(false);
     } catch (err) {
       setUbrnError(err instanceof Error ? err.message : "Could not load the referral.");
     } finally {
@@ -116,70 +133,99 @@ export default function FormSchemaTeachDialog({
       maxWidth="lg"
       aria-labelledby="form-schema-teach-title"
       data-testid="form-schema-teach-dialog"
+      slotProps={{ paper: { sx: { height: "90vh" } } }}
     >
       <DialogTitle id="form-schema-teach-title">
         Teach form: {formName}
       </DialogTitle>
-      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, minHeight: 480 }}>
-        <Typography variant="body2" color="text.secondary">
-          Load a sample letter to highlight sections. You can edit the saved
-          schema without one.
-        </Typography>
-
-        <Box
-          sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
-          data-testid="load-from-referral-row"
-        >
-          <TextField
-            label="Load from referral (UBRN)"
-            value={ubrnInput}
-            onChange={(e) => setUbrnInput(e.target.value)}
-            size="small"
-            sx={{ flex: 1 }}
-            placeholder="e.g. 000 123 4567"
-            inputProps={{ "aria-label": "UBRN" }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleLoadFromReferral();
-            }}
-          />
+      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Button
-            variant="outlined"
             size="small"
-            disabled={!ubrnInput.trim() || ubrnLoading}
-            onClick={handleLoadFromReferral}
-            startIcon={ubrnLoading ? <CircularProgress size={14} /> : null}
-            data-testid="load-from-referral-btn"
+            onClick={() => setLetterOpen((prev) => !prev)}
+            aria-expanded={letterOpen}
+            aria-controls={LETTER_PANEL_ID}
+            endIcon={
+              <ExpandMoreIcon
+                sx={{ transform: letterOpen ? "rotate(180deg)" : "none" }}
+              />
+            }
           >
-            Load
+            Sample letter
           </Button>
+          {!letterOpen && sourceText.trim() ? (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              data-testid="sample-letter-summary"
+            >
+              Sample letter loaded ({countLines(sourceText)} lines).
+            </Typography>
+          ) : null}
         </Box>
+        <Collapse in={letterOpen} id={LETTER_PANEL_ID}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Load a sample letter to highlight sections. You can edit the saved
+              schema without one.
+            </Typography>
 
-        {ubrnError ? (
-          <Alert severity="error" data-testid="ubrn-error">
-            {ubrnError}
-          </Alert>
-        ) : null}
+            <Box
+              sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
+              data-testid="load-from-referral-row"
+            >
+              <TextField
+                label="Load from referral (UBRN)"
+                value={ubrnInput}
+                onChange={(e) => setUbrnInput(e.target.value)}
+                size="small"
+                sx={{ flex: 1 }}
+                placeholder="e.g. 000 123 4567"
+                inputProps={{ "aria-label": "UBRN" }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleLoadFromReferral();
+                }}
+              />
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={!ubrnInput.trim() || ubrnLoading}
+                onClick={handleLoadFromReferral}
+                startIcon={ubrnLoading ? <CircularProgress size={14} /> : null}
+                data-testid="load-from-referral-btn"
+              >
+                Load
+              </Button>
+            </Box>
 
-        <Divider>
-          <Typography variant="caption" color="text.secondary">
-            or paste manually
-          </Typography>
-        </Divider>
+            {ubrnError ? (
+              <Alert severity="error" data-testid="ubrn-error">
+                {ubrnError}
+              </Alert>
+            ) : null}
 
-        <TextField
-          label="Sample referral letter"
-          value={sourceText}
-          onChange={(e) => setSourceText(e.target.value)}
-          multiline
-          minRows={6}
-          maxRows={14}
-          fullWidth
-          placeholder="Paste the referral text here..."
-          inputProps={{ "aria-label": "Sample referral letter" }}
-        />
-        <Typography variant="caption" color="text.secondary">
-          Fingerprint: {fingerprint}
-        </Typography>
+            <Divider>
+              <Typography variant="caption" color="text.secondary">
+                or paste manually
+              </Typography>
+            </Divider>
+
+            <TextField
+              label="Sample referral letter"
+              value={sourceText}
+              onChange={(e) => setSourceText(e.target.value)}
+              multiline
+              minRows={6}
+              maxRows={14}
+              fullWidth
+              placeholder="Paste the referral text here..."
+              inputProps={{ "aria-label": "Sample referral letter" }}
+            />
+            <Typography variant="caption" color="text.secondary">
+              Fingerprint: {fingerprint}
+            </Typography>
+          </Box>
+        </Collapse>
         {schemaLoading && !ready ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={18} aria-label="Loading" role="status" />

@@ -150,6 +150,21 @@ describe("buildFreeTextBodyLineOwners", () => {
     expect(hit?.regionId).toBe("ACI");
     expect(hit?.primary).toBe(false);
   });
+
+  it("a start pattern with brackets matches its own heading as plain text (DI-C1744ED5)", () => {
+    const sections: FormSchemaSection[] = [
+      {
+        section_id: "RAD",
+        section_type: "free_text",
+        label: "Radiology",
+        start_pattern: "Radiology: (In last 6 months)",
+        items: [],
+      },
+    ];
+    const letter = ["| Radiology: (In last 6 months) |", "CT colon booked."].join("\n");
+    const owners = buildFreeTextBodyLineOwners(letter, sections);
+    expect(owners.get("CT colon booked.")).toBe("RAD");
+  });
 });
 
 describe("cleanLetterSelectionText", () => {

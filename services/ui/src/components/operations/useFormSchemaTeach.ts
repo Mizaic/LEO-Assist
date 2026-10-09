@@ -18,6 +18,7 @@ import {
   localDetectOrEmpty,
   readApiErrorDetail,
   savedSchemaBlocksAutoDetect,
+  type CompletenessLogicGroup,
   type TeachScopeIds,
 } from "./formSchemaTeach";
 import { chooseDetection, type ApiDetectResult } from "./formSchemaDetectChoice";
@@ -34,6 +35,7 @@ export function useFormSchemaTeach(
   scope?: TeachScope,
 ) {
   const [sections, setSections] = useState<FormSchemaSection[]>([]);
+  const [groups, setGroups] = useState<CompletenessLogicGroup[]>([]);
   const [name, setName] = useState(formName);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,6 +50,7 @@ export function useFormSchemaTeach(
     setNotice("");
     setLibraryFingerprint("");
     const saved = await loadTaughtLibrarySchema(fingerprint, scope);
+    setGroups(saved?.completeness_groups ?? []);
     if (saved && savedSchemaBlocksAutoDetect(saved.sections)) {
       setName(saved.form_name);
       setSections(saved.sections);
@@ -58,7 +61,12 @@ export function useFormSchemaTeach(
       return;
     }
     if (saved) setName(saved.form_name);
-    const next = await detectWithFallback(sourceText, setError, setNotice);
+    const { sections: next, groups: proposed } = await detectWithFallback(
+      sourceText,
+      setError,
+      setNotice,
+    );
+    if (!saved?.completeness_groups?.length) setGroups(proposed);
     const detectedName = detectFormName(sourceText);
     if (!saved?.form_name || saved.form_name === "Referral form") {
       if (detectedName && detectedName !== "Referral form") setName(detectedName);
@@ -77,7 +85,8 @@ export function useFormSchemaTeach(
     setSaved(false);
     try {
       const next = await detectWithFallback(sourceText, setError, setNotice);
-      setSections(next);
+      setSections(next.sections);
+      setGroups((prev) => (prev.length ? prev : next.groups));
     } finally {
       setLoading(false);
     }
@@ -91,6 +100,8 @@ export function useFormSchemaTeach(
     fingerprint,
     name,
     sections,
+    groups,
+    setGroups,
     sourceText,
     onSaved,
     setName,
@@ -112,6 +123,8 @@ function bindTeachActions(state: {
   fingerprint: string;
   name: string;
   sections: FormSchemaSection[];
+  groups: CompletenessLogicGroup[];
+  setGroups: (groups: CompletenessLogicGroup[]) => void;
   sourceText: string;
   onSaved?: () => void;
   setName: (name: string) => void;
@@ -129,6 +142,8 @@ function bindTeachActions(state: {
 }) {
   return {
     sections: state.sections,
+    groups: state.groups,
+    setGroups: state.setGroups,
     name: state.name,
     setName: state.setName,
     loading: state.loading,
@@ -288,17 +303,18 @@ async function detectWithFallback(
   sourceText: string,
   setError: (msg: string) => void,
   setNotice: (msg: string) => void,
-): Promise<FormSchemaSection[]> {
+): Promise<{ sections: FormSchemaSection[]; groups: CompletenessLogicGroup[] }> {
   const api = await tryDetect(sourceText, setError);
   const choice = chooseDetection(api, () => localDetectOrEmpty(sourceText));
   if (!isIncompleteSchema(choice.sections)) setError("");
   setNotice(choice.notice);
-  return choice.sections;
+  return { sections: choice.sections, groups: choice.groups ?? [] };
 }
 
 type DetectPayload = {
   sections?: FormSchemaSection[];
   detection?: { message?: string };
+  completeness_groups?: CompletenessLogicGroup[];
 };
 
 async function tryDetect(
@@ -320,6 +336,7 @@ async function tryDetect(
     return {
       sections: coerceLoadedSections(payload.sections ?? []),
       notice: payload.detection?.message ?? "",
+      groups: payload.completeness_groups ?? [],
     };
   } catch {
     setError("We could not reach LEO. Add a section, or try again.");

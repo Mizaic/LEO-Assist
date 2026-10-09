@@ -55,6 +55,10 @@ class CompletenessGroupRequest(BaseModel):
     members: list[dict[str, Any]] = Field(default_factory=list)
     if_group: dict[str, Any] | None = None
     then_group: dict[str, Any] | None = None
+    section_id: str = ""
+    item_pattern: str = ""
+    evidence: str = Field(default="", max_length=500)
+    needs_review: bool = False
 
 
 class SaveFormSchemaRequest(BaseModel):

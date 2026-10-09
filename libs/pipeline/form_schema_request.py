@@ -156,6 +156,7 @@ def schema_to_dict(schema: Any) -> dict[str, Any]:
         "service_id": schema.service_id,
         "organization_name": schema.organization_name,
         "service_name": schema.service_name,
+        "completeness_groups": list(schema.completeness_groups or []),
     }
 
 

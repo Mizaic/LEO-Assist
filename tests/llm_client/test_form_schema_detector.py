@@ -214,7 +214,10 @@ def test_detect_uses_big_tier_and_single_converse():
     kwargs = client.converse.call_args.kwargs
     assert kwargs["agent_task"] == "form_schema_detect"
     assert kwargs["json_mode"] is True
-    assert kwargs["structured_schema"]["required"] == ["sections"]
+    assert kwargs["structured_schema"]["required"] == [
+        "sections",
+        "completeness_rules",
+    ]
 
 
 def test_detect_empty_parse_falls_back_to_splitter():

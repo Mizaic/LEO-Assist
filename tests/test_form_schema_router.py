@@ -152,6 +152,7 @@ def test_validation_role_can_detect(mock_detect, mock_pg):
         "sections": [],
         "borrowed_count": 0,
         "detection": FormDetection().to_payload(),
+        "completeness_groups": [],
     }
     mock_detect.assert_called_once()
 

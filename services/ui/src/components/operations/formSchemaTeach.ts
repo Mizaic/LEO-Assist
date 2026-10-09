@@ -112,6 +112,10 @@ export type CompletenessLogicGroup = {
   members?: CompletenessLogicGroup[];
   if_group?: CompletenessLogicGroup | null;
   then_group?: CompletenessLogicGroup | null;
+  section_id?: string;
+  item_pattern?: string;
+  evidence?: string;
+  needs_review?: boolean;
 };
 
 /** Drop blank items and fill start_pattern before PUT /form-schemas. */
@@ -185,6 +189,7 @@ export type LoadedTeachSchema = {
   form_name: string;
   fingerprint?: string;
   sections: FormSchemaSection[];
+  completeness_groups?: CompletenessLogicGroup[];
 };
 
 const FETCH_HDRS = { "X-Requested-With": "XMLHttpRequest" };
@@ -261,6 +266,7 @@ async function loadSchemaByFingerprint(
     return {
       ...payload.schema,
       sections: coerceLoadedSections(payload.schema.sections ?? []),
+      completeness_groups: payload.schema.completeness_groups ?? [],
     };
   } catch {
     return null;

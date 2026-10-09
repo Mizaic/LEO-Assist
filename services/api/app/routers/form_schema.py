@@ -55,6 +55,8 @@ from libs.pipeline.blood_panel_presets import (
     unverified_preset_codes,
 )
 from libs.pipeline.document_chunk_loader import build_document_chunk_state
+from libs.pipeline.form_detect_response import build_detect_response
+from libs.pipeline.form_pattern_dates import dated_start_pattern_message
 from libs.pipeline.form_schema_request import (
     build_sections_from_request,
     filter_schema_summaries,
@@ -88,11 +90,6 @@ from libs.cypher.form_schema_queries import (
     LIST_FORM_SCHEMAS,
     LIST_FORM_SCHEMA_SECTIONS,
     SAVE_NORMALISED_TEMPLATE,
-)
-from libs.pipeline.form_schema_similarity import (
-    SectionMatch,
-    find_similar_sections,
-    merge_borrowed_and_detected,
 )
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
@@ -322,6 +319,9 @@ def save_schema(
             status_code=422,
             detail="At least one section with a start pattern is required.",
         )
+    dated = dated_start_pattern_message(raw_sections)
+    if dated:
+        raise HTTPException(status_code=422, detail=dated)
     write = FormSchemaWrite(
         fingerprint=fingerprint,
         form_name=body.form_name,
@@ -447,17 +447,7 @@ async def detect_schema(
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-    borrowed: list[SectionMatch] = []
-    merged = detection.sections
-    if known_schemas:
-        borrowed = find_similar_sections(body.text.split("\n\n"), known_schemas)
-        merged = merge_borrowed_and_detected(borrowed, detection.sections)
-    return {
-        "sections": fill_skip_section_boxes(merged, body.text),
-        "borrowed_count": len(borrowed),
-        "detection": detection.to_payload(),
-    }
+    return build_detect_response(detection, body.text, known_schemas)
 
 
 def _load_known_schema_dicts() -> list[dict[str, Any]]:
