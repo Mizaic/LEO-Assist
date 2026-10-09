@@ -38,6 +38,7 @@ CONFIGURED_MODELS = {
     "gpt-5-mini": (400_000, 272_000, 128_000),
     "gpt-5.4": (1_050_000, 922_000, 128_000),
     "gpt-5.6-sol": (1_050_000, 922_000, 128_000),
+    "gpt-5.6-luna": (1_050_000, 922_000, 128_000),
     "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/"
     "eu.anthropic.claude-haiku-4-5-20251001-v1:0": (200_000, 200_000, 64_000),
     "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/"
@@ -54,8 +55,9 @@ CONFIGURED_MODELS = {
 # from here stops every call on that tier, so the deployed set is pinned.
 DEPLOYED_MODEL_IDS = (
     "gpt-5.4",  # pipeline-worker AZURE_OPENAI_BIG_MODEL
-    "gpt-5.4-mini",  # AZURE_OPENAI_SMALL_MODEL, both apps
+    "gpt-5.4-mini",  # pipeline-worker AZURE_OPENAI_SMALL_MODEL
     "gpt-5.6-sol",  # core-api AZURE_OPENAI_BIG_MODEL from 2026-10-09
+    "gpt-5.6-luna",  # core-api AZURE_OPENAI_SMALL_MODEL from 2026-10-09
 )
 
 

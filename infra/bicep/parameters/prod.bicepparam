@@ -19,7 +19,7 @@ param awsDefaultRegion = 'eu-west-2'
 // so calls still go to Azure (same as the live apps).
 param azureOpenAiEndpoint = 'https://mizaic-cds-oai.openai.azure.com/'
 param azureOpenAiBigModel = 'gpt-5.6-sol'
-param azureOpenAiSmallModel = 'gpt-5.4-mini'
+param azureOpenAiSmallModel = 'gpt-5.6-luna'
 param azureOpenAiApiVersion = '2024-12-01-preview'
 param pipelineModelProvider = 'aws'
 param azureOpenAiWorkerBigModel = 'gpt-5.4'

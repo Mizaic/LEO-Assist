@@ -94,8 +94,10 @@ PUBLISHED_WINDOWS: dict[str, ModelWindow] = {
         ModelWindow("gpt-5.4-nano", 400_000, 272_000, 128_000),
         ModelWindow("gpt-5.4-pro", 1_050_000, 922_000, 128_000),
         ModelWindow("gpt-5.2", 400_000, 272_000, 128_000),
-        # core-api's big model from 2026-10-09 (catalogue read that day).
+        # core-api's big and small models from 2026-10-09 (catalogue read
+        # that day).
         ModelWindow("gpt-5.6-sol", 1_050_000, 922_000, 128_000),
+        ModelWindow("gpt-5.6-luna", 1_050_000, 922_000, 128_000),
         # The chat preview is a fraction of the rest. Its 16,384 output
         # ceiling is below what Azure's reasoning expansion will ask for, so
         # it is the one that trips, and the fleet budget stays sized to it.

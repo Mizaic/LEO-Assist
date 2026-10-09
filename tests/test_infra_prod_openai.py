@@ -36,7 +36,7 @@ _MODEL_PARAMS = (
 def test_prod_params_match_live_container_apps() -> None:
     source = PROD_PARAMS.read_text()
     assert _param(source, "azureOpenAiBigModel") == "gpt-5.6-sol"
-    assert _param(source, "azureOpenAiSmallModel") == "gpt-5.4-mini"
+    assert _param(source, "azureOpenAiSmallModel") == "gpt-5.6-luna"
     assert _param(source, "azureOpenAiApiVersion") == "2024-12-01-preview"
     assert _param(source, "pipelineModelProvider") == "aws"
     assert _param(source, "azureOpenAiWorkerBigModel") == "gpt-5.4"
@@ -76,6 +76,7 @@ def test_openai_module_declares_live_account_deployments() -> None:
         "gpt-5.4-mini",
         "gpt-5.4-nano",
         "gpt-5.6-sol",
+        "gpt-5.6-luna",
     ):
         assert f"name: '{name}'" in source
     assert "2026-03-05" in source
