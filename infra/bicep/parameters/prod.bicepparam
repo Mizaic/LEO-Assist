@@ -18,7 +18,7 @@ param awsDefaultRegion = 'eu-west-2'
 // PIPELINE_MODEL_PROVIDER is aws, but AWS_LLM_ENABLED stays false in the module
 // so calls still go to Azure (same as the live apps).
 param azureOpenAiEndpoint = 'https://mizaic-cds-oai.openai.azure.com/'
-param azureOpenAiBigModel = 'gpt-5.2-chat'
+param azureOpenAiBigModel = 'gpt-5.6-sol'
 param azureOpenAiSmallModel = 'gpt-5.4-mini'
 param azureOpenAiApiVersion = '2024-12-01-preview'
 param pipelineModelProvider = 'aws'

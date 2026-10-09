@@ -31,12 +31,13 @@ from libs.llm_client.context_budget import (
 )
 from libs.pipeline.llm_clinical_input import DEFAULT_USER_TEXT_MAX_CHARS
 
-# The five models the platform is configured to use, and the limits their
+# The models the platform is configured to use, and the limits their
 # vendors publish. Sources: Microsoft Foundry model catalogue and the AWS
-# Bedrock model cards, both read 2026-09-18.
+# Bedrock model cards, read 2026-09-18; gpt-5.6-sol read 2026-10-09.
 CONFIGURED_MODELS = {
     "gpt-5-mini": (400_000, 272_000, 128_000),
     "gpt-5.4": (1_050_000, 922_000, 128_000),
+    "gpt-5.6-sol": (1_050_000, 922_000, 128_000),
     "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/"
     "eu.anthropic.claude-haiku-4-5-20251001-v1:0": (200_000, 200_000, 64_000),
     "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/"
@@ -54,7 +55,7 @@ CONFIGURED_MODELS = {
 DEPLOYED_MODEL_IDS = (
     "gpt-5.4",  # pipeline-worker AZURE_OPENAI_BIG_MODEL
     "gpt-5.4-mini",  # AZURE_OPENAI_SMALL_MODEL, both apps
-    "gpt-5.2-chat",  # core-api AZURE_OPENAI_BIG_MODEL
+    "gpt-5.6-sol",  # core-api AZURE_OPENAI_BIG_MODEL from 2026-10-09
 )
 
 
@@ -66,8 +67,9 @@ def test_every_model_the_apps_are_pointed_at_has_a_window() -> None:
 
 
 def test_the_smallest_deployed_model_is_the_chat_preview() -> None:
-    """gpt-5.2-chat is a fraction of the others at 128,000, and core-api
-    runs it as its big model. A budget sized for gpt-5.4 overruns it."""
+    """gpt-5.2-chat is a fraction of the others at 128,000. core-api ran it
+    as its big model until 2026-10-09, and the fleet budget is still sized
+    to it. A budget sized for gpt-5.4 overruns it."""
     window = window_for_model("gpt-5.2-chat")
     assert window.context_window_tokens == 128_000
     assert window.max_input_tokens == 111_616

@@ -1,6 +1,6 @@
 // -- Azure OpenAI (Cognitive Services account) ------------------------------
-// Shared OpenAI account (mizaic-cds-oai) plus the three live model
-// deployments on leo-prod-rg (read 2026-08-25).
+// Shared OpenAI account (mizaic-cds-oai) plus the live model deployments on
+// leo-prod-rg (read 2026-08-25; gpt-5.6-sol added 2026-10-09).
 param location string = resourceGroup().location
 param skuName string = 'S0'
 param publicNetworkAccess string = 'Enabled'
@@ -213,6 +213,24 @@ resource gpt54Nano 'Microsoft.CognitiveServices/accounts/deployments@2026-03-01'
       format: 'OpenAI'
       name: 'gpt-5.4-nano'
       version: '2026-03-17'
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+  }
+}
+
+resource gpt56Sol 'Microsoft.CognitiveServices/accounts/deployments@2026-03-01' = {
+  parent: aoaiAccount
+  name: 'gpt-5.6-sol'
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 4000
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-5.6-sol'
+      version: '2026-07-09'
     }
     raiPolicyName: 'Microsoft.DefaultV2'
     versionUpgradeOption: 'OnceNewDefaultVersionAvailable'

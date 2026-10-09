@@ -25,9 +25,17 @@ def _param(source: str, name: str) -> str:
     raise AssertionError(f"param {name} missing")
 
 
+_MODEL_PARAMS = (
+    "azureOpenAiBigModel",
+    "azureOpenAiSmallModel",
+    "azureOpenAiWorkerBigModel",
+    "azureOpenAiWorkerSmallModel",
+)
+
+
 def test_prod_params_match_live_container_apps() -> None:
     source = PROD_PARAMS.read_text()
-    assert _param(source, "azureOpenAiBigModel") == "gpt-5.2-chat"
+    assert _param(source, "azureOpenAiBigModel") == "gpt-5.6-sol"
     assert _param(source, "azureOpenAiSmallModel") == "gpt-5.4-mini"
     assert _param(source, "azureOpenAiApiVersion") == "2024-12-01-preview"
     assert _param(source, "pipelineModelProvider") == "aws"
@@ -62,8 +70,25 @@ def test_main_bicep_forwards_prod_openai_params() -> None:
 
 def test_openai_module_declares_live_account_deployments() -> None:
     source = OPENAI_MODULE.read_text()
-    for name in ("gpt-5.4", "gpt-5-mini", "gpt-5.4-mini", "gpt-5.4-nano"):
+    for name in (
+        "gpt-5.4",
+        "gpt-5-mini",
+        "gpt-5.4-mini",
+        "gpt-5.4-nano",
+        "gpt-5.6-sol",
+    ):
         assert f"name: '{name}'" in source
     assert "2026-03-05" in source
     assert "2025-08-07" in source
     assert "2026-03-17" in source
+    assert "2026-07-09" in source
+
+
+def test_every_prod_model_is_a_declared_deployment() -> None:
+    """On 2026-10-09 core-api pointed at gpt-5.2-chat, which mizaic-cds-oai
+    did not have, so every big-tier call returned DeploymentNotFound."""
+    params = PROD_PARAMS.read_text()
+    deployments = OPENAI_MODULE.read_text()
+    for name in _MODEL_PARAMS:
+        model = _param(params, name)
+        assert f"name: '{model}'" in deployments, f"{name}={model}"
