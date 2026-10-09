@@ -5,7 +5,7 @@ FormSchema sections -- including clinical entity text for each checkbox item.
 
 The clinician reviews and corrects the proposals in the UI before saving.
 
-Atlas trace: DI-5C9CA57B, DO-D0C19842
+Atlas trace: DI-5C9CA57B, DO-D0C19842, DI-C1744ED5, DO-1C8E7598
 """
 
 from __future__ import annotations
@@ -15,7 +15,9 @@ import logging
 import re
 from typing import Any
 
+from libs.llm_client.context_budget import fleet_safe_char_budget
 from libs.llm_client.factory import create_llm
+from libs.llm_client.form_detection import DetectionReason, FormDetection
 from libs.llm_client.prompt_safety import (
     INJECTION_GUARD,
     cap_llm_response,
@@ -32,9 +34,7 @@ from libs.pipeline.form_section_splitter import (
 
 log = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = (
-    INJECTION_GUARD
-    + """
+_SYSTEM_PROMPT = INJECTION_GUARD + """
 You are a clinical form structure analyser for NHS referral forms.
 Given raw referral form text, identify every distinct section and classify it.
 
@@ -63,6 +63,10 @@ cells separated by "|", and apply these rules:
   administrative wrapper. Classify it as admin.
 
 start_pattern must be the heading text WITHOUT the surrounding pipes.
+When a table's first header cell is only a date column, such as
+"Start date" or "Consultation date", the start_pattern must be the whole
+header row, for example "Start date | Full description". A bare
+"Start date" would also start every other table with a date column.
 
 SECTION TYPES -- choose exactly one per section. Use one of these exact
 strings. "checkbox" on its own is not a section type and will be rejected:
@@ -88,6 +92,9 @@ as a guide. Unknown forms use the same structural vocabulary.
      default_semantic_tags: ["none"]
      Heading examples: "Patient Details", "GP Details", "Practice Address",
        "Trust Use Only", "For Hospital Use"
+     A table of the patient's problems, consultations, coded history or
+     medicines is never admin, even when its header is only a date column.
+     Use coded_history_tables (12) for those.
 
   2. cancer_type_select
      What it is: Tick-boxes where the referrer picks ONE suspected cancer site.
@@ -166,6 +173,18 @@ as a guide. Unknown forms use the same structural vocabulary.
       Heading examples: "Blood Results", "Lab Results", "FBC result",
         "eGFR", "Hb", "MCV", "Ferritin"
 
+  12. coded_history_tables
+      What it is: Dated rows of the patient's problems, consultations,
+        coded history (Read or SNOMED codes) or medicines, often pasted
+        from the GP record below the narrative.
+      Always classify as: free_text
+      default_semantic_tags: ["finding", "substance"]
+      Heading examples: "Start date | Problem",
+        "Consultation date | Read code and description",
+        "Start date | Full description", "Problem list", "Past history"
+      These rows hold the patient's conditions and medicines. Skipping
+      them hides clinical facts from the triage clinician.
+
 ITEMS (only for checkbox_single, checkbox_yesno, scale):
 For each option provide:
   "pattern"     : the exact label text before the box, e.g. "Cervix"
@@ -205,11 +224,16 @@ Use precise clinical language for entity_text. Examples:
 
 Return one JSON object matching the supplied schema. No prose.
 """
-)
 
-_MAX_FORM_CHARS = 6000
-_MAX_RESPONSE_CHARS = 16000
-_MAX_TOKENS = 2048
+# The whole letter is sent: a cut letter yields a false skip section and
+# hides the medicines. Sized to the smallest model on the fleet.
+_MAX_FORM_CHARS = fleet_safe_char_budget()
+# Azure doubles this with reasoning off; the result must stay inside the
+# smallest output ceiling (gpt-5.2-chat). The answer cap keeps 4 characters
+# per expanded token. Change the two together.
+_MAX_TOKENS = 6000
+_MAX_RESPONSE_CHARS = 48_000
+_TABLE_PIPE = re.compile(r"(?<!\\)(\s)\|(\s)")
 
 _OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -292,30 +316,55 @@ _OUTPUT_SCHEMA: dict[str, Any] = {
 
 
 def detect_form_sections(text: str) -> list[dict[str, Any]]:
+    """Proposed sections only. Use detect_form_schema to learn how they were found."""
+    return detect_form_schema(text).sections
+
+
+def detect_form_schema(text: str) -> FormDetection:
     """Call the big-tier LLM once to detect form sections.
 
-    If the model is missing, the parse is empty, or the result is only
-    admin / skip sections, fall back to the deterministic splitter so
-    Section A / B on a table-wrapped form still appear.
+    If the model fails, its answer cannot be read, or it finds only admin /
+    skip sections, fall back to the deterministic splitter. The outcome
+    says which reader answered, so the teacher is told about a fallback.
     """
+    letter_cut = len(text or "") > _MAX_FORM_CHARS
     cleaned = sanitise_for_prompt(text, max_chars=_MAX_FORM_CHARS)
-    sections: list[dict[str, Any]] = []
-    try:
-        response = _call_detector(cleaned)
-        sections = _parse_response(response.text or "") or []
-    except Exception:
-        log.warning("form-detect: LLM call failed", exc_info=True)
-    if is_incomplete_schema(sections):
+    sections, reason = _ask_model(cleaned)
+    used_fallback = False
+    if reason != "model":
         fallback = split_form_sections(text)
         if not is_incomplete_schema(fallback):
             log.info("form-detect: splitter fallback found %d sections", len(fallback))
-            return fallback
-    log.info("form-detect: %d sections detected by LLM", len(sections))
-    return sections
+            sections, used_fallback = fallback, True
+    else:
+        log.info("form-detect: %d sections detected by LLM", len(sections))
+    return FormDetection(
+        sections=sections,
+        reason=reason,
+        used_fallback=used_fallback,
+        letter_cut=letter_cut,
+        read_chars=len(cleaned),
+    )
+
+
+def _ask_model(form_text: str) -> tuple[list[dict[str, Any]], DetectionReason]:
+    try:
+        response = _call_detector(form_text)
+    except Exception:
+        log.warning("form-detect: LLM call failed", exc_info=True)
+        return [], "model_failed"
+    sections = _parse_response(response.text or "")
+    if sections is None:
+        log.warning("form-detect: LLM answer could not be read")
+        return [], "model_unreadable"
+    if is_incomplete_schema(sections):
+        log.warning("form-detect: LLM found no clinical sections")
+        return sections, "model_no_clinical"
+    return sections, "model"
 
 
 def _call_detector(form_text: str) -> Any:
-    client = create_llm(tier="big")
+    client = create_llm(tier="big", use_reasoning=False)
     return client.converse(
         system=_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": form_text}],
@@ -370,12 +419,22 @@ def _validate_section(raw: dict[str, Any]) -> dict[str, Any]:
             raw.get("section_type", "free_text"),
             source="llm form-schema detector",
         ),
-        "start_pattern": str(raw.get("start_pattern", "")),
+        "start_pattern": _escape_table_pipes(str(raw.get("start_pattern", ""))),
         "default_semantic_tags": _coerce_semantic_tags(raw),
         "items": [
             _validate_item(i) for i in raw.get("items", []) if isinstance(i, dict)
         ],
     }
+
+
+def _escape_table_pipes(pattern: str) -> str:
+    """Read a space-padded '|' as a table cell border, not regex 'or'.
+
+    The model copies table headings such as "Start date | Problem". As a
+    regex that matches any line containing "Problem" or "Start date", so
+    the section swallows the medicines table that follows.
+    """
+    return _TABLE_PIPE.sub(r"\1\\|\2", pattern)
 
 
 def _coerce_semantic_tags(raw: dict[str, Any]) -> list[str]:

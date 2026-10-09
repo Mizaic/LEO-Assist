@@ -20,6 +20,7 @@ from libs.llm_client.form_schema_detector import (
     detect_form_sections,
 )
 from libs.llm_client.prompt_safety import INJECTION_GUARD
+from libs.pipeline.form_pattern_match import section_matches
 
 # ---------------------------------------------------------------------------
 # _parse_response
@@ -208,7 +209,7 @@ def test_detect_uses_big_tier_and_single_converse():
     ) as create:
         detect_form_sections(GYNAE_SAMPLE)
 
-    create.assert_called_once_with(tier="big")
+    create.assert_called_once_with(tier="big", use_reasoning=False)
     assert client.converse.call_count == 1
     kwargs = client.converse.call_args.kwargs
     assert kwargs["agent_task"] == "form_schema_detect"
@@ -231,12 +232,13 @@ def test_detect_does_not_import_run_consensus():
     assert not hasattr(detector, "run_consensus")
 
 
-def test_detect_sanitises_form_text_and_truncates():
+def test_detect_sanitises_form_text_and_sends_it_whole():
     long_text = "A" * 10000
     captured: list[str] = []
 
-    def fake_create(*, tier):
+    def fake_create(*, tier, use_reasoning):
         assert tier == "big"
+        assert use_reasoning is False
         client = MagicMock()
 
         def converse(**kwargs):
@@ -253,7 +255,24 @@ def test_detect_sanitises_form_text_and_truncates():
         detect_form_sections(long_text)
 
     assert captured
-    assert len(captured[0]) <= 6000
+    assert captured[0] == long_text
+
+
+def test_validate_section_reads_table_pipe_in_start_pattern_as_text():
+    """A '|' between table cells is text, not regex 'or' (R-98702FED)."""
+    raw = dict(_VALID_SECTION, start_pattern="Start date | Problem")
+    pattern = _validate_section(raw)["start_pattern"]
+
+    assert section_matches(pattern, "Start date | Problem")
+    assert not section_matches(pattern, "Start date | Full description")
+    assert not section_matches(pattern, "Problem")
+
+
+def test_validate_section_keeps_unspaced_regex_alternation():
+    raw = dict(_VALID_SECTION, start_pattern="(?i)section\\s+a:|section a")
+    pattern = _validate_section(raw)["start_pattern"]
+
+    assert pattern == "(?i)section\\s+a:|section a"
 
 
 def test_detect_system_prompt_uses_shared_injection_guard():
@@ -271,6 +290,19 @@ def test_detect_prompt_covers_free_text_body_below_heading():
     prompt = fsd._SYSTEM_PROMPT.lower()
     assert "additional clinical" in prompt
     assert "lines below" in prompt or "box" in prompt
+
+
+def test_detect_prompt_never_skips_problem_history_or_medicine_tables():
+    """Clinical tables under a date header are free_text (R-98702FED)."""
+    from libs.llm_client import form_schema_detector as fsd
+
+    prompt = fsd._SYSTEM_PROMPT
+    tables = prompt[prompt.index("coded_history_tables") :]
+    assert "Always classify as: free_text" in tables
+    for header in ("Start date | Problem", "Consultation date", "Full description"):
+        assert header in tables
+    assert "never admin" in prompt.lower()
+    assert '"Start date | Full description"' in prompt
 
 
 def test_detect_returns_empty_on_llm_exception_when_no_headers():

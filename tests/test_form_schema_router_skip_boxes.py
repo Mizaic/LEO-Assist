@@ -23,6 +23,7 @@ if str(_API_ROOT) not in sys.path:
 
 from app.deps import get_session_data  # noqa: E402
 from app.routers.form_schema import router  # noqa: E402
+from libs.llm_client.form_detection import FormDetection  # noqa: E402
 from libs.pipeline.form_schema_normalizer import FormSchema  # noqa: E402
 
 _ROUTER = "app.routers.form_schema"
@@ -110,7 +111,10 @@ def test_detect_returns_admin_sections_with_their_tick_boxes() -> None:
     graph.run.return_value = []
     with (
         patch(f"{_ROUTER}.PatientGraphClient", return_value=graph),
-        patch(f"{_ROUTER}.detect_form_sections", return_value=_detected()),
+        patch(
+            f"{_ROUTER}.detect_form_schema",
+            return_value=FormDetection(sections=_detected()),
+        ),
     ):
         resp = _client().post("/form-schemas/detect", json={"text": _LETTER})
     assert resp.status_code == 200, resp.text

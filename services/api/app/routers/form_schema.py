@@ -48,7 +48,7 @@ from app.routers._form_schema_models import (
     SaveFormSchemaRequest,
 )
 from libs.cypher.chunk_queries import GET_CHUNKS_BY_UBRN
-from libs.llm_client.form_schema_detector import detect_form_sections
+from libs.llm_client.form_schema_detector import detect_form_schema
 from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline.blood_panel_presets import (
     blood_panel_preset_payload,
@@ -90,6 +90,7 @@ from libs.cypher.form_schema_queries import (
     SAVE_NORMALISED_TEMPLATE,
 )
 from libs.pipeline.form_schema_similarity import (
+    SectionMatch,
     find_similar_sections,
     merge_borrowed_and_detected,
 )
@@ -441,21 +442,22 @@ async def detect_schema(
     loop = asyncio.get_event_loop()
     known_schemas = _load_known_schema_dicts()
     try:
-        llm_sections = await loop.run_in_executor(
-            None, partial(detect_form_sections, body.text)
+        detection = await loop.run_in_executor(
+            None, partial(detect_form_schema, body.text)
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    if not known_schemas:
-        sections = fill_skip_section_boxes(llm_sections, body.text)
-        return {"sections": sections, "borrowed_count": 0}
-
-    chunks = body.text.split("\n\n")
-    borrowed = find_similar_sections(chunks, known_schemas)
-    merged = merge_borrowed_and_detected(borrowed, llm_sections)
-    sections = fill_skip_section_boxes(merged, body.text)
-    return {"sections": sections, "borrowed_count": len(borrowed)}
+    borrowed: list[SectionMatch] = []
+    merged = detection.sections
+    if known_schemas:
+        borrowed = find_similar_sections(body.text.split("\n\n"), known_schemas)
+        merged = merge_borrowed_and_detected(borrowed, detection.sections)
+    return {
+        "sections": fill_skip_section_boxes(merged, body.text),
+        "borrowed_count": len(borrowed),
+        "detection": detection.to_payload(),
+    }
 
 
 def _load_known_schema_dicts() -> list[dict[str, Any]]:

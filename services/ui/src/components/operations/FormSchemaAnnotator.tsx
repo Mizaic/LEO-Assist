@@ -28,6 +28,7 @@ import type { FormSchemaSection } from "./formSchemaDetector";
 import { seedCompletenessGroups } from "./formSchemaCompletenessSeed";
 import { saveTaughtForm, type CompletenessLogicGroup } from "./formSchemaTeach";
 import { useFormSchemaTeach } from "./useFormSchemaTeach";
+import { FormSchemaDetectionNotice } from "./FormSchemaDetectionNotice";
 
 interface Props {
   fingerprint: string;
@@ -198,6 +199,7 @@ export default function FormSchemaAnnotator({
         }}
       />
       <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1 }}>
+        <FormSchemaDetectionNotice message={teach.notice} />
         {teach.sections.length === 0 ? (
           <EmptyTeachState onAdd={teach.addSection} />
         ) : (

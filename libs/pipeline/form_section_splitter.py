@@ -1,10 +1,10 @@
 """Deterministic section splitter for referral form teaching.
 
-Finds Section A/B/C and named admin headers even when they sit
-inside markdown tables or HTML cells. Used when the LLM returns
+Finds Section A/B/C, SECTION 1/2/3 and named admin headers even when
+they sit inside markdown tables or HTML cells. Used when the LLM returns
 nothing useful.
 
-Atlas trace: DI-5C9CA57B, DO-D0C19842
+Atlas trace: DI-5C9CA57B, DO-D0C19842, DI-C1744ED5, DO-1C8E7598
 """
 
 from __future__ import annotations
@@ -12,16 +12,20 @@ from __future__ import annotations
 import re
 from typing import Any
 
-_SECTION = re.compile(r"(?i)^section\s+([a-z])\b")
+_SECTION = re.compile(r"(?i)^section\s+([a-z]|\d{1,2})\b")
 _NAMED = re.compile(
     r"(?i)^(patient details|practice details|minimum dataset|"
-    r"for trust use|hospital number|pmb primary care|"
+    r"for trust use|hospital number|hospital use only|pmb primary care|"
     r"patient awareness|bmi|blood results|medication|allergies|"
     r"clinical frailty|frailty scale)"
 )
 _ADMIN = re.compile(
-    r"(?i)^(patient details|practice details|for trust use|hospital number)"
+    r"(?i)^(patient details|practice details|for trust use|hospital number|"
+    r"hospital use only)"
 )
+# Numbered forms print the admin heading after the number, e.g.
+# "SECTION 1 - PATIENT DEMOGRAPHIC DETAILS".
+_ADMIN_NUMBERED = re.compile(r"(?i)^section\s+\d{1,2}\b.*\bdemographic")
 # Lines that match _NAMED but contain a measurement or result value after the
 # label -- treat them as data rows, not section headings.
 _DATA_MEAS = re.compile(
@@ -54,7 +58,7 @@ _BLOCK = re.compile(r"(?i)<br\s*/?>|</(?:p|div|tr|h[1-6]|li)>")
 _TD = re.compile(r"(?i)</td>")
 _LEAD_PIPE = re.compile(r"(?m)^\s*\|\s*")
 _TAIL_PIPE = re.compile(r"(?m)\s*\|\s*$")
-_SECTION_SPLIT = re.compile(r"(?i)(?<![A-Za-z])(section\s+[a-z]\b)")
+_SECTION_SPLIT = re.compile(r"(?i)(?<![A-Za-z])(section\s+(?:[a-z]|\d{1,2})\b)")
 
 
 def normalize_form_text(text: str) -> str:
@@ -81,7 +85,7 @@ def split_form_sections(text: str) -> list[dict[str, Any]]:
         body = [ln.strip() for ln in lines[idx + 1 : next_idx] if ln.strip()]
         section_type = _section_type(label, body)
         letter = _SECTION.match(label)
-        section_id = letter.group(1).upper() if letter else str(i)
+        section_id = letter.group(1).upper() if letter else f"H{i}"
         sections.append(
             {
                 "section_id": section_id,
@@ -214,12 +218,12 @@ def _section_type(label: str, body: list[str]) -> str:
         return "scale"
     if re.search(r"(?i)clinical frailty|frailty scale|cfs\b", label):
         return "scale"
-    if re.search(r"(?i)medication|allergies", label):
+    if _ADMIN.match(label) or _ADMIN_NUMBERED.match(label):
         return "admin"
+    if re.search(r"(?i)medication|allergies", label):
+        return "free_text"
     if re.search(r"(?i)pmb|awareness|holiday", label):
         return "checkbox_multi"
-    if _ADMIN.match(label):
-        return "admin"
     return _classify(body)
 
 
@@ -248,6 +252,8 @@ def _start_pattern(label: str) -> str:
     brackets that would otherwise produce an uncompilable pattern.
     """
     letter = _SECTION.match(label)
+    if letter and letter.group(1).isdigit():
+        return rf"(?i)section\s+{letter.group(1)}\b"
     if letter:
         return rf"(?i)section\s+{letter.group(1).lower()}:"
     first = r"\s+".join(re.escape(word) for word in label.split()[:3])

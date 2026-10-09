@@ -34,6 +34,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.deps import get_session_data  # noqa: E402
 from app.routers.form_schema import router  # noqa: E402
+from libs.llm_client.form_detection import FormDetection  # noqa: E402
 from libs.pipeline.form_schema_normalizer import FormSchema  # noqa: E402
 from libs.pipeline.form_schema_store import FormSchemaWrite  # noqa: E402
 
@@ -69,7 +70,10 @@ def handle(request: dict) -> dict:
     graph.run.return_value = []
     with (
         patch(f"{_ROUTER}.PatientGraphClient", return_value=graph),
-        patch(f"{_ROUTER}.detect_form_sections", return_value=request["detected"]),
+        patch(
+            f"{_ROUTER}.detect_form_schema",
+            return_value=FormDetection(sections=request["detected"]),
+        ),
         patch(f"{_ROUTER}.save_form_schema", side_effect=_echo_save),
     ):
         resp = _client().request(

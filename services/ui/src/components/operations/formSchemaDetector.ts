@@ -93,11 +93,14 @@ const YES_NO_ROW = /Yes\s*\[(?:X|x)?\s*\]\s*No\s*\[(?:X|x)?\s*\]/i;
 const NUMBERED_SCALE = /\b1\.\s+\w[\w\s]+\[(?:X|\s*)\]/;
 const MANDATORY_TESTS =
   /mandatory|fbc|lft|ues|urea|calcium|creatinine|bloods?\s+done/i;
-const SECTION_HEADER = /^section\s+([a-z])\b(?:\s*[:.])?/i;
+const SECTION_HEADER = /^section\s+([a-z]|\d{1,2})\b(?:\s*[:.])?/i;
 const NAMED_HEADER =
-  /^(patient details|practice details|minimum dataset|for trust use|hospital number)/i;
+  /^(patient details|practice details|minimum dataset|for trust use|hospital number|hospital use only)/i;
 const ADMIN_HEADER =
-  /^(patient details|practice details|for trust use|hospital number)/i;
+  /^(patient details|practice details|for trust use|hospital number|hospital use only)/i;
+// Numbered forms print the admin heading after the number, e.g.
+// "SECTION 1 - PATIENT DEMOGRAPHIC DETAILS".
+const ADMIN_NUMBERED_HEADER = /^section\s+\d{1,2}\b.*\bdemographic/i;
 
 export function normalizeFormText(text: string): string {
   return text
@@ -108,7 +111,7 @@ export function normalizeFormText(text: string): string {
     .replace(/<[^>]+>/g, " ")
     .replace(/^\s*\|\s*/gm, "")
     .replace(/\s*\|\s*$/gm, "")
-    .replace(/(^|[^A-Za-z])(section\s+[a-z]\b)/gi, "$1\n$2")
+    .replace(/(^|[^A-Za-z])(section\s+(?:[a-z]|\d{1,2})\b)/gi, "$1\n$2")
     .replace(/[ \t]+/g, " ");
 }
 
@@ -196,7 +199,8 @@ function _buildItems(sectionType: SectionType, bodyLines: string[]): FormSchemaI
 }
 
 function _startPattern(label: string): string {
-  const letter = label.match(/section\s+([a-z])/i)?.[1];
+  const letter = label.match(SECTION_HEADER)?.[1];
+  if (letter && /^\d+$/.test(letter)) return `(?i)section\\s+${letter}\\b`;
   if (letter) return `(?i)section\\s+${letter.toLowerCase()}:`;
   const first = label.split(/\s+/).slice(0, 3).join("\\s+");
   return `(?i)${first}`;
@@ -222,12 +226,13 @@ export function detectSections(text: string): FormSchemaSection[] {
     const nextIdx = i + 1 < breakpoints.length ? breakpoints[i + 1].idx : lines.length;
     const bodyLines = lines.slice(idx + 1, nextIdx).filter((ln) => ln.trim());
     const namedType = classifyNamedSection(label, bodyLines);
+    const isAdmin = ADMIN_HEADER.test(label) || ADMIN_NUMBERED_HEADER.test(label);
     const sectionType: SectionType = namedType
       ? namedType
-      : ADMIN_HEADER.test(label)
+      : isAdmin
         ? "admin"
         : _classifyLines(bodyLines);
-    const letter = label.match(/section\s+([a-z])/i)?.[1] ?? String(i);
+    const letter = label.match(SECTION_HEADER)?.[1] ?? `H${i}`;
     sections.push({
       section_id: letter.toUpperCase(),
       section_type: sectionType,

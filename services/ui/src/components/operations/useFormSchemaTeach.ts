@@ -20,6 +20,7 @@ import {
   savedSchemaBlocksAutoDetect,
   type TeachScopeIds,
 } from "./formSchemaTeach";
+import { chooseDetection, type ApiDetectResult } from "./formSchemaDetectChoice";
 
 const FETCH_HDRS = { "X-Requested-With": "XMLHttpRequest" };
 
@@ -37,12 +38,14 @@ export function useFormSchemaTeach(
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [saved, setSaved] = useState(false);
   const [libraryFingerprint, setLibraryFingerprint] = useState("");
 
   const loadOrDetect = useCallback(async () => {
     setLoading(true);
     setError("");
+    setNotice("");
     setLibraryFingerprint("");
     const saved = await loadTaughtLibrarySchema(fingerprint, scope);
     if (saved && savedSchemaBlocksAutoDetect(saved.sections)) {
@@ -55,7 +58,7 @@ export function useFormSchemaTeach(
       return;
     }
     if (saved) setName(saved.form_name);
-    const next = await detectWithFallback(sourceText, setError);
+    const next = await detectWithFallback(sourceText, setError, setNotice);
     const detectedName = detectFormName(sourceText);
     if (!saved?.form_name || saved.form_name === "Referral form") {
       if (detectedName && detectedName !== "Referral form") setName(detectedName);
@@ -70,9 +73,10 @@ export function useFormSchemaTeach(
   const retryDetect = useCallback(async () => {
     setLoading(true);
     setError("");
+    setNotice("");
     setSaved(false);
     try {
-      const next = await detectWithFallback(sourceText, setError);
+      const next = await detectWithFallback(sourceText, setError, setNotice);
       setSections(next);
     } finally {
       setLoading(false);
@@ -97,6 +101,7 @@ export function useFormSchemaTeach(
     loading,
     saving,
     error,
+    notice,
     saved,
     libraryFingerprint,
     retryDetect,
@@ -117,6 +122,7 @@ function bindTeachActions(state: {
   loading: boolean;
   saving: boolean;
   error: string;
+  notice: string;
   saved: boolean;
   libraryFingerprint: string;
   retryDetect: () => Promise<void>;
@@ -128,6 +134,7 @@ function bindTeachActions(state: {
     loading: state.loading,
     saving: state.saving,
     error: state.error,
+    notice: state.notice,
     saved: state.saved,
     libraryFingerprint: state.libraryFingerprint,
     setSaved: state.setSaved,
@@ -280,24 +287,24 @@ async function saveSchema(args: {
 async function detectWithFallback(
   sourceText: string,
   setError: (msg: string) => void,
+  setNotice: (msg: string) => void,
 ): Promise<FormSchemaSection[]> {
-  const detected = await tryDetect(sourceText, setError);
-  if (!isIncompleteSchema(detected)) {
-    setError("");
-    return detected;
-  }
-  const local = localDetectOrEmpty(sourceText);
-  if (!isIncompleteSchema(local)) {
-    setError("");
-    return local;
-  }
-  return detected.length ? detected : local;
+  const api = await tryDetect(sourceText, setError);
+  const choice = chooseDetection(api, () => localDetectOrEmpty(sourceText));
+  if (!isIncompleteSchema(choice.sections)) setError("");
+  setNotice(choice.notice);
+  return choice.sections;
 }
+
+type DetectPayload = {
+  sections?: FormSchemaSection[];
+  detection?: { message?: string };
+};
 
 async function tryDetect(
   sourceText: string,
   setError: (msg: string) => void,
-): Promise<FormSchemaSection[]> {
+): Promise<ApiDetectResult> {
   try {
     const detect = await fetch("/api/form-schemas/detect", {
       method: "POST",
@@ -307,12 +314,15 @@ async function tryDetect(
     });
     if (!detect.ok) {
       setError(detectFailureMessage(detect.status));
-      return [];
+      return { sections: [], notice: "" };
     }
-    const payload = (await detect.json()) as { sections: FormSchemaSection[] };
-    return coerceLoadedSections(payload.sections ?? []);
+    const payload = (await detect.json()) as DetectPayload;
+    return {
+      sections: coerceLoadedSections(payload.sections ?? []),
+      notice: payload.detection?.message ?? "",
+    };
   } catch {
     setError("We could not reach LEO. Add a section, or try again.");
-    return [];
+    return { sections: [], notice: "" };
   }
 }

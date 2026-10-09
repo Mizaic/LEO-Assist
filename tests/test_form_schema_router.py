@@ -31,6 +31,7 @@ from app.routers.form_schema import (
     require_form_teacher,
     save_schema,
 )
+from libs.llm_client.form_detection import FormDetection
 from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
 
 
@@ -140,15 +141,38 @@ def test_teacher_roles_are_canonical_reviewer_set():
 
 
 @patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
-@patch("app.routers.form_schema.detect_form_sections", return_value=[])
+@patch("app.routers.form_schema.detect_form_schema", return_value=FormDetection())
 def test_validation_role_can_detect(mock_detect, mock_pg):
     mock_pg.return_value.run.return_value = []
     resp = _client(_session("validation")).post(
         "/form-schemas/detect", json=DETECT_BODY
     )
     assert resp.status_code == 200
-    assert resp.json() == {"sections": [], "borrowed_count": 0}
+    assert resp.json() == {
+        "sections": [],
+        "borrowed_count": 0,
+        "detection": FormDetection().to_payload(),
+    }
     mock_detect.assert_called_once()
+
+
+@patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
+@patch(
+    "app.routers.form_schema.detect_form_schema",
+    return_value=FormDetection(
+        sections=[], reason="model_failed", used_fallback=True, letter_cut=False
+    ),
+)
+def test_detect_returns_fallback_notice_for_the_teacher(_mock_detect, mock_pg):
+    """A fallback must reach the teacher, not only the log (R-98702FED)."""
+    mock_pg.return_value.run.return_value = []
+    resp = _client(_session("validation")).post(
+        "/form-schemas/detect", json=DETECT_BODY
+    )
+    detection = resp.json()["detection"]
+    assert detection["used_fallback"] is True
+    assert detection["reason"] == "model_failed"
+    assert "check every section" in detection["message"].lower()
 
 
 @patch("app.routers.form_schema.save_form_schema", return_value=_saved_schema())
@@ -162,7 +186,7 @@ def test_operations_manager_can_save(_mock_pg, mock_save):
     assert mock_save.call_args.args[1].created_by == "operations_manager@example.com"
 
 
-@patch("app.routers.form_schema.detect_form_sections", return_value=[])
+@patch("app.routers.form_schema.detect_form_schema", return_value=FormDetection())
 def test_lms_learner_cannot_detect(_mock_detect):
     resp = _client(_session("lms_learner")).post(
         "/form-schemas/detect", json=DETECT_BODY
@@ -177,7 +201,7 @@ def test_lms_learner_cannot_save(_mock_pg, _mock_save):
     assert resp.status_code == 403
 
 
-@patch("app.routers.form_schema.detect_form_sections", return_value=[])
+@patch("app.routers.form_schema.detect_form_schema", return_value=FormDetection())
 def test_platform_admin_can_detect_even_if_selected_role_cannot(_mock_detect):
     resp = _client(_session("lms_learner", platform_admin=True)).post(
         "/form-schemas/detect", json=DETECT_BODY
