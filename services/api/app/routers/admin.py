@@ -191,18 +191,32 @@ def _label_to_type(labels: list[str]) -> str:
 
 @router.get("/orgs")
 async def list_orgs(
+    brief: bool = False,
     scope: CallerScope = Depends(require_org_catalog_reader),
 ) -> list[dict[str, Any]]:
-    """List orgs. Platform admins see all; org admins see their subtree only."""
+    """List orgs. Platform admins see all; org admins see their subtree only.
+
+    brief=true returns id and name only. Pickers use this so they do not
+    count patients for every organisation.
+    """
     client = _client()
     try:
-        if scope.is_admin:
-            rows = client.run(aq.LIST_ORGS)
-        else:
-            rows = client.run(aq.LIST_ORGS_SCOPED, scope_org_ids=scope.org_ids)
+        rows = _run_org_list(client, scope, brief)
+        if brief:
+            return [{"id": r.get("id"), "name": r.get("name")} for r in rows]
         return [_row_to_org(r) for r in rows]
     finally:
         client.close()
+
+
+def _run_org_list(client: PatientGraphClient, scope: CallerScope, brief: bool):
+    if brief and scope.is_admin:
+        return client.run(aq.LIST_ORGS_BRIEF)
+    if brief:
+        return client.run(aq.LIST_ORGS_BRIEF_SCOPED, scope_org_ids=scope.org_ids)
+    if scope.is_admin:
+        return client.run(aq.LIST_ORGS)
+    return client.run(aq.LIST_ORGS_SCOPED, scope_org_ids=scope.org_ids)
 
 
 def _parse_json_prop(value: Any) -> Any:

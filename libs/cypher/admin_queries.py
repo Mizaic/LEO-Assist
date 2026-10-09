@@ -125,6 +125,24 @@ RETURN o.id AS id, o.name AS name, o.odsCode AS odsCode, o.short_name AS short_n
 ORDER BY o.name
 """
 
+# Name-only catalog for pickers. Do not count patients here.
+LIST_ORGS_BRIEF = """
+MATCH (o)
+WHERE o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN
+   OR o:ServiceProvider OR o:Organization
+RETURN o.id AS id, o.name AS name
+ORDER BY o.name
+"""
+
+LIST_ORGS_BRIEF_SCOPED = """
+MATCH (o)
+WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN
+   OR o:ServiceProvider OR o:Organization)
+  AND o.id IN $scope_org_ids
+RETURN o.id AS id, o.name AS name
+ORDER BY o.name
+"""
+
 CREATE_ORG_GP = """
 CREATE (o:GPPractice:Organization)
 SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_name,

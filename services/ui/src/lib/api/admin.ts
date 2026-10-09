@@ -101,8 +101,11 @@ export interface AuthConfig {
 // Orgs
 // ------------------------------------------------------------------
 
-export async function listOrgs(): Promise<Org[]> {
-  return api.get<Org[]>(`${ADMIN_BASE}/orgs`);
+export async function listOrgs(options?: { brief?: boolean }): Promise<Org[]> {
+  const path = options?.brief
+    ? `${ADMIN_BASE}/orgs?brief=true`
+    : `${ADMIN_BASE}/orgs`;
+  return api.get<Org[]>(path);
 }
 
 export interface OrgService {

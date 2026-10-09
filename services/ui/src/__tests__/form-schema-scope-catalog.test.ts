@@ -31,6 +31,11 @@ describe("Teach form org/service catalog", () => {
     expect(SCOPE_SRC).not.toMatch(/\/api\/form-schemas\/scope\/organizations/);
   });
 
+  it("asks for the name-only organisation list", () => {
+    expect(SCOPE_SRC).toMatch(/listOrgs\(\{\s*brief:\s*true\s*\}\)/);
+    expect(ADMIN_API_SRC).toMatch(/\/orgs\?brief=true/);
+  });
+
   it("loads services from the tenant drawer listOrgServices helper", () => {
     expect(SCOPE_SRC).toMatch(/listOrgServices/);
     expect(ADMIN_API_SRC).toMatch(/\$\{ADMIN_BASE\}\/orgs/);

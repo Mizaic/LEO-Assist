@@ -100,7 +100,7 @@ export async function stubFormNotRecognisedRoutes(page: Page): Promise<void> {
 }
 
 async function stubTeachRoutes(page: Page): Promise<void> {
-  await page.route("**/api/admin/orgs", (route) =>
+  await page.route("**/api/admin/orgs*", (route) =>
     fulfillJson(route, [{ id: "RK5", name: "Sherwood Forest Hospitals" }]),
   );
   await page.route("**/api/admin/orgs/*/services", (route) =>

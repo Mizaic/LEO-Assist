@@ -47,7 +47,7 @@ export function FormSchemaScopeFields({
     let cancelled = false;
     void (async () => {
       try {
-        const rows = await listOrgs();
+        const rows = await listOrgs({ brief: true });
         if (!cancelled) {
           setOrgs(rows.map((org) => ({ id: org.id, name: org.name || org.id })));
           setError("");

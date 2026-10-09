@@ -154,7 +154,7 @@ function summary(schema: SaveLog["accepted"][number]) {
 export async function stubAddTemplateRoutes(page: Page): Promise<SaveLog> {
   const log: SaveLog = { accepted: [], refused: [] };
   await stubKnowledgeAdminAuth(page);
-  await page.route("**/api/admin/orgs", (route) =>
+  await page.route("**/api/admin/orgs*", (route) =>
     fulfillJson(route, [{ id: "RK5", name: "Sherwood Forest Hospitals" }]),
   );
   await page.route("**/api/admin/orgs/*/services", (route) =>
