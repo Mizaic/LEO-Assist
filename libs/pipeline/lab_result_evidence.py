@@ -27,8 +27,11 @@ from libs.pipeline.blood_panel_table import (
 )
 from libs.pipeline.observation_date import DATE_TOKEN
 
+# One reading, or a paired reading such as blood pressure "135 / 87".
+_READING = rf"(?:{VALUE_PATTERN}\s*/\s*\d+(?:\.\d+)?|{VALUE_PATTERN})"
+
 # A cell holding nothing but a result, e.g. "124 g/L", "12.5", "<0.5".
-_VALUE_CELL_RE = re.compile(rf"{VALUE_PATTERN}(?:\s*{UNIT_PATTERN})?", re.IGNORECASE)
+_VALUE_CELL_RE = re.compile(rf"{_READING}(?:\s*{UNIT_PATTERN})?", re.IGNORECASE)
 
 # A cell holding nothing but a specimen date: 23.06.26, 23/06/2026,
 # 2026-06-23, or 23 Jun 2026.
@@ -36,7 +39,7 @@ _DATE_CELL_RE = re.compile(DATE_TOKEN)
 
 # A result carrying its own unit, e.g. "6 ku/L". Required of a part of a
 # shared cell, where a bare number is too weak to read as a result.
-_VALUE_WITH_UNIT_RE = re.compile(rf"{VALUE_PATTERN}\s*{UNIT_PATTERN}", re.IGNORECASE)
+_VALUE_WITH_UNIT_RE = re.compile(rf"{_READING}\s*{UNIT_PATTERN}", re.IGNORECASE)
 
 
 def _cells(row: str) -> list[str]:
@@ -50,12 +53,14 @@ def _shared_cell_parts(cell: str) -> list[str]:
     """Split a cell that holds more than one field, e.g. a date and a result.
 
     Tumour-marker rows on the Sherwood gynaecology form are written
-    ``| CA 125 | 02 Jun 2026, 6 ku/L | 2ww Gynae |``. Returns an empty
-    list for an ordinary single-field cell, so those keep reading
-    exactly as before.
+    ``| CA 125 | 02 Jun 2026, 6 ku/L | 2ww Gynae |``. Either field may be
+    blank ("128 g/L," or ", 24 Jun 2025"), leaving one part. Returns an
+    empty list for a cell with no comma, so those keep reading exactly
+    as before.
     """
-    parts = [part.strip() for part in cell.split(",") if part.strip()]
-    return parts if len(parts) > 1 else []
+    if "," not in cell:
+        return []
+    return [part.strip() for part in cell.split(",") if part.strip()]
 
 
 def row_has_specimen_date(row: str) -> bool:

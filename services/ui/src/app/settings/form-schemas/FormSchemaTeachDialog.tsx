@@ -127,12 +127,14 @@ export default function FormSchemaTeachDialog({
       maxWidth="lg"
       aria-labelledby="form-schema-teach-title"
       data-testid="form-schema-teach-dialog"
-      slotProps={{ paper: { sx: { height: "90vh" } } }}
     >
       <DialogTitle id="form-schema-teach-title">
         Teach form: {formName}
       </DialogTitle>
-      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <DialogContent
+        dividers
+        sx={{ display: "flex", flexDirection: "column", gap: 2, "& > *": { flexShrink: 0 } }}
+      >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Button
             size="small"
@@ -227,7 +229,7 @@ export default function FormSchemaTeachDialog({
           </Box>
         ) : null}
         {ready ? (
-          <Box sx={{ flex: 1, minHeight: 360, display: "flex", flexDirection: "column" }}>
+          <Box>
             <FormSchemaAnnotator
               fingerprint={fingerprint}
               sourceText={sourceText}

@@ -193,14 +193,6 @@ def _process_scale_line(line: str, section: FormSection) -> list[str]:
     return [_seal(line)]
 
 
-def _item_has_taught_analytes(item: FormSchemaItem) -> bool:
-    return any(str(a.get("snomed_code") or "").strip() for a in item.analytes)
-
-
-def _section_has_taught_analytes(section: FormSection) -> bool:
-    return any(_item_has_taught_analytes(item) for item in section.items)
-
-
 def _match_ordered_test_items(
     line: str, items: list[FormSchemaItem]
 ) -> list[FormSchemaItem]:
@@ -236,21 +228,15 @@ def _process_ordered_tests_lines(lines: list[str], section: FormSection) -> list
 
     A row that does report a result passes through unchanged. The values
     the referrer typed are the only place those results exist, so
-    rewriting the row would delete the result before extraction.
+    rewriting the row would delete the result before extraction. This
+    holds whether or not the template has SNOMED codes for the analytes.
     """
-    if not _section_has_taught_analytes(section):
-        return [_mark(ln) if ln.strip() else ln for ln in lines]
-
     out: list[str] = []
     for ln in lines:
         if not ln.strip():
             out.append(ln)
             continue
-        taught = [
-            item
-            for item in _match_ordered_test_items(ln, section.items)
-            if _item_has_taught_analytes(item)
-        ]
+        taught = _match_ordered_test_items(ln, section.items)
         if taught and row_reports_a_result(ln, _taught_analyte_labels(taught)):
             out.append(ln)
             continue

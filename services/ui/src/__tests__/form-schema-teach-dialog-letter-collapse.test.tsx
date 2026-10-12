@@ -105,11 +105,13 @@ describe("sample letter area", () => {
     );
   });
 
-  test("the dialog has a fixed tall height so the editor fills it", () => {
+  test("the whole dialog scrolls as one, with no fixed height and no squeezed parts", () => {
     const src = fs.readFileSync(
       path.join(__dirname, "../app/settings/form-schemas/FormSchemaTeachDialog.tsx"),
       "utf8",
     );
-    expect(src).toMatch(/height:\s*"90vh"/);
+    expect(src).not.toMatch(/height:\s*"90vh"/);
+    expect(src).not.toMatch(/minHeight:\s*360/);
+    expect(src).toMatch(/"& > \*":\s*\{\s*flexShrink:\s*0\s*\}/);
   });
 });

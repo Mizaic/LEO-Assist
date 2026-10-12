@@ -15,6 +15,8 @@ from unittest.mock import MagicMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from libs.cypher.chunk_queries import GET_CHUNKS_BY_UBRN
+
 _API_ROOT = Path(__file__).parent.parent / "services" / "api"
 if str(_API_ROOT) not in sys.path:
     sys.path.insert(0, str(_API_ROOT))
@@ -122,6 +124,21 @@ def test_letter_text_400_when_ubrn_missing(mock_neo: MagicMock) -> None:
         params={"organization_id": "org-1"},
     )
     assert resp.status_code == 422
+
+
+def test_letter_query_finds_the_organisation_through_the_referral_service() -> None:
+    """Referrals carry no organization_id; the tenant is on their Service.
+
+    In the live graph every ReferralRequest links FOR_SERVICE to a Service,
+    and the Service PROVIDES_SERVICE_FOR an Organization. A query that only
+    reads rr.organization_id finds no letter for any referral.
+    """
+    query = " ".join(GET_CHUNKS_BY_UBRN.split())
+    assert (
+        "(rr)-[:FOR_SERVICE]->(:Service)-[:PROVIDES_SERVICE_FOR]->(org:Organization)"
+        in query
+    )
+    assert "org.id = $organization_id" in query
 
 
 def test_letter_text_requires_auth() -> None:

@@ -87,7 +87,13 @@ ORDER BY r.ordinal ASC
 GET_CHUNKS_BY_UBRN = """
 MATCH (rr:ReferralRequest)
 WHERE replace(coalesce(rr.ubrn, ''), ' ', '') = replace($ubrn, ' ', '')
-  AND toString(rr.organization_id) = $organization_id
+  AND (
+    toString(rr.organization_id) = $organization_id
+    OR EXISTS {
+      MATCH (rr)-[:FOR_SERVICE]->(:Service)-[:PROVIDES_SERVICE_FOR]->(org:Organization)
+      WHERE org.id = $organization_id
+    }
+  )
 MATCH (rr)-[:HAS_DOCUMENT]->(dr:DocumentReference)-[r:HAS_CHUNK]->(c:Chunk)
 RETURN c.id                        AS chunk_id,
        c.text                      AS text,
