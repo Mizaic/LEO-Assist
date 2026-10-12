@@ -74,8 +74,9 @@ describe("FormSchemaTeachDialog - Edit skips letter step", () => {
     expect(DIALOG_SRC).toMatch(/setReady\(\s*true\s*\)/);
   });
 
-  it("keeps the letter box as optional help", () => {
-    expect(DIALOG_SRC).toMatch(/highlight sections/);
+  it("says the letter box is needed to save changes", () => {
+    expect(DIALOG_SRC).toMatch(/You need it to save\s+changes/);
+    expect(DIALOG_SRC).not.toMatch(/without one/);
     expect(DIALOG_SRC).toContain("Sample referral letter");
     expect(DIALOG_SRC).toContain("load-from-referral-row");
   });

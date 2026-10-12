@@ -3,7 +3,14 @@
  *
  * Atlas trace: DI-5C9CA57B
  */
-import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import {
   detectFormName,
   type FormSchemaItem,
@@ -43,12 +50,16 @@ export function useFormSchemaTeach(
   const [notice, setNotice] = useState("");
   const [saved, setSaved] = useState(false);
   const [libraryFingerprint, setLibraryFingerprint] = useState("");
+  // A letter loaded after editing must not reload the form and drop edits.
+  const sourceTextRef = useRef(sourceText);
+  sourceTextRef.current = sourceText;
 
   const loadOrDetect = useCallback(async () => {
     setLoading(true);
     setError("");
     setNotice("");
     setLibraryFingerprint("");
+    const sourceText = sourceTextRef.current;
     const saved = await loadTaughtLibrarySchema(fingerprint, scope);
     setGroups(saved?.completeness_groups ?? []);
     if (saved && savedSchemaBlocksAutoDetect(saved.sections)) {
@@ -76,7 +87,7 @@ export function useFormSchemaTeach(
       return;
     }
     setSections(next.length ? next : saved?.sections ?? []);
-  }, [fingerprint, sourceText, scope?.organizationId, scope?.serviceId]);
+  }, [fingerprint, scope?.organizationId, scope?.serviceId]);
 
   const retryDetect = useCallback(async () => {
     setLoading(true);
@@ -95,6 +106,16 @@ export function useFormSchemaTeach(
   useEffect(() => {
     void loadOrDetect().finally(() => setLoading(false));
   }, [loadOrDetect]);
+
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
+  const lastLetterRef = useRef(sourceText);
+  useEffect(() => {
+    if (lastLetterRef.current === sourceText) return;
+    lastLetterRef.current = sourceText;
+    if (!sourceText.trim() || sectionsRef.current.length) return;
+    void loadOrDetect().finally(() => setLoading(false));
+  }, [sourceText, loadOrDetect]);
 
   return bindTeachActions({
     fingerprint,

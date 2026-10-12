@@ -26,11 +26,22 @@ from libs.pipeline.form_schema_normalizer import (
 from libs.pipeline.lab_result_evidence import label_has_value, row_reports_a_result
 
 
-def _row_matches_battery(row: str, item: FormSchemaItem) -> bool:
+def row_matches_battery(row: str, item: FormSchemaItem) -> bool:
     """Return True when *row* carries this battery's taught label."""
     if not item.pattern:
         return False
     return safe_search(item.pattern, row) is not None
+
+
+def battery_row_reports_a_result(row: str, item: FormSchemaItem) -> bool:
+    """Return True when *row* is this battery's row and reports a result.
+
+    Completeness uses this too, so a row counts as filled in exactly when
+    it becomes a fact.
+    """
+    return row_matches_battery(row, item) and row_reports_a_result(
+        row, _analyte_labels(item)
+    )
 
 
 def _find_label_span(text: str, label: str) -> tuple[int, int]:
@@ -55,12 +66,7 @@ def _analyte_labels(item: FormSchemaItem) -> list[str]:
 
 def _resulted_rows(text: str, item: FormSchemaItem) -> list[str]:
     """Return this battery's rows that report a result."""
-    labels = _analyte_labels(item)
-    return [
-        row
-        for row in text.splitlines()
-        if _row_matches_battery(row, item) and row_reports_a_result(row, labels)
-    ]
+    return [row for row in text.splitlines() if battery_row_reports_a_result(row, item)]
 
 
 def _seed_battery_entity(
@@ -166,4 +172,8 @@ def seed_ordered_tests_entities(
     return entities
 
 
-__all__ = ["seed_ordered_tests_entities"]
+__all__ = [
+    "battery_row_reports_a_result",
+    "row_matches_battery",
+    "seed_ordered_tests_entities",
+]

@@ -1,6 +1,7 @@
 /**
- * Teach dialog: the sample letter area folds away so the section editor
- * has room when a saved form is edited.
+ * Teach dialog: the sample letter area folds away once a letter is loaded,
+ * so the section editor has room. Saving needs the letter, so the area
+ * stays open until one is loaded.
  *
  * Atlas trace: DI-5C9CA57B, DI-26546721
  */
@@ -52,21 +53,34 @@ function letterToggle(): HTMLElement {
 }
 
 describe("sample letter area", () => {
-  test("editing a saved form with no letter starts with the area folded away", async () => {
+  test("editing a saved form with no letter keeps the area open, because saving needs the letter", async () => {
     mockFetch(SAVED);
     renderDialog();
     await screen.findByTestId("annotator-stub");
     const toggle = letterToggle();
-    await waitFor(() => expect(toggle).toHaveAttribute("aria-expanded", "false"));
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
     const panelId = toggle.getAttribute("aria-controls");
     expect(panelId).toBeTruthy();
     expect(document.getElementById(String(panelId))).not.toBeNull();
+    expect(screen.getByLabelText("UBRN")).toBeVisible();
+  });
+
+  test("the area says a letter is needed to save changes", async () => {
+    mockFetch(SAVED);
+    renderDialog();
+    await screen.findByTestId("annotator-stub");
+    expect(
+      screen.getByText(/load the letter you taught this form from\. you need it to save/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/without one/i)).toBeNull();
   });
 
   test("the toggle opens the folded area", async () => {
     mockFetch(SAVED);
     renderDialog();
     await screen.findByTestId("annotator-stub");
+    await userEvent.type(screen.getByLabelText("UBRN"), "000123456789");
+    await userEvent.click(screen.getByTestId("load-from-referral-btn"));
     await waitFor(() => expect(letterToggle()).toHaveAttribute("aria-expanded", "false"));
     await userEvent.click(letterToggle());
     expect(letterToggle()).toHaveAttribute("aria-expanded", "true");

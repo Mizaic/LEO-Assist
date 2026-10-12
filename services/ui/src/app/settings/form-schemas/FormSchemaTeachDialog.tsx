@@ -100,12 +100,6 @@ export default function FormSchemaTeachDialog({
     }
   }, [open, fingerprint]);
 
-  useEffect(() => {
-    if (savedHasSections && !sourceText.trim()) setLetterOpen(false);
-    // Only fold when the saved schema arrives, not on every keystroke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedHasSections]);
-
   const canTeach = sourceText.trim().length >= 10;
   const canOpenEditor = canTeach || savedHasSections;
 
@@ -166,8 +160,8 @@ export default function FormSchemaTeachDialog({
         <Collapse in={letterOpen} id={LETTER_PANEL_ID}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             <Typography variant="body2" color="text.secondary">
-              Load a sample letter to highlight sections. You can edit the saved
-              schema without one.
+              Load the letter you taught this form from. You need it to save
+              changes.
             </Typography>
 
             <Box

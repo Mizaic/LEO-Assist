@@ -6,7 +6,8 @@ Atlas trace:
   VT: VT-8426C84D
   Risk: R-0883B521
   A ticked box is a first-class fact for completeness. Hits travel on
-  pipeline state into quality_check.
+  pipeline state into quality_check. A taught test-table row is filled in
+  exactly when it reports a result, the same check that seeds its facts.
 """
 
 from __future__ import annotations
@@ -22,10 +23,16 @@ from libs.pipeline.form_schema_normalizer import (
     _resolve_default_sections,
     _yes_no_answer,
 )
+from libs.pipeline.form_schema_seeding import (
+    battery_row_reports_a_result,
+    row_matches_battery,
+)
 from libs.pipeline.form_tick_marks import item_marks_on_line
 
 _BOX_TYPES = frozenset({"checkbox_single", "checkbox_multi", "checkbox_yesno", "scale"})
 _FREE_TEXT_TYPES = frozenset({"free_text"})
+# A test table's heading line can also be its only result row.
+_TEST_TABLE_TYPES = frozenset({"ordered_tests"})
 _EMPTY_FREE_TEXT_RE = re.compile(
     r"(?i)^\s*(no information provided|see attachment|not specified)\.?\s*$"
 )
@@ -105,14 +112,30 @@ def _hits_for_chunk(
         matched = _matching_section(line, sections)
         if matched is not None:
             current = matched
+            if current.section_type in _TEST_TABLE_TYPES:
+                hits.extend(_test_row_hits(line, current))
             continue
-        if current is None:
-            continue
-        if current.section_type in _BOX_TYPES:
-            hits.extend(_hits_for_line(line, current))
-        elif current.section_type in _FREE_TEXT_TYPES:
-            hits.extend(_free_text_hits(line, current))
+        if current is not None:
+            hits.extend(_line_hits(line, current))
     return hits, current
+
+
+def _line_hits(line: str, section: FormSection) -> list[dict[str, Any]]:
+    if section.section_type in _BOX_TYPES:
+        return _hits_for_line(line, section)
+    if section.section_type in _FREE_TEXT_TYPES:
+        return _free_text_hits(line, section)
+    if section.section_type in _TEST_TABLE_TYPES:
+        return _test_row_hits(line, section)
+    return []
+
+
+def _test_row_hits(line: str, section: FormSection) -> list[dict[str, Any]]:
+    return [
+        _hit(section, item, battery_row_reports_a_result(line, item))
+        for item in section.items
+        if row_matches_battery(line, item)
+    ]
 
 
 def _line_has_content(line: str) -> bool:
