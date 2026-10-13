@@ -14,6 +14,7 @@ import pytest
 
 from libs.referral_quality.inprocess_dry_run import (
     build_dry_run_state,
+    build_quality_report,
     dump_quality_report,
     is_write_cypher,
     resolve_existing_chunks,
@@ -237,3 +238,74 @@ def test_quality_report_omits_patient_id(tmp_path: Path) -> None:
     assert payload["completeness"]["complete"] is False
     assert payload["fired_guidelines"] == ["g1"]
     assert payload["sbar_sections"]["situation"] == "s"
+
+
+_OUTAGE = "terminology_lookup_failed: we could not reach the terminology service"
+
+
+def test_quality_report_says_degraded_when_a_safety_layer_degraded() -> None:
+    """fail-closed-boundary.mdc rule 1: a degraded run never reads completed."""
+    report = build_quality_report(
+        "000481914514",
+        {"status": "completed", "degraded": True, "warnings": [_OUTAGE]},
+    )
+    assert report["status"] == "degraded"
+    assert _OUTAGE in report["warnings"]
+
+
+def test_dry_run_pins_the_admission_manifest_like_a_live_run(tmp_path: Path) -> None:
+    """Live admission pins prompts and model on every step. So must the dry run.
+
+    Without it SBAR had no manifest and reported five audit blockers
+    (execution_manifest_missing and so on) that a live run never has.
+    """
+    from libs.referral_quality import inprocess_dry_run as dry
+
+    pinned = {"plan_version_id": "ver-1", "model": {"key": "azure:big", "tier": "big"}}
+    target = MagicMock(patient_id="p-1", document_reference_id="doc-1")
+    seen: dict = {}
+
+    async def _trace(_self, _actions, state):
+        seen.update(state)
+        return {"status": "completed", "final_state": dict(state)}
+
+    with (
+        patch.object(dry, "install_dry_run_write_guard"),
+        patch.object(
+            dry,
+            "resolve_existing_chunks",
+            return_value={"target": target, "chunk_ids": ["c-1"]},
+        ),
+        patch.object(dry, "read_run_context", return_value={}),
+        patch.object(dry, "enrich_dry_run_state"),
+        patch.object(dry, "load_plan_manifest", return_value=MagicMock(actions=[])),
+        patch.object(dry, "build_manifest_for_plan", return_value=pinned),
+        patch.object(dry.WorkflowEngine, "trace_run", _trace),
+    ):
+        pytest.importorskip("asyncio").run(
+            dry.run_dry_pipeline(MagicMock(), "000481914514", report_dir=tmp_path)
+        )
+    assert seen["execution_manifest"] == pinned
+    assert seen["model_tier"] == "big"
+
+
+def test_quality_report_fact_keeps_value_unit_type_source_and_flags() -> None:
+    entity = {
+        "text": "Blood Pressure",
+        "assertion": "present",
+        "label": "Blood Pressure",
+        "semantic_tag": "observable entity",
+        "value": "135/87",
+        "unit": "mmHg",
+        "__source": "form_schema_ordered_tests",
+        "terminology_lookup_failed": True,
+        "__needs_review": True,
+    }
+    fact = build_quality_report(
+        "000481914514", {"status": "completed", "entities": [entity]}
+    )["facts"][0]
+    assert fact["value"] == "135/87"
+    assert fact["unit"] == "mmHg"
+    assert fact["entity_type"] == "observable entity"
+    assert fact["source"] == "form_schema_ordered_tests"
+    assert fact["flags"] == ["terminology_lookup_failed", "__needs_review"]

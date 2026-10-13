@@ -20,6 +20,10 @@ from typing import Any
 
 from libs.referral_quality.dry_run_enrichment import enrich_dry_run_state
 from libs.workflow.engine import ActionDefinition, WorkflowEngine
+from libs.workflow.execution_manifest import (
+    apply_manifest_model_tier,
+    build_manifest_for_plan,
+)
 from libs.workflow.form_recognition_gate import recognition_verdict
 from libs.workflow.plan_manifest import PlanAction, PlanManifest, load_plan_manifest
 
@@ -29,6 +33,14 @@ _WRITE_CYPHER = re.compile(
 )
 _PLAN_ID = "pd-referral-assessment"
 DEFAULT_REPORT_DIR = Path("tmp/referral-quality-dry-run")
+_FACT_FLAGS = (
+    "terminology_lookup_failed",
+    "terminology_unresolved",
+    "__needs_review",
+    "__suppress__",
+    "_relation_suppressed",
+    "assertion_parity_failed",
+)
 _GUARD_INSTALLED = False
 
 
@@ -137,6 +149,13 @@ def read_run_context(
     return dict(rows[0]) if rows else {}
 
 
+def _pin_execution_manifest(state: dict[str, Any], pinned: dict[str, Any]) -> None:
+    """Pin prompts and model as live admission does, without a PipelineRun."""
+    state["execution_manifest"] = pinned
+    state["execution_manifest_json"] = json.dumps(pinned, sort_keys=True, default=str)
+    apply_manifest_model_tier(state)
+
+
 def manifest_to_actions(manifest: PlanManifest) -> list[ActionDefinition]:
     """Convert a pinned plan snapshot into WorkflowEngine actions."""
     return [_plan_action_to_definition(action) for action in manifest.actions]
@@ -170,10 +189,22 @@ def _fact_row(entity: dict[str, Any]) -> dict[str, Any]:
         "text": entity.get("text"),
         "assertion": entity.get("assertion"),
         "label": entity.get("label") or entity.get("semantic_tag"),
+        "entity_type": entity.get("semantic_tag") or "",
+        "value": entity.get("value") or "",
+        "unit": entity.get("unit") or "",
+        "source": entity.get("__source") or "",
         "concept_id": entity.get("concept_id")
         or (entity.get("coding") or {}).get("snomed_concept_id"),
         "term": entity.get("term") or entity.get("snomed_term"),
+        "flags": [flag for flag in _FACT_FLAGS if entity.get(flag) is True],
     }
+
+
+def _report_status(state: dict[str, Any]) -> str:
+    status = state.get("status") or state.get("sbar_status") or "completed"
+    if status == "completed" and state.get("degraded") is True:
+        return "degraded"
+    return status
 
 
 def _fired_guidelines(state: dict[str, Any]) -> list[Any]:
@@ -208,7 +239,7 @@ def build_quality_report(referral_id: str, state: dict[str, Any]) -> dict[str, A
     return {
         "referral_id": referral_id,
         "dry_run": True,
-        "status": state.get("status") or state.get("sbar_status") or "completed",
+        "status": _report_status(state),
         "chunk_ids": list(state.get("chunk_ids") or []),
         "form_recognition": _recognition_report(state),
         "facts": [_fact_row(e) for e in entities],
@@ -276,6 +307,7 @@ async def run_dry_pipeline(
     )
     enrich_dry_run_state(client, state)
     manifest = load_plan_manifest(_PLAN_ID)
+    _pin_execution_manifest(state, build_manifest_for_plan(manifest))
     engine = WorkflowEngine()
     engine._sanitize_state = lambda raw: dict(raw)
     result = await engine.trace_run(manifest_to_actions(manifest), state)
@@ -283,7 +315,7 @@ async def run_dry_pipeline(
     final["status"] = result.get("status") or final.get("status") or "completed"
     path = dump_quality_report(report_dir, referral_id, final)
     return {
-        "status": final["status"],
+        "status": _report_status(final),
         "report_path": str(path),
         "chunk_count": len(chunk_ids),
     }

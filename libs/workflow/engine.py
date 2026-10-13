@@ -47,6 +47,16 @@ _PIPELINE_PASSTHROUGH_SENTINEL = "__pipeline_passthrough__"
 _ARRAY_PATH_RE = re.compile(r"^(?P<top>[A-Za-z0-9_]+)\[\]\.(?P<sub>[A-Za-z0-9_]+)$")
 
 
+def _append_new(state: dict[str, Any], key: str, value: Any) -> None:
+    """Append the entries of *value* that *state[key]* does not hold yet."""
+    if not value:
+        return
+    existing = list(state.get(key) or [])
+    new = [entry for entry in value if entry not in existing]
+    if new:
+        state[key] = existing + new
+
+
 @dataclass
 class WorkflowEvent:
     event_type: str
@@ -744,20 +754,21 @@ class WorkflowEngine:
         Normalises entity keys so all downstream steps find entities
         under the canonical ``entities`` key.
 
-        Errors are accumulated, but subgraphs often pass through the errors
-        they received (so downstream steps can inspect them). To prevent the
-        same error being appended multiple times, only errors that do not
-        already exist in pipeline_state are added.
+        Errors and warnings are accumulated, but subgraphs often pass through
+        the ones they received (so downstream steps can inspect them). To
+        prevent the same entry being appended multiple times, only entries
+        that do not already exist in pipeline_state are added.
+
+        ``degraded`` is sticky: once a safety layer degraded the run, a later
+        step cannot clear it (fail-closed-boundary.mdc rule 1).
         """
         for key, value in step_output.items():
             if key in _ENTITY_KEY_ALIASES and value:
                 pipeline_state["entities"] = value
-            elif key == "errors" and value:
-                existing = list(pipeline_state.get("errors") or [])
-                existing_set = set(existing)
-                new_errors = [e for e in value if e not in existing_set]
-                if new_errors:
-                    pipeline_state["errors"] = existing + new_errors
+            elif key in ("errors", "warnings"):
+                _append_new(pipeline_state, key, value)
+            elif key == "degraded":
+                pipeline_state[key] = pipeline_state.get(key) is True or value
             else:
                 pipeline_state[key] = value
 
