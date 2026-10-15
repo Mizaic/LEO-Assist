@@ -95,23 +95,36 @@ def row_has_value_cell(row: str) -> bool:
     return False
 
 
-def label_has_value(text: str, label: str) -> bool:
-    """Return True when *label* is followed by a numeric value in *text*.
+def label_reading(text: str, label: str) -> tuple[str, str] | None:
+    """Return the ``(value, unit)`` printed directly after *label* in *text*.
 
-    The value must sit directly after the label, so "Hb 118 g/L" counts
-    and a bare "Hb" in a list of analyte names does not.
+    The value keeps its comparator ("> 200") with whitespace collapsed,
+    and the unit is "" when none is printed, matching the blood-panel
+    table facts. Returns None when no value follows the label, so
+    "Hb 118 g/L" gives a reading and a bare "Hb" in a list of analyte
+    names does not.
     """
     clean = (label or "").strip()
     if not clean:
-        return False
+        return None
     pattern = (
         rf"(?<![A-Za-z0-9]){re.escape(clean)}(?![A-Za-z0-9])"
-        rf"\s*[:=]?\s*{VALUE_PATTERN}(?:\s*{UNIT_PATTERN})?"
+        rf"\s*[:=]?\s*(?P<value>{VALUE_PATTERN})(?:\s*(?P<unit>{UNIT_PATTERN}))?"
     )
     try:
-        return re.search(pattern, text, re.IGNORECASE) is not None
+        match = re.search(pattern, text, re.IGNORECASE)
     except re.error:
-        return False
+        return None
+    if match is None:
+        return None
+    value = re.sub(r"\s+", " ", match.group("value")).strip()
+    unit = re.sub(r"\s*/\s*", "/", (match.group("unit") or "").strip())
+    return value, unit
+
+
+def label_has_value(text: str, label: str) -> bool:
+    """Return True when *label* is followed by a numeric value in *text*."""
+    return label_reading(text, label) is not None
 
 
 def row_reports_a_result(row: str, analyte_labels: list[str]) -> bool:

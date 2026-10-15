@@ -1,0 +1,20 @@
+[
+  {"case_id": "onset_abdo_hyphen", "phrase": "New-onset abdominal pain", "tag": "finding", "expected": ["21522001"], "source": "hard_onset"},
+  {"case_id": "onset_abdo", "phrase": "New onset abdominal pain", "tag": "finding", "expected": ["21522001"], "source": "hard_onset"},
+  {"case_id": "onset_abdo_of", "phrase": "Abdominal pain of new onset", "tag": "finding", "expected": ["21522001"], "source": "hard_onset"},
+  {"case_id": "onset_constipation", "phrase": "New-onset constipation", "tag": "finding", "expected": ["14760008"], "source": "hard_onset"},
+  {"case_id": "onset_diarrhoea", "phrase": "New-onset diarrhoea", "tag": "finding", "expected": ["62315008"], "source": "hard_onset"},
+  {"case_id": "recent_onset_diarrhoea", "phrase": "Recent onset diarrhoea", "tag": "finding", "expected": ["62315008"], "source": "hard_onset"},
+  {"case_id": "recent_onset_cibh", "phrase": "Recent-onset change in bowel habit", "tag": "finding", "expected": ["88111009"], "source": "hard_onset"},
+  {"case_id": "onset_rectal_bleeding", "phrase": "New onset rectal bleeding", "tag": "finding", "expected": ["405729008", "12063002"], "source": "hard_onset"},
+  {"case_id": "keep_onset_angina", "phrase": "New onset angina", "tag": "disorder", "expected": ["233821000"], "source": "hard_keep"},
+  {"case_id": "keep_newly_diagnosed_diabetes", "phrase": "Newly diagnosed diabetes", "tag": "disorder", "expected": ["405749004"], "source": "hard_keep"},
+  {"case_id": "duration_diarrhoea", "phrase": "diarrhoea for 3 months", "tag": "finding", "expected": ["62315008", "236071009"], "source": "hard_duration"},
+  {"case_id": "duration_abdo", "phrase": "abdominal pain for 6 weeks", "tag": "finding", "expected": ["21522001"], "source": "hard_duration"},
+  {"case_id": "plain_cibh", "phrase": "Change in bowel habit", "tag": "finding", "expected": ["88111009"], "source": "hard_keep"},
+  {"case_id": "plain_weight_loss", "phrase": "Unexplained weight loss", "tag": "finding", "expected": ["422868009"], "source": "hard_keep"},
+  {"case_id": "plain_ida", "phrase": "Iron deficiency anaemia", "tag": "disorder", "expected": ["87522002"], "source": "hard_keep"},
+  {"case_id": "plain_blood_in_stool", "phrase": "Blood in stool", "tag": "finding", "expected": ["405729008"], "source": "hard_keep"},
+  {"case_id": "nocode_new_onset", "phrase": "New onset", "tag": "finding", "expect_no_code": true, "source": "hard_nocode"},
+  {"case_id": "nocode_onset", "phrase": "onset", "tag": "finding", "expect_no_code": true, "source": "hard_nocode"}
+]

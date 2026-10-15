@@ -22,7 +22,7 @@ class TestCacheKeyIncludesOrg:
         )
         assert k1 != k2
         assert "org-A" in k1
-        assert "v2:" in k1
+        assert "v4:" in k1
 
 
 class TestSurfaceFormQueryGatesLocal:

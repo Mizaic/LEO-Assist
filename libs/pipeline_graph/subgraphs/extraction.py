@@ -934,7 +934,10 @@ def _enrich_with_blood_panel_entities(
         merge_checkbox_seed_entities,
         seed_checkbox_entities,
     )
-    from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities
+    from libs.pipeline.form_schema_seeding import (
+        carries_taught_test_row_code,
+        seed_ordered_tests_entities,
+    )
 
     panel = extract_blood_panel_table_entities(encounter_text, chunks)
     merged = merge_blood_panel_entities(list(result.get("entities") or []), panel)
@@ -944,7 +947,9 @@ def _enrich_with_blood_panel_entities(
         text = encounter_text if seed_text is None else seed_text
         seeded = seed_ordered_tests_entities(text, schema)
         boxes = seed_checkbox_entities(text, schema)
-        merged = merge_blood_panel_entities(merged, seeded)
+        merged = merge_blood_panel_entities(
+            merged, seeded, replaces=carries_taught_test_row_code
+        )
         merged = merge_checkbox_seed_entities(merged, boxes)
         seeded = seeded + boxes
 

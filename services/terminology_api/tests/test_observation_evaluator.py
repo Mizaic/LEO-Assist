@@ -23,8 +23,18 @@ from services.terminology_api.app.services.observation_evaluator import (
     observation_matches,
 )
 
-
 _NOW = datetime(2026, 4, 20, 12, 0, 0, tzinfo=timezone.utc)
+
+
+@pytest.fixture(autouse=True)
+def _no_kg_lab_config(monkeypatch):
+    """These observables have no Knowledge Graph lab config, so the unit
+    registry and static ranges apply. A failed lookup is a different
+    answer and raises (see tests/test_lab_config_lookup_failed.py)."""
+    monkeypatch.setattr(
+        "services.terminology_api.app.services.observation_evaluator.get_lab_config",
+        lambda *_args, **_kwargs: None,
+    )
 
 
 def _platelet_leaf(**overrides: object) -> dict:

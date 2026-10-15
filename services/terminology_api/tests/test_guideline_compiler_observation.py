@@ -31,6 +31,17 @@ from services.terminology_api.app.services.guideline_compiler import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _no_kg_lab_config(monkeypatch):
+    """These observables have no Knowledge Graph lab config, so the unit
+    registry applies. A failed lookup is a different answer and raises
+    (see tests/test_lab_config_lookup_failed.py)."""
+    monkeypatch.setattr(
+        "services.terminology_api.app.services.guideline_compiler.get_lab_config",
+        lambda *_args, **_kwargs: None,
+    )
+
+
 @pytest.fixture()
 def compiler() -> GuidelineCompiler:
     store = MagicMock(spec=BitmapStore)

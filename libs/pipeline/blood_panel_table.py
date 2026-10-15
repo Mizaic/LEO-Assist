@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from datetime import date
+from collections.abc import Callable
 from typing import Any
 
 from libs.nlp.sentence_splitter import SentenceChunk
@@ -421,19 +422,54 @@ def extract_blood_panel_table_entities(
 def merge_blood_panel_entities(
     entities: list[dict[str, Any]],
     panel_entities: list[dict[str, Any]],
+    replaces: Callable[[dict[str, Any]], bool] | None = None,
 ) -> list[dict[str, Any]]:
-    """Add panel entities whose text is not already present."""
+    """Add panel entities whose text is not already present.
+
+    Within ``panel_entities`` a procedure and an observable may share a
+    text: a single-result row (FIT) seeds both from one label.
+
+    A panel entity for which ``replaces`` is true (a test row taught with
+    its code) takes the place of the first fact with the same text and
+    kind, and is added even when only a fact of the other kind has its
+    text.
+    """
     if not panel_entities:
         return entities
-    existing = {
-        str(e.get("text") or "").strip().casefold()
-        for e in entities
-        if isinstance(e, dict) and str(e.get("text") or "").strip()
-    }
     merged = list(entities)
+    existing: dict[tuple[str, bool], int] = {}
+    for i, ent in enumerate(merged):
+        if isinstance(ent, dict) and _text_key(ent):
+            existing.setdefault((_text_key(ent), _is_observable(ent)), i)
+    texts = {text for text, _ in existing}
+    added: set[tuple[str, bool]] = set()
     for ent in panel_entities:
-        text_key = str(ent.get("text") or "").strip().casefold()
-        if text_key and text_key not in existing:
+        pair = (_text_key(ent), _is_observable(ent))
+        if not pair[0] or pair in added:
+            continue
+        if replaces is not None and replaces(ent):
+            _put_in_place(merged, existing.pop(pair, None), ent)
+        elif pair[0] in texts:
+            continue
+        else:
             merged.append(ent)
-            existing.add(text_key)
+        added.add(pair)
     return merged
+
+
+def _put_in_place(
+    merged: list[dict[str, Any]], index: int | None, ent: dict[str, Any]
+) -> None:
+    if index is None:
+        merged.append(ent)
+    else:
+        merged[index] = ent
+
+
+def _text_key(entity: dict[str, Any]) -> str:
+    return str(entity.get("text") or "").strip().casefold()
+
+
+def _is_observable(entity: dict[str, Any]) -> bool:
+    tag = str(entity.get("semantic_tag") or "").replace("_", " ").casefold()
+    return tag == "observable entity"

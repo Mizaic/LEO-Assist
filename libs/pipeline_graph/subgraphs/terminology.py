@@ -16,8 +16,8 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from libs.lab_results.pipeline import enrich_lab_result_findings
 from libs.pipeline.form_checkbox_seed import is_taught_checkbox
+from libs.pipeline.form_schema_seeding import carries_taught_test_row_code
 from libs.ner.suspected_cancer_guard import (
     dedupe_suspected_malignancy_conflicts,
     enrich_suspected_cancer_lookups,
@@ -31,6 +31,10 @@ from libs.pipeline.post_processing import (
 from libs.pipeline.coding_candidate_gate import (
     apply_draft_from_shortlist,
     filter_coding_candidates,
+)
+from libs.pipeline_graph.subgraphs._terminology_letter_codes import (
+    dedup_by_concept_id,
+    with_lab_findings,
 )
 from libs.terminology.client import TerminologyClient, TerminologyUnavailable
 
@@ -361,41 +365,10 @@ def _merge_resolution(
     return drafted
 
 
-def _dedup_by_concept_id(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Remove duplicate resolved entities that share a concept_id.
-
-    Multi-classification produces distinct (surface_form, entity_type) pairs
-    that should resolve to different concepts.  Any that collide -- same
-    concept_id returned for different entity types -- are deduplicated by
-    keeping the highest-scoring candidate so the graph MERGE produces one
-    :DOCUMENTS link rather than a phantom duplicate.
-
-    Unresolved entities (terminology_unresolved=True or no concept_id) are
-    always kept regardless.
-    """
-    seen: dict[str, dict[str, Any]] = {}
-    kept: list[dict[str, Any]] = []
-    for ent in entities:
-        if is_taught_checkbox(ent):
-            kept.append(ent)
-            continue
-        concept_id = str(ent.get("concept_id") or "").strip()
-        if not concept_id or ent.get("terminology_unresolved"):
-            kept.append(ent)
-            continue
-        existing = seen.get(concept_id)
-        if existing is None:
-            seen[concept_id] = ent
-            kept.append(ent)
-        elif float(ent.get("score") or 0) > float(existing.get("score") or 0):
-            kept.remove(existing)
-            seen[concept_id] = ent
-            kept.append(ent)
-    return kept
-
-
-def _keep_taught_checkbox_code(entity: dict[str, Any]) -> bool:
-    """Taught FormSchema ticks already carry the completeness concept id."""
+def _keep_taught_form_code(entity: dict[str, Any]) -> bool:
+    """Taught FormSchema ticks and test rows already carry their concept id."""
+    if carries_taught_test_row_code(entity):
+        return True
     if not is_taught_checkbox(entity):
         return False
     return bool(str(entity.get("concept_id") or "").strip())
@@ -437,7 +410,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
         resolved = []
         for idx, entity in enumerate(entities):
             lookup = lookup_by_index.get(idx) or ""
-            if _keep_taught_checkbox_code(entity):
+            if _keep_taught_form_code(entity):
                 resolved.append(dict(entity))
                 continue
             merged = _merge_resolution(entity, results.get(lookup, []), min_score)
@@ -458,20 +431,18 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
         fix_double_negated_situations(resolved)
         fix_polarity_encoded_findings(resolved)
         apply_false_absent_assertion_guards(resolved, respect_context=True)
-        resolved = enrich_lab_result_findings(
-            resolved,
-            patient_sex=state.get("patient_sex"),
-            patient_age=state.get("patient_age"),
-            org_id=state.get("org_id"),
-        )
+        resolved, lab_degraded = with_lab_findings(resolved, state, warnings)
         resolved = dedupe_suspected_malignancy_conflicts(resolved)
-        resolved = _dedup_by_concept_id(resolved)
-        return {
+        resolved = dedup_by_concept_id(resolved)
+        out: dict[str, Any] = {
             "entities": resolved,
             "resolved_entities": resolved,
             "errors": errors,
             "warnings": warnings,
         }
+        if lab_degraded:
+            out["degraded"] = True
+        return out
     except TerminologyUnavailable as exc:
         # Rule 2 of .cursor/rules/fail-closed-boundary.mdc. We could not ask,
         # so these spans must not be handed on looking like spans we asked

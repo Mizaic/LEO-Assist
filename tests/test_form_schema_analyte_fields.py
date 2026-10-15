@@ -12,11 +12,11 @@ from __future__ import annotations
 
 import json
 
+from libs.pipeline.form_analyte_codes import apply_schema_analyte_codes
 from libs.pipeline.form_schema_normalizer import (
     FormSchema,
     FormSchemaItem,
     FormSection,
-    apply_schema_analyte_codes,
 )
 from libs.pipeline.form_schema_request import dict_to_item, dict_to_section
 from libs.pipeline.form_schema_seeding import seed_ordered_tests_entities

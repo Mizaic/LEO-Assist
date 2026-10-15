@@ -41,7 +41,7 @@ def _live_resolver_key() -> str:
 def test_invalidation_covers_live_resolver_cache_keys() -> None:
     """Cached resolve results are dropped after a mapping change."""
     key = _live_resolver_key()
-    assert key.startswith(f"{RESOLVER_CACHE_KEY_FAMILY}:v2:")
+    assert key.startswith(f"{RESOLVER_CACHE_KEY_FAMILY}:v4:")
     assert _matches(key, RESOLVER_CACHE_INVALIDATION_PATTERN)
     assert any(_matches(key, p) for p in _cache_patterns())
 

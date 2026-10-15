@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../HCCP-Doc-Converter"
+		},
+		{
+			"path": "../HCCP-Agents"
+		}
+	],
+	"settings": {}
+}

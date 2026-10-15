@@ -57,8 +57,9 @@ class CandidateResponse(BaseModel):
     # Raw retrieval signals exposed for downstream consumers that need
     # to apply branch-specific thresholds (e.g. "accept exact-branch
     # hits regardless of surface match"). The `score` field above is
-    # already a CALIBRATED ABSOLUTE confidence in [0.0, 1.0] derived
-    # from these signals plus tag matching:
+    # an absolute retrieval-strength score in [0.0, 1.0] (not a measured
+    # probability of a correct code) derived from these signals plus tag
+    # matching:
     #   had_exact_match -- True iff this candidate was hit by the
     #     exact branch (Term.normalized_form or SurfaceForm.normalized
     #     equality), the strongest possible lexical signal.
@@ -71,6 +72,12 @@ class CandidateResponse(BaseModel):
     had_exact_match: bool = False
     lexical_raw: float = 0.0
     vector_raw: float = 0.0
+    # Set when a tied exact match was capped below the attach gate.
+    withheld_reason: str = ""
+    # Description wording a fulltext hit matched on; "stripped" when the hit
+    # came from the phrase without onset / duration words.
+    matched_wording: str = ""
+    lookup_variant: str = ""
 
 
 class ResolveResponse(BaseModel):
@@ -138,6 +145,9 @@ def resolve_terms(body: ResolveRequest):
                 had_exact_match=c.had_exact_match,
                 lexical_raw=c.lexical_raw,
                 vector_raw=c.vector_raw,
+                withheld_reason=c.withheld_reason,
+                matched_wording=c.matched_wording,
+                lookup_variant=c.lookup_variant,
             )
             for c in candidates
         ]

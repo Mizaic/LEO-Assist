@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+from libs.pipeline_graph.subgraphs._terminology_letter_codes import (
+    dedup_by_concept_id,
+)
 from libs.pipeline_graph.subgraphs.terminology import (
-    _dedup_by_concept_id,
     _merge_resolution,
     _resolve_terms,
 )
@@ -297,7 +299,7 @@ def test_taught_checkbox_keeps_form_concept_id() -> None:
 
 def test_dedup_keeps_taught_checkbox_when_concept_collides() -> None:
     """Exam lump and the taught A1 tick can share 89164003. Keep both."""
-    kept = _dedup_by_concept_id(
+    kept = dedup_by_concept_id(
         [
             {
                 "text": "a small deep palpable lump",
@@ -320,7 +322,7 @@ def test_dedup_keeps_taught_checkbox_when_concept_collides() -> None:
 
 
 def test_dedup_still_collapses_non_taught_same_concept() -> None:
-    kept = _dedup_by_concept_id(
+    kept = dedup_by_concept_id(
         [
             {
                 "text": "breast lump",
@@ -338,6 +340,50 @@ def test_dedup_still_collapses_non_taught_same_concept() -> None:
     )
     assert len(kept) == 1
     assert kept[0]["text"] == "breast lump"
+
+
+def test_dedup_never_lets_an_absent_copy_replace_a_present_finding() -> None:
+    """Bug (gynae dry run, UBRN 000481827411): a wrongly absent "sores" fact
+    shared the vulval ulceration code with the present ulceration fact, won
+    on score, and the present finding vanished. The graph keys DOCUMENTS on
+    code and assertion, so both must reach it and the conflict stays visible.
+    """
+    kept = dedup_by_concept_id(
+        [
+            {
+                "text": "two open vulval sores",
+                "concept_id": "68640004",
+                "score": 0.99,
+                "label": "disorder",
+                "assertion": "absent",
+            },
+            {
+                "text": "vulval ulceration of uncertain cause",
+                "concept_id": "68640004",
+                "score": 0.90,
+                "label": "disorder",
+                "assertion": "present",
+            },
+        ]
+    )
+    assertions = sorted(str(row.get("assertion")) for row in kept)
+    assert assertions == ["absent", "present"]
+
+
+def test_dedup_treats_a_missing_assertion_as_present() -> None:
+    """Persist writes a missing assertion as present, so they are one copy."""
+    kept = dedup_by_concept_id(
+        [
+            {"text": "breast lump", "concept_id": "89164003", "score": 0.80},
+            {
+                "text": "lump in the breast",
+                "concept_id": "89164003",
+                "score": 0.70,
+                "assertion": "present",
+            },
+        ]
+    )
+    assert [row["text"] for row in kept] == ["breast lump"]
 
 
 def test_resolve_lookup_term_strips_dysphagia_meal_suffix() -> None:

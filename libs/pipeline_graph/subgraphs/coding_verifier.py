@@ -35,6 +35,7 @@ from libs.pipeline.coding_candidate_gate import (
     filter_coding_candidates,
 )
 from libs.pipeline.form_checkbox_seed import is_taught_checkbox
+from libs.pipeline.form_schema_seeding import carries_taught_test_row_code
 from libs.pipeline_graph.subgraphs.terminology import _is_blocked_mapping
 
 logger = logging.getLogger(__name__)
@@ -60,8 +61,10 @@ def _is_exact_match(entity: dict[str, Any]) -> bool:
 
 
 def _is_protected_coding(entity: dict[str, Any]) -> bool:
-    """Taught ticks and remapped vulval ulcer must not be dropped."""
+    """Taught form codes and remapped vulval ulcer must not be dropped."""
     if is_taught_checkbox(entity):
+        return True
+    if carries_taught_test_row_code(entity):
         return True
     return bool(entity.get("_vulval_ulcer_remapped"))
 

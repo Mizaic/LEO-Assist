@@ -23,7 +23,26 @@ from libs.pipeline.form_schema_normalizer import (
     FormSchema,
     FormSchemaItem,
 )
-from libs.pipeline.lab_result_evidence import label_has_value, row_reports_a_result
+from libs.pipeline.lab_result_evidence import label_reading, row_reports_a_result
+
+TAUGHT_TEST_ROW_SOURCE = "form_schema_ordered_tests"
+
+
+def is_taught_test_row(entity: dict[str, Any]) -> bool:
+    """Return True for a test-row fact seeded from a taught FormSchema."""
+    return str(entity.get("__source") or "") == TAUGHT_TEST_ROW_SOURCE
+
+
+def carries_taught_test_row_code(entity: dict[str, Any]) -> bool:
+    """Return True when a test-row fact still holds the code it was taught.
+
+    A row taught without a code is looked up like any fact, so its code is
+    a guess and gets checked like one.
+    """
+    if not is_taught_test_row(entity):
+        return False
+    taught = str(entity.get("snomed_code") or "").strip()
+    return bool(taught) and str(entity.get("concept_id") or "").strip() == taught
 
 
 def row_matches_battery(row: str, item: FormSchemaItem) -> bool:
@@ -78,7 +97,7 @@ def _seed_battery_entity(
     label = (item.pattern or item.entity_text or "").strip()
     if not label:
         return
-    key = label.casefold()
+    key = f"procedure:{label.casefold()}"
     if key in seen:
         return
     seen.add(key)
@@ -89,43 +108,51 @@ def _seed_battery_entity(
             "label": label,
             "entity_text": item.entity_text or item.procedure_display or label,
             "snomed_code": item.procedure_snomed or "",
+            "concept_id": item.procedure_snomed or None,
             "start": start,
             "end": end,
             "assertion": item.assertion or "present",
             "semantic_tag": item.semantic_tag or "procedure",
-            "__source": "form_schema_ordered_tests",
+            "__source": TAUGHT_TEST_ROW_SOURCE,
         }
     )
 
 
-def _seed_analyte_entity(
-    entities: list[dict[str, Any]],
+def _analyte_entity(
     seen: set[str],
     text: str,
     analyte: dict[str, str],
     item: FormSchemaItem,
-) -> None:
+) -> dict[str, Any] | None:
     label = str(analyte.get("label") or "").strip()
     code = str(analyte.get("snomed_code") or "").strip()
     if not label:
-        return
-    key = label.casefold()
+        return None
+    # A single-result row (FIT) gives the row and its analyte one label.
+    key = f"observable:{label.casefold()}"
     if key in seen:
-        return
+        return None
     seen.add(key)
     start, end = _find_label_span(text, label)
-    entities.append(
-        {
-            "text": label,
-            "label": label,
-            "snomed_code": code,
-            "start": start,
-            "end": end,
-            "assertion": item.assertion or "present",
-            "semantic_tag": "observable entity",
-            "__source": "form_schema_ordered_tests",
-        }
-    )
+    return {
+        "text": label,
+        "label": label,
+        "snomed_code": code,
+        "concept_id": code or None,
+        "start": start,
+        "end": end,
+        "assertion": item.assertion or "present",
+        "semantic_tag": "observable entity",
+        "__source": TAUGHT_TEST_ROW_SOURCE,
+    }
+
+
+def _first_reading(rows: list[str], label: str) -> tuple[str, str] | None:
+    for row in rows:
+        reading = label_reading(row, label)
+        if reading is not None:
+            return reading
+    return None
 
 
 def _seed_item(
@@ -140,9 +167,16 @@ def _seed_item(
         return
     _seed_battery_entity(entities, seen, text, item)
     for analyte in item.analytes:
-        label = str(analyte.get("label") or "")
-        if any(label_has_value(row, label) for row in rows):
-            _seed_analyte_entity(entities, seen, text, analyte, item)
+        reading = _first_reading(rows, str(analyte.get("label") or ""))
+        if reading is None:
+            continue
+        entity = _analyte_entity(seen, text, analyte, item)
+        if entity is None:
+            continue
+        value, unit = reading
+        entity["value"] = value
+        entity["unit"] = unit or None
+        entities.append(entity)
 
 
 def seed_ordered_tests_entities(
@@ -173,7 +207,10 @@ def seed_ordered_tests_entities(
 
 
 __all__ = [
+    "TAUGHT_TEST_ROW_SOURCE",
     "battery_row_reports_a_result",
+    "carries_taught_test_row_code",
+    "is_taught_test_row",
     "row_matches_battery",
     "seed_ordered_tests_entities",
 ]

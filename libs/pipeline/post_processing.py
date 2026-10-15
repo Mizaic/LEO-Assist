@@ -624,6 +624,20 @@ def clean_observable_surface_forms(
 # ── Layer 5: Entity-Type Normalisation ──
 
 
+def _semantic_tag(ent: dict[str, Any]) -> str:
+    return str(ent.get("semantic_tag") or "").replace("_", " ").strip().casefold()
+
+
+def _tags_differ(ent_a: dict[str, Any], ent_b: dict[str, Any]) -> bool:
+    """True when both facts name their kind and the kinds differ.
+
+    A taught test row seeds a procedure and an observable whose ``label``
+    is the same printed row text; the semantic tag is what tells them apart.
+    """
+    tag_a, tag_b = _semantic_tag(ent_a), _semantic_tag(ent_b)
+    return bool(tag_a and tag_b and tag_a != tag_b)
+
+
 def _normalized_value(ent: dict[str, Any]) -> str:
     """Return the lowercased normalized lookup term for an entity.
 
@@ -787,24 +801,24 @@ def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
             b_end = int(ent_b.get("end", 0) or 0)
             b_text = str(ent_b.get("text", "")).strip().lower()
 
-            if a_text == b_text and a_label == b_label:
+            if a_label != b_label or _tags_differ(ent_a, ent_b):
+                continue
+
+            if a_text == b_text:
                 suppress_indices.add(j)
                 continue
 
-            if a_label == b_label:
-                # Only suppress a nested span when its normalized lookup term
-                # is identical to the containing span's term. Different lookup
-                # terms indicate genuinely distinct clinical concepts (e.g.
-                # "breast lesion" vs "malignant neoplasm of breast with mets")
-                # that must both be preserved for multi-label NER output.
-                a_norm = _normalized_value(ent_a)
-                b_norm = _normalized_value(ent_b)
-                if a_norm != b_norm:
-                    continue
-                if a_start <= b_start and a_end >= b_end:
-                    suppress_indices.add(j)
-                elif b_start <= a_start and b_end >= a_end:
-                    suppress_indices.add(i)
+            # Only suppress a nested span when its normalized lookup term
+            # is identical to the containing span's term. Different lookup
+            # terms indicate genuinely distinct clinical concepts (e.g.
+            # "breast lesion" vs "malignant neoplasm of breast with mets")
+            # that must both be preserved for multi-label NER output.
+            if _normalized_value(ent_a) != _normalized_value(ent_b):
+                continue
+            if a_start <= b_start and a_end >= b_end:
+                suppress_indices.add(j)
+            elif b_start <= a_start and b_end >= a_end:
+                suppress_indices.add(i)
 
     if suppress_indices:
         entities[:] = [e for i, e in enumerate(entities) if i not in suppress_indices]
@@ -1943,7 +1957,7 @@ def run_post_processing_with_trace(
         current: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         from libs.pipeline.document_quality import form_fingerprint
-        from libs.pipeline.form_schema_normalizer import apply_schema_analyte_codes
+        from libs.pipeline.form_analyte_codes import apply_schema_analyte_codes
         from libs.pipeline.form_schema_store import get_cached_schema
 
         schema = get_cached_schema(form_fingerprint(encounter_text))

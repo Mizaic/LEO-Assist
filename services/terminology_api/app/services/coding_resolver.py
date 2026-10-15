@@ -8,6 +8,16 @@ Atlas trace:
 Ported from PCA services/api/app/services/v3/coding_resolver.py.
 Runs two retrieval branches (exact surface-form, fulltext) and fuses scores.
 
+Word gate and strip step (``word_gate.py``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+A fulltext candidate is kept only when the wording it matched claims
+nothing the phrase did not say, and the phrase words it misses are only
+time / onset words or numbers. A phrase with no exact match is also looked
+up exactly without its onset / duration words ("New-onset constipation" ->
+"constipation"); those hits are marked ``lookup_variant="stripped"``.
+Tied exact matches are settled or held back in ``lookup_guards.py``.
+Risk R-76DCF7B7.
+
 Vector branch removed
 ~~~~~~~~~~~~~~~~~~~~~
 Vector (embedding) lookup was removed because it produced wrong SNOMED codes
@@ -52,6 +62,18 @@ from typing import Any
 
 from libs.terminology.surface_normalize import TOKEN_RE, normalize_surface
 from services.terminology_api.app.services.cache import TerminologyCache
+from services.terminology_api.app.services.lookup_guards import (
+    annotate_ancestry,
+    normalise_semantic_tag as _normalise_semantic_tag,
+    settle_exact_ties,
+)
+from services.terminology_api.app.services.word_gate import (
+    apply_word_gate,
+    best_wording,
+    keep_wording,
+    merge_stripped_exact,
+    stripped_text,
+)
 from services.terminology_api.app.queries.terminology import (
     BATCH_EXACT_QUERY,
     BATCH_FULLTEXT_QUERY,
@@ -92,7 +114,7 @@ TAG_GROUPS: dict[str, str] = {
     "tumor staging": "qualifier",
     "attribute": "qualifier",
     "record artifact": "admin",
-    "morphologic abnormality": "clinical",
+    "morphologic abnormality": "morphology",
     "occupation": "social",
     "environment": "social",
 }
@@ -153,18 +175,13 @@ _CLINICAL_GROUPS: frozenset[str] = frozenset(
         "procedure",
         "observable",
         "anatomy",
+        "morphology",
     }
 )
 
 _MAX_TOKENS_FOR_RAW_QUERY = 5
 
 _LUCENE_SPECIAL = re.compile(r'([+\-!(){}[\]^"~*?:\\/])')
-
-
-def _normalise_semantic_tag(tag: str | None) -> str:
-    if not tag:
-        return ""
-    return str(tag).strip().lower().replace("_", " ")
 
 
 def _escape_lucene(text: str) -> str:
@@ -236,9 +253,16 @@ def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -
     score = float(rec.get("score", 0.0))
     if branch == "lexical":
         base["lexical_raw"] = max(base["lexical_raw"], score)
+        keep_wording(base, rec, score)
     elif branch == "lexical_exact":
         base["lexical_raw"] = max(base["lexical_raw"], score)
         base["had_exact_match"] = True
+        if rec.get("match_source") == "term":
+            base["term_exact"] = True
+            base["acceptability_rank"] = max(
+                int(base.get("acceptability_rank") or 0),
+                int(rec.get("acceptability_rank") or 0),
+            )
 
 
 def _parse_related_concepts_row(row: dict[str, Any]) -> list[dict[str, str]]:
@@ -277,11 +301,13 @@ class CodingCandidate:
     surface_form_status: str = ""
     # Absolute confidence signals (raw retrieval evidence).
     #
-    # ``score`` above is now a CALIBRATED absolute confidence in
+    # ``score`` above is an absolute retrieval-strength score in
     # [0.0, 1.0] derived from these raw signals plus tag matching --
     # see ``_fuse_and_rank`` and ``_calibrate_confidence`` for the
-    # exact mapping. Downstream consumers can use ``score`` directly
-    # as a probability-like threshold. The raw signals are also
+    # exact mapping. It is NOT a measured probability that the code is
+    # right: a fulltext score reflects BM25 strength only. Fulltext hits
+    # reach it only after the word gate (``word_gate.py``) has checked
+    # that their wording covers the phrase. The raw signals are also
     # exposed so consumers that need to apply branch-specific
     # thresholds (e.g. "accept exact-match candidates only") can do
     # so without re-running the resolver.
@@ -301,6 +327,13 @@ class CodingCandidate:
     # (INTERPRETS, HAS_COMPONENT, HAS_ASSOCIATED_FINDING).
     # Each entry: {"id", "fsn", "semantic_tag", "rel"}
     related_concepts: list[dict[str, str]] = field(default_factory=list)
+    # Why this candidate was capped below the attach gate ("" = not capped).
+    # See lookup_guards: "ambiguous_exact" or "tiebreak_unavailable".
+    withheld_reason: str = ""
+    # Provenance: the description wording a fulltext hit matched on, and
+    # "stripped" when the hit came from the phrase without onset/duration words.
+    matched_wording: str = ""
+    lookup_variant: str = ""
 
 
 def _calibrate_confidence(c: dict[str, Any]) -> float:
@@ -503,6 +536,13 @@ class CodingResolver:
         exact_hit_terms: set[str] = self._batch_exact(
             misses, normalized_map, neo4j_session, merged_all, org_id=oid
         )
+        self._batch_stripped_exact(
+            [t for t in misses if t not in exact_hit_terms],
+            neo4j_session,
+            merged_all,
+            oid,
+        )
+        annotate_ancestry(merged_all, neo4j_session)
         t_exact = time.perf_counter()
         logger.debug(
             "[resolver] exact  terms=%d  hits=%d  elapsed=%.3fs",
@@ -527,6 +567,7 @@ class CodingResolver:
         # ── Score fusion and candidate ranking (pure Python, no I/O) ───────────
         for text in misses:
             tag = (expected_tags or {}).get(text)
+            apply_word_gate(merged_all[text], text)
             results[text] = self._fuse_and_rank(merged_all[text], expected_tag=tag)
 
         # ── Batch lab-domain enrichment (1 round trip for all lab concepts) ────
@@ -673,6 +714,24 @@ class CodingResolver:
 
         return hit_terms
 
+    def _batch_stripped_exact(
+        self,
+        terms: list[str],
+        session,
+        merged_all: dict[str, dict[str, dict[str, Any]]],
+        org_id: str | None,
+    ) -> None:
+        """Exact lookup of each phrase without its onset / duration words."""
+        stripped = {t: s for t in terms if (s := stripped_text(t))}
+        if not stripped:
+            return
+        texts = list(dict.fromkeys(stripped.values()))
+        found: dict[str, dict[str, dict[str, Any]]] = {s: {} for s in texts}
+        normalized = {s: normalize_surface(s) for s in texts}
+        self._batch_exact(texts, normalized, session, found, org_id=org_id)
+        for term, text in stripped.items():
+            merge_stripped_exact(merged_all[term], found[text], text)
+
     def _batch_fulltext(
         self,
         terms: list[str],
@@ -734,10 +793,14 @@ class CodingResolver:
         """Score-fuse and rank merged candidates for one term.
 
         Returns candidates sorted by ``score`` descending, where ``score``
-        is a CALIBRATED ABSOLUTE confidence in [0.0, 1.0].
+        is an absolute retrieval-strength score in [0.0, 1.0]. It is not a
+        measured probability of a correct mapping. Callers run the word gate
+        (``apply_word_gate``) before this, so a fulltext candidate here has
+        a wording that covers the phrase; exact ties are settled at the end
+        (``settle_exact_ties``).
 
-        Calibrated absolute scoring (replaces per-term local normalisation)
-        --------------------------------------------------------------------
+        Absolute scoring (replaces per-term local normalisation)
+        --------------------------------------------------------
         The previous implementation normalised lexical/vector raw scores
         against the per-term maximum, then multiplied by a 1.3 tag boost.
         This made the top candidate always score ~1.0-1.3 regardless of
@@ -747,7 +810,7 @@ class CodingResolver:
         consumers (coder gates, surface-form validators, the SNOMED
         proposal validator) could not tell strong from weak matches.
 
-        Calibrated absolute confidence mapping:
+        Absolute score mapping:
 
           1. Lexical signal in [0, 1]:
              - Exact branch (Term/SurfaceForm) -> 1.0  (strongest possible)
@@ -802,7 +865,10 @@ class CodingResolver:
 
             scored.append((confidence, c))
 
-        scored.sort(key=lambda x: x[0], reverse=True)
+        settled = settle_exact_ties(
+            scored, expected_tag=normalised_expected_tag, tag_groups=TAG_GROUPS
+        )
+        settled.sort(key=lambda x: x[0], reverse=True)
         return [
             CodingCandidate(
                 snomed_concept_id=c["concept_id"],
@@ -815,8 +881,11 @@ class CodingResolver:
                 had_exact_match=bool(c.get("had_exact_match", False)),
                 lexical_raw=round(float(c.get("lexical_raw", 0.0)), 4),
                 vector_raw=0.0,
+                withheld_reason=reason,
+                matched_wording=best_wording(c),
+                lookup_variant=c.get("lookup_variant", ""),
             )
-            for confidence, c in scored
+            for confidence, c, reason in settled
         ]
 
     def _resolve_single(
@@ -831,37 +900,16 @@ class CodingResolver:
         Preserved for backwards compatibility and single-term interactive lookups.
         ``resolve_candidates`` uses the batched path for efficiency.
         """
-        normalized = normalize_surface(mention)
         merged: dict[str, dict[str, Any]] = {}
         oid = (org_id or "").strip() or None
 
-        # Branch 1: exact
-        if normalized:
-            for rec in session.run(EXACT_QUERY, normalized=normalized, k=self.k_exact):
-                _push(merged, dict(rec), "lexical_exact")
-            if self._surface_form_exact_ok is not False:
-                try:
-                    if self._surface_form_exact_ok is None:
-                        probe = list(
-                            session.run(
-                                "CALL db.labels() YIELD label "
-                                "WHERE label = 'SurfaceForm' "
-                                "RETURN 1 AS ok LIMIT 1"
-                            )
-                        )
-                        self._surface_form_exact_ok = bool(probe)
-                        if not self._surface_form_exact_ok:
-                            self._surface_form_fulltext_ok = False
-                    if self._surface_form_exact_ok:
-                        for rec in session.run(
-                            EXACT_SURFACE_FORM_QUERY,
-                            normalized=normalized,
-                            k=self.k_exact,
-                            org_id=oid,
-                        ):
-                            _push(merged, dict(rec), "lexical_exact")
-                except Exception:
-                    self._surface_form_exact_ok = False
+        # Branch 1: exact, then the phrase without onset / duration words
+        self._single_exact(normalize_surface(mention), session, merged, oid)
+        stripped = stripped_text(mention)
+        if stripped and not any(c.get("had_exact_match") for c in merged.values()):
+            found: dict[str, dict[str, Any]] = {}
+            self._single_exact(normalize_surface(stripped), session, found, oid)
+            merge_stripped_exact(merged, found, stripped)
 
         # Branch 2: fulltext
         for ft_query in _build_fulltext_queries(mention):
@@ -887,4 +935,43 @@ class CodingResolver:
                     if "no such fulltext schema index" in str(exc).lower():
                         self._surface_form_fulltext_ok = False
 
+        annotate_ancestry({mention: merged}, session)
+        apply_word_gate(merged, mention)
         return self._fuse_and_rank(merged, expected_tag=expected_tag)
+
+    def _single_exact(
+        self,
+        normalized: str,
+        session,
+        merged: dict[str, dict[str, Any]],
+        oid: str | None,
+    ) -> None:
+        """Exact Term + SurfaceForm lookup of one normalised phrase."""
+        if not normalized:
+            return
+        for rec in session.run(EXACT_QUERY, normalized=normalized, k=self.k_exact):
+            _push(merged, dict(rec), "lexical_exact")
+        if self._surface_form_exact_ok is False:
+            return
+        try:
+            if self._surface_form_exact_ok is None:
+                probe = list(
+                    session.run(
+                        "CALL db.labels() YIELD label "
+                        "WHERE label = 'SurfaceForm' "
+                        "RETURN 1 AS ok LIMIT 1"
+                    )
+                )
+                self._surface_form_exact_ok = bool(probe)
+                if not self._surface_form_exact_ok:
+                    self._surface_form_fulltext_ok = False
+            if self._surface_form_exact_ok:
+                for rec in session.run(
+                    EXACT_SURFACE_FORM_QUERY,
+                    normalized=normalized,
+                    k=self.k_exact,
+                    org_id=oid,
+                ):
+                    _push(merged, dict(rec), "lexical_exact")
+        except Exception:
+            self._surface_form_exact_ok = False

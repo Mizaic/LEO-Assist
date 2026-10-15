@@ -266,6 +266,25 @@ def _process_section_lines(lines: list[str], section: FormSection) -> list[str]:
     return out
 
 
+def _process_header_line(line: str, section: FormSection) -> str:
+    """Return the line that starts *section* as the model should see it.
+
+    Admin and template-noise headings are sealed. An ordered-tests heading
+    that names a taught test is judged like any row of that table, so a
+    printed "please arrange FBC, U&Es & eGFR" is sealed while a FIT result
+    printed on its own heading line still passes. A heading that names no
+    taught test is left as printed.
+    """
+    if not line.strip():
+        return line
+    stype = section.section_type
+    if stype in ("admin", "template_noise"):
+        return _seal(line)
+    if stype == "ordered_tests" and _match_ordered_test_items(line, section.items):
+        return _process_ordered_tests_lines([line], section)[0]
+    return line
+
+
 def apply_schema_to_text(text: str, schema: FormSchema) -> str:
     """Rewrite ``text`` according to ``schema`` for LLM extraction input.
 
@@ -324,10 +343,7 @@ def _apply_chunk_text_stateful(
         if matched is not None:
             _flush()
             current_section = matched
-            if matched.section_type in ("admin", "template_noise") and line.strip():
-                out.append(_seal(line))
-            else:
-                out.append(line)
+            out.append(_process_header_line(line, matched))
         else:
             pending.append(line)
     _flush()
@@ -341,68 +357,6 @@ def _find_matching_section(
         if section.matches_header(line):
             return section
     return None
-
-
-def apply_schema_analyte_codes(
-    entities: list[dict[str, Any]],
-    schema: FormSchema,
-    chunk_section_map: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    """Override inferred observable SNOMED codes with taught analyte codes.
-
-    For each entity whose label matches an analyte in a taught
-    ``ordered_tests`` section, replaces the entity's ``snomed_code``
-    with the taught value.  Entities with no matching taught code are
-    returned unchanged.
-
-    Args:
-        entities: Extracted entity dicts (each must have ``label`` and
-            ``snomed_code`` keys).
-        schema: The FormSchema containing the taught analyte lists.
-        chunk_section_map: ``{chunk_idx, section_id}`` map used to scope
-            which sections are active for the current document chunks.
-
-    Returns:
-        A new list of entity dicts (originals are not mutated).
-    """
-    taught_codes = _build_analyte_code_index(schema, chunk_section_map)
-    if not taught_codes:
-        return list(entities)
-    return [_apply_code(e, taught_codes) for e in entities]
-
-
-def _build_analyte_code_index(
-    schema: FormSchema,
-    chunk_section_map: list[dict[str, Any]],
-) -> dict[str, str]:
-    """Build a label -> snomed_code lookup from active ordered_tests sections."""
-    active_ids = (
-        {entry.get("section_id") for entry in chunk_section_map}
-        if chunk_section_map
-        else None
-    )
-    codes: dict[str, str] = {}
-    for section in schema.sections:
-        if section.section_type != "ordered_tests":
-            continue
-        if active_ids is not None and section.section_id not in active_ids:
-            continue
-        for item in section.items:
-            for analyte in item.analytes:
-                label = analyte.get("label", "")
-                code = analyte.get("snomed_code", "")
-                if label and code:
-                    codes[label] = code
-    return codes
-
-
-def _apply_code(entity: dict[str, Any], taught_codes: dict[str, str]) -> dict[str, Any]:
-    """Return a copy of entity with snomed_code replaced if a taught code exists."""
-    label = entity.get("label", "")
-    code = taught_codes.get(label)
-    if code is None:
-        return dict(entity)
-    return {**entity, "snomed_code": code}
 
 
 def normalise_with_schema(

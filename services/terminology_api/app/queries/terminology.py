@@ -152,13 +152,20 @@ RETURN c.id AS snomed_concept_id,
        child_count
 """
 
+_ACCEPTABILITY_RANK = (
+    "CASE d.acceptability WHEN 'preferred' THEN 2 WHEN 'acceptable' THEN 1 ELSE 0 END"
+)
+
 EXACT_QUERY = """
-MATCH (t:Term {normalized_form: $normalized})-[:DESCRIBES]->(c:Concept)
+MATCH (t:Term {normalized_form: $normalized})-[d:DESCRIBES]->(c:Concept)
 WHERE c.active = true
+WITH c, max("""
+EXACT_QUERY += _ACCEPTABILITY_RANK
+EXACT_QUERY += """) AS acceptability_rank
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
-WITH c, collect(DISTINCT rd.code) AS read_codes
+WITH c, acceptability_rank, collect(DISTINCT rd.code) AS read_codes
 RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, 1.0 AS score
+       read_codes, 1.0 AS score, 'term' AS match_source, acceptability_rank
 LIMIT $k
 """
 
@@ -172,7 +179,8 @@ WITH sf, c, max(coalesce(m.confidence, 0.0)) AS best_confidence
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 WITH c, sf, best_confidence, collect(DISTINCT rd.code) AS read_codes
 RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, 1.2 AS score, sf.status AS surface_form_status
+       read_codes, 1.2 AS score, sf.status AS surface_form_status,
+       'surface_form' AS match_source
 ORDER BY best_confidence DESC
 LIMIT $k
 """
@@ -182,13 +190,14 @@ CALL db.index.fulltext.queryNodes("term_fulltext", $ft_query) YIELD node, score
 WITH node, score LIMIT 200
 MATCH (node)-[:DESCRIBES]->(c:Concept)
 WHERE c.active = true
-WITH c, max(score) AS best_score
-ORDER BY best_score DESC
+WITH c, node, score ORDER BY score DESC
+WITH c, collect({t: node.surface_form, s: score})[0] AS best
+ORDER BY best.s DESC
 LIMIT $k
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
-WITH c, best_score, collect(DISTINCT rd.code) AS read_codes
+WITH c, best, collect(DISTINCT rd.code) AS read_codes
 RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, best_score AS score
+       read_codes, best.s AS score, best.t AS matched
 """
 
 FULLTEXT_SURFACE_FORM_QUERY = """
@@ -205,7 +214,8 @@ LIMIT $k
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 WITH c, sf, best_score, collect(DISTINCT rd.code) AS read_codes
 RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, best_score * 1.2 AS score, sf.status AS surface_form_status
+       read_codes, best_score * 1.2 AS score, sf.status AS surface_form_status,
+       sf.form AS matched
 """
 
 VECTOR_QUERY = """
@@ -246,15 +256,19 @@ LIMIT $k
 BATCH_EXACT_QUERY = """
 UNWIND $normalized_terms AS norm
 
-OPTIONAL MATCH (t:Term {normalized_form: norm})-[:DESCRIBES]->(ct:Concept)
+OPTIONAL MATCH (t:Term {normalized_form: norm})-[d:DESCRIBES]->(ct:Concept)
 WHERE ct.active = true
+WITH norm, ct, max("""
+BATCH_EXACT_QUERY += _ACCEPTABILITY_RANK
+BATCH_EXACT_QUERY += """) AS acc_rank
 OPTIONAL MATCH (ct)-[:MAPS_TO_READ]->(rdt:ReadCode)
-WITH norm, ct, collect(DISTINCT rdt.code) AS rdt_codes
+WITH norm, ct, acc_rank, collect(DISTINCT rdt.code) AS rdt_codes
 WITH norm,
      collect(
        CASE WHEN ct IS NOT NULL
             THEN {concept_id: ct.id, fsn: ct.fsn, semantic_tag: ct.semantic_tag,
-                  read_codes: rdt_codes, score: 1.0, surface_form_status: ''}
+                  read_codes: rdt_codes, score: 1.0, surface_form_status: '',
+                  match_source: 'term', acceptability_rank: acc_rank}
        END
      ) AS raw_term_hits
 WITH norm, [x IN raw_term_hits WHERE x IS NOT NULL] AS term_hits
@@ -273,13 +287,25 @@ WITH norm, term_hits,
        CASE WHEN cs IS NOT NULL
             THEN {concept_id: cs.id, fsn: cs.fsn, semantic_tag: cs.semantic_tag,
                   read_codes: rds_codes, score: 1.2,
-                  surface_form_status: coalesce(sf.status, '')}
+                  surface_form_status: coalesce(sf.status, ''),
+                  match_source: 'surface_form'}
        END
      ) AS raw_sf_hits
 WITH norm, term_hits, [x IN raw_sf_hits WHERE x IS NOT NULL] AS sf_hits
 
 RETURN norm AS input_term,
        term_hits + sf_hits AS hits
+"""
+
+# For phrases whose exact hits name several concepts: which tied concept is
+# an ancestor of which. Depth is capped at 4 IS_A steps to keep it bounded.
+# $groups: [{key: <input term>, ids: [<tied concept id>, ...]}]
+EXACT_TIE_ANCESTRY_QUERY = """
+UNWIND $groups AS g
+UNWIND g.ids AS child_id
+MATCH (child:Concept {id: child_id})-[:IS_A*1..4]->(parent:Concept)
+WHERE parent.id IN g.ids AND parent.id <> child_id
+RETURN DISTINCT g.key AS key, child_id, parent.id AS parent_id
 """
 
 # Batched fulltext search: runs one fulltext query string against both
@@ -293,13 +319,14 @@ CALL db.index.fulltext.queryNodes("term_fulltext", $ft_query) YIELD node AS tnod
 WITH tnode, tscore LIMIT 200
 MATCH (tnode)-[:DESCRIBES]->(c:Concept)
 WHERE c.active = true
-WITH c, max(tscore) AS best_score
-ORDER BY best_score DESC
+WITH c, tnode, tscore ORDER BY tscore DESC
+WITH c, collect({t: tnode.surface_form, s: tscore})[0] AS best
+ORDER BY best.s DESC
 LIMIT $k
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
-WITH c, best_score, collect(DISTINCT rd.code) AS read_codes
+WITH c, best, collect(DISTINCT rd.code) AS read_codes
 RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, best_score AS score, '' AS surface_form_status
+       read_codes, best.s AS score, '' AS surface_form_status, best.t AS matched
 UNION ALL
 CALL db.index.fulltext.queryNodes("surface_form_fulltext", $ft_query) YIELD node AS sfnode, score AS sfscore
 WITH sfnode, sfscore LIMIT 200
@@ -315,7 +342,8 @@ LIMIT $k
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 WITH c, sfnode, best_score, collect(DISTINCT rd.code) AS read_codes
 RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, best_score * 1.2 AS score, sfnode.status AS surface_form_status
+       read_codes, best_score * 1.2 AS score, sfnode.status AS surface_form_status,
+       sfnode.form AS matched
 """
 
 # Batch lab-domain enrichment: given a list of concept IDs, returns the

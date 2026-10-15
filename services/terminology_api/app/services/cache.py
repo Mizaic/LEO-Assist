@@ -52,7 +52,7 @@ class TerminologyCache:
         org_str = (org_id or "").strip() or "_"
         fp = (package_fingerprint or "").strip() or "_"
         return (
-            f"{RESOLVER_CACHE_KEY_FAMILY}:v2:{text_hash}:{tag_str}:{enrich_lab_domain}"
+            f"{RESOLVER_CACHE_KEY_FAMILY}:v4:{text_hash}:{tag_str}:{enrich_lab_domain}"
             f":{org_str}:{fp}"
         )
 

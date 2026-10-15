@@ -32,6 +32,14 @@ class LabConfigError(RuntimeError):
     """Raised when a lab result cannot be classified safely."""
 
 
+class LabConfigUnavailable(RuntimeError):
+    """Raised when the Knowledge Graph could not be asked for a lab config.
+
+    Deliberately not a :class:`LabConfigError`: callers treat that as "no
+    config for this test", and "we could not ask" must never read as that.
+    """
+
+
 @dataclass(frozen=True)
 class UnitConversion:
     unit: str
@@ -191,8 +199,10 @@ def _fetch_config_row(
             row = s.run(GET_LAB_RESULT_CONFIG, **params).single()
             return dict(row) if row else None
     except Exception as exc:
-        logger.warning("Lab result config lookup failed for %s: %s", concept_id, exc)
-        return None
+        logger.error("Lab result config lookup failed for %s: %s", concept_id, exc)
+        raise LabConfigUnavailable(
+            f"Could not load the lab result config for {concept_id}."
+        ) from exc
     finally:
         if "client" in locals():
             client.close()

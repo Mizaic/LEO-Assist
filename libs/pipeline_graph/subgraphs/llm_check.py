@@ -21,10 +21,17 @@ from langgraph.graph.state import CompiledStateGraph
 
 from libs.llm_client.json_helper import _extract_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
-from libs.relations.policy import policy_relation_types
 from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 from libs.pipeline.form_checkbox_seed import is_taught_checkbox
+from libs.pipeline_graph.subgraphs._extraction_check_adds import (
+    apply_added_entities,
+    normalise_referral_procedure_assertion,
+)
+from libs.pipeline_graph.subgraphs._extraction_check_relations import (
+    apply_relation_updates,
+    renumber_relations,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +52,13 @@ _CONFIRMED_DIAGNOSIS_RE = re.compile(
     re.IGNORECASE,
 )
 
-_ALLOWED_RELATION_TYPES = policy_relation_types()
 _LLM_CHECK_MAX_TOKENS = int(os.getenv("LLM_CHECK_MAX_TOKENS", "8000"))
 _LLM_CHECK_ENTITY_CAP = int(os.getenv("LLM_CHECK_ENTITY_CAP", "80"))
 
 
 class LLMCheckState(TypedDict, total=False):
     encounter_text: str
+    sentences: list[dict[str, Any]]
     entities: list[dict[str, Any]]
     prompt_config: dict[str, Any]
     model_tier: str
@@ -62,26 +69,6 @@ class LLMCheckState(TypedDict, total=False):
     has_extraction_changes: bool
     has_coding_issues: bool
     errors: list[str]
-
-
-def _label_is_procedure(label: str) -> bool:
-    return label.strip().lower().replace(" ", "_") == "procedure"
-
-
-def _normalise_referral_procedure_assertion(
-    *,
-    label: str,
-    text: str,
-    assertion: str,
-) -> str:
-    cleaned_assertion = assertion.strip().lower()
-    if (
-        cleaned_assertion == "possible"
-        and _label_is_procedure(label)
-        and is_referral_procedure_phrase(text)
-    ):
-        return "present"
-    return cleaned_assertion
 
 
 def _parse_json_result(raw: str) -> dict[str, Any]:
@@ -149,17 +136,6 @@ def _resolve_prompt(mode: str, state: LLMCheckState) -> str:
         return compose_prompt_with_annotation_guidelines(
             prompt_name, EXTRACTION_CHECK_SYSTEM_V2
         )
-
-
-def _resolve_span(encounter_text: str, needle: str) -> tuple[int, int]:
-    cleaned = needle.strip()
-    if not cleaned:
-        return 0, 1
-    haystack = encounter_text.lower()
-    idx = haystack.find(cleaned.lower())
-    if idx >= 0:
-        return idx, idx + len(cleaned)
-    return 0, len(cleaned)
 
 
 def _extract_sentence_window(
@@ -272,73 +248,6 @@ def _apply_referral_inference_guard(
     return [ent for i, ent in enumerate(entities) if i not in drop_set]
 
 
-def _parse_relation_rows(rows: Any, entities_count: int) -> list[dict[str, Any]]:
-    parsed: list[dict[str, Any]] = []
-    if not isinstance(rows, list):
-        return parsed
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        relation_type = str(row.get("type") or "").strip().lower()
-        target_idx = row.get("target_idx")
-        if not (
-            relation_type in _ALLOWED_RELATION_TYPES
-            and isinstance(target_idx, int)
-            and 0 <= target_idx < entities_count
-        ):
-            continue
-        parsed.append(
-            {
-                "type": relation_type,
-                "target_idx": target_idx,
-                "target_text": str(row.get("target_text") or "").strip(),
-                "confidence": float(row.get("confidence") or 0.6),
-            }
-        )
-    return parsed
-
-
-def _apply_relation_updates(
-    entities: list[dict[str, Any]],
-    result: dict[str, Any],
-    relation_changes: list[dict[str, Any]],
-) -> None:
-    for row in result.get("correct_relation", []):
-        if not isinstance(row, dict):
-            continue
-        idx = row.get("index")
-        if not (isinstance(idx, int) and 0 <= idx < len(entities)):
-            continue
-        parsed = _parse_relation_rows(row.get("relations"), len(entities))
-        if not parsed:
-            continue
-        entities[idx]["__relations"] = parsed
-        entities[idx]["_llm_check_source"] = "relation_corrected"
-        relation_changes.append(
-            {"type": "relation_corrected", "index": idx, "relations": parsed}
-        )
-
-    for row in result.get("add_relation", []):
-        if not isinstance(row, dict):
-            continue
-        idx = row.get("index")
-        if not (isinstance(idx, int) and 0 <= idx < len(entities)):
-            continue
-        parsed = _parse_relation_rows([row], len(entities))
-        if not parsed:
-            continue
-        current = list(entities[idx].get("__relations") or [])
-        rel = parsed[0]
-        if rel in current:
-            continue
-        current.append(rel)
-        entities[idx]["__relations"] = current
-        entities[idx]["_llm_check_source"] = "relation_missed"
-        relation_changes.append(
-            {"type": "relation_missed", "index": idx, "relation": rel}
-        )
-
-
 def _run_check(state: LLMCheckState, mode: str) -> dict[str, Any]:
     encounter_text = str(state.get("encounter_text") or "")
     entities = list(state.get("entities") or [])
@@ -373,6 +282,47 @@ def _run_check(state: LLMCheckState, mode: str) -> dict[str, Any]:
         return {"llm_check_result": {}, "errors": errors}
 
 
+def _apply_assertion_corrections(
+    rows: Any, entities: list[dict[str, Any]], changes: list[dict[str, Any]]
+) -> None:
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        idx = row.get("index")
+        assertion = str(row.get("assertion") or "").strip()
+        if not (isinstance(idx, int) and 0 <= idx < len(entities) and assertion):
+            continue
+        current = entities[idx]
+        final_assertion = normalise_referral_procedure_assertion(
+            label=str(current.get("label") or ""),
+            text=str(current.get("text") or current.get("normalized") or ""),
+            assertion=assertion,
+        )
+        entities[idx]["assertion"] = final_assertion
+        if final_assertion != assertion.strip().lower():
+            entities[idx]["_assertion_guard"] = "referral_procedure"
+        entities[idx]["_llm_check_source"] = "assertion_corrected"
+        changes.append(
+            {"type": "assertion_corrected", "index": idx, "assertion": final_assertion}
+        )
+
+
+def _apply_label_corrections(
+    rows: Any, entities: list[dict[str, Any]], changes: list[dict[str, Any]]
+) -> None:
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        idx = row.get("index")
+        label = str(row.get("label") or "").strip()
+        if not (isinstance(idx, int) and 0 <= idx < len(entities) and label):
+            continue
+        entities[idx]["label"] = label
+        entities[idx]["semantic_tag"] = label
+        entities[idx]["_llm_check_source"] = "label_corrected"
+        changes.append({"type": "label_corrected", "index": idx, "label": label})
+
+
 def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
     entities = deepcopy(state.get("entities") or [])
     result = state.get("llm_check_result") or {}
@@ -387,6 +337,13 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
             continue
         drop_indices.add(idx)
 
+    # The model numbers facts as it was shown them, so every edit by index
+    # must land before any fact is removed.
+    _apply_assertion_corrections(result.get("correct_assertion"), entities, changes)
+    _apply_label_corrections(result.get("correct_label"), entities, changes)
+    apply_relation_updates(entities, result, relation_changes)
+    shown = list(entities)
+
     if drop_indices:
         for idx in sorted(drop_indices):
             changes.append(
@@ -396,81 +353,16 @@ def _apply_extraction_check(state: LLMCheckState) -> dict[str, Any]:
             entity for i, entity in enumerate(entities) if i not in drop_indices
         ]
 
-    for row in result.get("correct_assertion", []):
-        if not isinstance(row, dict):
-            continue
-        idx = row.get("index")
-        assertion = str(row.get("assertion") or "").strip()
-        if not (isinstance(idx, int) and 0 <= idx < len(entities) and assertion):
-            continue
-        current = entities[idx]
-        final_assertion = _normalise_referral_procedure_assertion(
-            label=str(current.get("label") or ""),
-            text=str(current.get("text") or current.get("normalized") or ""),
-            assertion=assertion,
-        )
-        entities[idx]["assertion"] = final_assertion
-        if final_assertion != assertion.strip().lower():
-            entities[idx]["_assertion_guard"] = "referral_procedure"
-        entities[idx]["_llm_check_source"] = "assertion_corrected"
-        changes.append(
-            {"type": "assertion_corrected", "index": idx, "assertion": final_assertion}
-        )
-
-    for row in result.get("correct_label", []):
-        if not isinstance(row, dict):
-            continue
-        idx = row.get("index")
-        label = str(row.get("label") or "").strip()
-        if not (isinstance(idx, int) and 0 <= idx < len(entities) and label):
-            continue
-        entities[idx]["label"] = label
-        entities[idx]["semantic_tag"] = label
-        entities[idx]["_llm_check_source"] = "label_corrected"
-        changes.append({"type": "label_corrected", "index": idx, "label": label})
-
     encounter_text = str(state.get("encounter_text") or "")
-    for row in result.get("add", []):
-        if not isinstance(row, dict):
-            continue
-        text = str(row.get("text") or "").strip()
-        label = str(row.get("label") or "").strip()
-        if not text or not label:
-            continue
-        if text.lower() not in encounter_text.lower():
-            changes.append(
-                {"type": "drop_add", "text": text, "reason": "not_verbatim_in_text"}
-            )
-            continue
-        start, end = _resolve_span(encounter_text, text)
-        assertion = str(row.get("assertion") or "present")
-        final_assertion = _normalise_referral_procedure_assertion(
-            label=label,
-            text=text,
-            assertion=assertion,
-        )
-        new_entity = {
-            "text": text,
-            "label": label,
-            "semantic_tag": label,
-            "start": start,
-            "end": end,
-            "assertion": final_assertion,
-            "confidence": float(row.get("confidence") or 0.6),
-            "normalized": str(row.get("lookup_term") or text),
-            "lookup_term": str(row.get("lookup_term") or text),
-            "_llm_check_source": "llm_added",
-        }
-        if final_assertion != assertion.strip().lower():
-            new_entity["_assertion_guard"] = "referral_procedure"
-        entities.append(new_entity)
-        changes.append({"type": "added", "text": text, "label": label})
+    apply_added_entities(
+        result.get("add"), encounter_text, state.get("sentences"), entities, changes
+    )
 
     entities = _apply_referral_inference_guard(encounter_text, entities, changes)
     entities = _apply_scope_guard_after_extraction_check(
         encounter_text, entities, changes
     )
-    _apply_relation_updates(entities, result, relation_changes)
+    renumber_relations(shown, entities)
 
     return {
         "entities": entities,
