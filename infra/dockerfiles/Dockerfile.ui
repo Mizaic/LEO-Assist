@@ -1,7 +1,7 @@
 # -- Stage 1: install dependencies (including dev) for the Next.js build ---
 # Pin base images: override via --build-arg in CI for reproducible builds.
-ARG BASE_IMAGE_NODE=node:22-bookworm-slim
-ARG BASE_IMAGE_RUNTIME=gcr.io/distroless/nodejs22-debian12:nonroot
+ARG BASE_IMAGE_NODE=node:22.23.4-bookworm-slim
+ARG BASE_IMAGE_RUNTIME=gcr.io/distroless/nodejs22-debian13:nonroot
 FROM ${BASE_IMAGE_NODE} AS deps
 WORKDIR /app
 # The UI is an npm workspace package that depends on sibling workspace

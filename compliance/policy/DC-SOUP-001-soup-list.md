@@ -152,7 +152,7 @@ and are listed only to show where the UI depends on internal packages.
 
 | # | Package | Version | Source | Functional Significance | Risk |
 |---|---------|---------|--------|------------------------|------|
-| 1 | **next** | ^16.2.9 | npm | React framework; SSR, routing, App Router | Low |
+| 1 | **next** | ^16.4.3 | npm | React framework; SSR, routing, App Router | Low |
 | 2 | **react** | ^18.3.1 | npm | UI component library | Low |
 | 3 | **react-dom** | ^18.3.1 | npm | React DOM rendering | Low |
 | 4 | **@mui/material** | ^7.3.8 | npm | Material UI component library | Low |
@@ -160,10 +160,10 @@ and are listed only to show where the UI depends on internal packages.
 | 5a | **@mui/lab** | ^7.0.1-beta.22 | npm | Material UI lab (pre-release) components | Low |
 | 6 | **@emotion/react** | ^11.14.0 | npm | CSS-in-JS styling (MUI dependency) | Low |
 | 7 | **@emotion/styled** | ^11.14.1 | npm | CSS-in-JS styled components | Low |
-| 8 | **next-auth** | ^5.0.0-beta.30 | npm | Authentication; Azure AD / Entra ID SSO | Medium |
+| 8 | **next-auth** | ^5.0.0-beta.32 | npm | Authentication; Azure AD / Entra ID SSO | Medium |
 | 9 | **recharts** | ^3.7.0 | npm | Chart components for dashboard visualisations | Low |
 | 10 | **zustand** | ^5.0.11 | npm | State management for report builder | Low |
-| 11 | **dompurify** | ^3.4.11 | npm | Sanitises HTML rendered from AI/user-generated content (XSS control) | High |
+| 11 | **dompurify** | ^3.4.17 | npm | Sanitises HTML rendered from AI/user-generated content (XSS control) | High |
 | 12 | **@dnd-kit/core**, **@dnd-kit/sortable**, **@dnd-kit/utilities** | ^6.3.1 / ^10.0.0 / ^3.2.2 | npm | Drag-and-drop for guideline rule builder | Low |
 | 13 | **@tiptap/*** (core, react, starter-kit, extension-link/placeholder/table/table-cell/table-header/table-row/task-item/task-list/underline) | ^3.20.1 | npm | Rich-text editor for guideline rule authoring and clinical notes | Medium |
 | 14 | **tiptap-markdown** | ^0.9.0 | npm | Markdown serialisation for the Tiptap editor | Low |
@@ -179,7 +179,7 @@ and are listed only to show where the UI depends on internal packages.
 | 24 | **react-grid-layout** | ^2.2.3 | npm | Dashboard widget layout | Low |
 | 25 | **react-icons** | ^5.5.0 | npm | Icon set | Low |
 | 26 | **react-virtuoso** | ^4.18.1 | npm | Virtualised list rendering for large tables | Low |
-| 27 | **undici** | ^7.28.0 | npm | HTTP client used for server-side fetch calls | Medium |
+| 27 | **undici** | ^7.29.1 | npm | HTTP client used for server-side fetch calls | Medium |
 | -- | **@leo/design-system** | workspace (`*`) | in-house | Internal design tokens, motion, primitives -- not third-party SOUP | n/a |
 | -- | **@mizaic/leo-widget** | ^0.1.0-mvp.1 | in-house | Internal embeddable SBAR widget -- not third-party SOUP | n/a |
 
