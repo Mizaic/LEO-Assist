@@ -4,7 +4,7 @@
  * Atlas: DI-49BA8E04 / VT-592D30E9
  */
 
-import { buildFactTree } from "../app/admin/validation-lab/factTree";
+import { buildFactTree } from "../app/admin/validation-lab/factTreeGroups";
 import type { LabWorkItem } from "../app/admin/validation-lab/inspectorTypes";
 
 function fact(partial: Partial<LabWorkItem> & { text: string }): LabWorkItem {

@@ -18,7 +18,7 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import type { FactLeaf, FactTagGroup, FactTreeGroup } from "./factTree";
+import type { FactLeaf, FactTagGroup, FactTreeGroup } from "./factTreeGroups";
 
 interface Props {
   groups: FactTreeGroup[];

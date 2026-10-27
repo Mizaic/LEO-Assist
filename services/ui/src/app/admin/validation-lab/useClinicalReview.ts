@@ -20,7 +20,7 @@ import {
   type ClinicalPhaseId,
   type PhaseSpan,
 } from "./clinicalPhases";
-import { buildFactTree, type FactLeaf, type FactTreeGroup } from "./factTree";
+import { buildFactTree, type FactLeaf, type FactTreeGroup } from "./factTreeGroups";
 import { clinicalFactItems } from "./inspector/stageWorkItems";
 import type { LabStageDetail, LabWorkPreview } from "./inspectorTypes";
 import type { LetterMark } from "./letterHighlight";
