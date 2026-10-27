@@ -55,7 +55,7 @@
     "ioredis": "^5.9.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
-    "next": "^16.2.9",
+    "next": "^16.4.3",
     "next-auth": "^5.0.0-beta.30",
     "plotly.js-dist-min": "^3.5.0",
     "react": "^18.3.1",

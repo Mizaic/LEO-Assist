@@ -152,7 +152,7 @@ and are listed only to show where the UI depends on internal packages.
 
 | # | Package | Version | Source | Functional Significance | Risk |
 |---|---------|---------|--------|------------------------|------|
-| 1 | **next** | ^16.2.9 | npm | React framework; SSR, routing, App Router | Low |
+| 1 | **next** | ^16.4.3 | npm | React framework; SSR, routing, App Router | Low |
 | 2 | **react** | ^18.3.1 | npm | UI component library | Low |
 | 3 | **react-dom** | ^18.3.1 | npm | React DOM rendering | Low |
 | 4 | **@mui/material** | ^7.3.8 | npm | Material UI component library | Low |
