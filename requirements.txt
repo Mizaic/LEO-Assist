@@ -5,11 +5,13 @@
 # =============================================================================
 
 # --- Web framework & ASGI server ---
-fastapi>=0.115
+fastapi>=0.135.0
+starlette>=1.0.1
 uvicorn[standard]>=0.34
 pydantic>=2.10
 python-dotenv>=1.1
 httpx>=0.28
+h11>=0.16.0
 
 # --- Graph database ---
 neo4j>=5.28

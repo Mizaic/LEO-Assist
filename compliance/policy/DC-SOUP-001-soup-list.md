@@ -41,7 +41,7 @@ package directly (transitive-only packages are not repeated here).
 
 | # | Package | Version floor | Source | Used in | Functional Significance | Risk |
 |---|---------|---------|--------|---------|------------------------|------|
-| 1 | **fastapi** | >= 0.115.0 | PyPI | api, terminology_api, analytics_api, fhir_api, pipeline_worker, model_inference, training_worker, ods_sync | API framework; routes all requests | Medium |
+| 1 | **fastapi** | >= 0.135.0 | PyPI | api, terminology_api, analytics_api, fhir_api, pipeline_worker, model_inference, training_worker, ods_sync | API framework; routes all requests | Medium |
 | 2 | **uvicorn** | >= 0.34.0 | PyPI | api, terminology_api, analytics_api, fhir_api, pipeline_worker, model_inference, training_worker, ods_sync | ASGI server; serves all Python APIs | Low |
 | 3 | **neo4j** | >= 5.28.0 | PyPI | api, terminology_api, analytics_api, fhir_api, pipeline_worker, training_worker, ods_sync | Neo4j driver; Patient Graph + Knowledge Graph access | Medium |
 | 4 | **pydantic** | >= 2.10.0 | PyPI | api, terminology_api, analytics_api, fhir_api, pipeline_worker | Request/response validation | Medium |
@@ -53,7 +53,7 @@ package directly (transitive-only packages are not repeated here).
 | 8 | **boto3** | >= 1.42.64 | PyPI | api, analytics_api, pipeline_worker | AWS SDK; Bedrock LLM calls (primary provider) | Medium |
 | 8a | **botocore** | >= 1.42.64 | PyPI | api, analytics_api, pipeline_worker | AWS SDK core; version-locked with boto3 | Medium |
 | 9 | **sentence-transformers** | >= 3.0.0, < 4 | PyPI | terminology_api, pipeline_worker | Bio_ClinicalBERT embedding model | High |
-| 10 | **torch** | >= 2.0.0 (CPU-pinned 2.10.0+cpu in Linux containers) | PyPI | model_inference, training_worker, pipeline_worker | Deep learning framework; embedding computation | Medium |
+| 10 | **torch** | >= 2.6.0 (CPU-pinned 2.10.0+cpu in Linux containers) | PyPI | model_inference, training_worker, pipeline_worker | Deep learning framework; embedding computation | Medium |
 | 10a | **cupy-cuda12x** | >= 14 (Windows dev only) | PyPI | training_worker | CUDA acceleration for local GPU training runs | Low |
 | 11 | **pysbd** | (installed) | PyPI | api | Backup sentence boundary detection | Medium |
 | 12 | **loguru** | >= 0.7 | PyPI | api | Logging framework | Low |
