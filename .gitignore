@@ -351,3 +351,5 @@ services/ui/e2e/screenshots/*.png
 # Pre-migration graph snapshots. Rollback evidence for one environment,
 # not source. Keep them with the change record, not in the repo.
 scripts/snapshots/
+output/
+HCCP-LEO-AI-Agents.code-workspace

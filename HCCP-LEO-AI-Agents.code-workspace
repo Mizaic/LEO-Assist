@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../HCCP-Agents"
+		},
+		{
+			"path": "../HCCP-LEO-AI-xv2"
 		}
 	],
 	"settings": {}
