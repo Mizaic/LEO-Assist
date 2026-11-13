@@ -47,7 +47,7 @@ export const STEP_PREREQUISITES = {
     "These are things that apply no matter which situation matches -- for example an age that covers every situation. If one situation has its own age or sex, add that when you build that situation.",
   capturedHeading: "Captured so far",
   selectionHint:
-    "To select a phrase like 'light chains', click the first word, then hold Shift and click the last word. Or click and drag across the words.",
+    "Click words to turn them on or off -- even when they are separated by other words. To pick a connected span, hold Shift and click the last word, or drag across.",
   question:
     "Does anything else always have to be true, no matter which symptoms the patient has? Most rules don't -- it's fine to say no.",
   questionAriaLabel: "Does anything else always have to be true?",

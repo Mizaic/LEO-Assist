@@ -129,12 +129,51 @@ export function leafTextMatch(
  * `collectTreeHighlights` and `StepPrerequisites`'s "Captured so
  * far" panel).
  */
+function findDisconnectedSourceMatches(
+  recommendationText: string,
+  sourceRowText: string,
+): TextMatchRange[] | null {
+  const words = sourceRowText.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return null;
+
+  const spans: TextMatchRange[] = [];
+  let cursor = 0;
+  let i = 0;
+  while (i < words.length) {
+    let bestMatch: TextMatchRange | null = null;
+    let bestEndIdx = i;
+    for (let j = words.length; j > i; j--) {
+      const candidate = words.slice(i, j).join(" ");
+      const match = findBestTextMatch(recommendationText.slice(cursor), candidate);
+      if (match?.strategy === "exact") {
+        bestMatch = {
+          ...match,
+          start: cursor + match.start,
+          end: cursor + match.end,
+        };
+        bestEndIdx = j;
+        break;
+      }
+    }
+    if (!bestMatch) return null;
+    spans.push(bestMatch);
+    cursor = bestMatch.end;
+    i = bestEndIdx;
+  }
+  return spans.length >= 2 ? spans : null;
+}
+
 export function leafTextMatches(
   recommendationText: string | null | undefined,
   node: EditableLogicNode,
 ): TextMatchRange[] {
   if (node.source_row_text) {
     const bySource = findBestTextMatch(recommendationText, node.source_row_text);
+    if (bySource?.strategy === "exact") return [bySource];
+    const disconnected = recommendationText
+      ? findDisconnectedSourceMatches(recommendationText, node.source_row_text)
+      : null;
+    if (disconnected) return disconnected;
     if (bySource) return [bySource];
   }
   if (node.kind === "CONCEPT") {

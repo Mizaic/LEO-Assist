@@ -447,6 +447,11 @@ export type NodeUpdate =
       nodeId: string;
       soft_qualifiers: SoftQualifierSpec[];
     }
+  | {
+      kind: "set_source_row_text";
+      nodeId: string;
+      sourceRowText: string | null;
+    }
   | { kind: "replace_root"; node: EditableLogicNode }
   // -- RULE_FIRED chained evaluation (DI-8899D4F3 / DI-6AE25829) --
   | { kind: "add_rule_fired"; parentNodeId: string }

@@ -43,11 +43,18 @@ type Stage = "collapsed" | "highlighting" | { picking: TextSelectionResult };
 
 interface Props {
   item: RecommendationStructureItem;
-  onAddCriterion: (criterion: LogicCriterion) => void;
+  /** Optional full situation sentence so modifiers ahead of a split row can also be picked. */
+  contextText?: string | null;
+  onAddCriterion: (criterion: LogicCriterion, selectedText: string) => void;
 }
 
-export default function RowMultiCodeHighlight({ item, onAddCriterion }: Props) {
+export default function RowMultiCodeHighlight({
+  item,
+  contextText,
+  onAddCriterion,
+}: Props) {
   const [stage, setStage] = useState<Stage>("collapsed");
+  const highlightText = contextText?.trim() || item.text;
 
   if (stage === "collapsed") {
     return (
@@ -68,7 +75,7 @@ export default function RowMultiCodeHighlight({ item, onAddCriterion }: Props) {
     return (
       <Stack spacing={0.5} alignItems="flex-start">
         <HighlightableRecommendationText
-          text={item.text}
+          text={highlightText}
           onConfirmSelection={(selection) => setStage({ picking: selection })}
           onCancelSelection={() => setStage("collapsed")}
         />
@@ -87,7 +94,7 @@ export default function RowMultiCodeHighlight({ item, onAddCriterion }: Props) {
         initialQuery={stage.picking.text}
         embedded
         onConfirm={(criterion) => {
-          onAddCriterion(criterion);
+          onAddCriterion(criterion, stage.picking.text);
           setStage("collapsed");
         }}
       />

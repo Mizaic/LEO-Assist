@@ -184,6 +184,23 @@ describe("leafTextMatches", () => {
     const node = makeNode({ kind: "RULE_FIRED", referenced_rule_id: "r1" });
     expect(leafTextMatches(TEXT, node)).toEqual([]);
   });
+
+  it("highlights every contiguous piece of a disconnected source_row_text (NG12 1.5.17)", () => {
+    const ng12 =
+      "1.5.17 Consider a suspected cancer pathway referral for vulval cancer " +
+      "in women who have an unexplained vulval lump, ulceration or bleeding. [2015]";
+    const node = makeNode({
+      kind: "CONCEPT",
+      source_row_text: "unexplained vulval bleeding.",
+      criterion: {
+        snomed_concept_id: "890094005",
+        preferred_term: "Bleeding from genital region (finding)",
+      },
+    });
+    const matches = leafTextMatches(ng12, node);
+    const pieces = matches.map((m) => ng12.slice(m.start, m.end));
+    expect(pieces).toEqual(["unexplained vulval", "bleeding."]);
+  });
 });
 
 describe("collectTreeHighlights", () => {

@@ -88,6 +88,7 @@ export interface StepPathwayConditionsProps {
   onAddMultiConcept?: (
     item: RecommendationStructureItem,
     criterion: LogicCriterion,
+    selectedText?: string,
   ) => void;
   /** Undefined means "not yet asked" -- only relevant when this
    *  pathway has a detected trailing "any of the following" cluster. */
@@ -321,7 +322,10 @@ export default function StepPathwayConditions({
     ? (item: RecommendationStructureItem) => (
         <RowMultiCodeHighlight
           item={item}
-          onAddCriterion={(criterion) => onAddMultiConcept(item, criterion)}
+          contextText={boundary.text}
+          onAddCriterion={(criterion, selectedText) =>
+            onAddMultiConcept(item, criterion, selectedText)
+          }
         />
       )
     : undefined;

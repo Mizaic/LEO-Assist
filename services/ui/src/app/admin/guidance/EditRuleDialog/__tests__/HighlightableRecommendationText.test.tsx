@@ -104,11 +104,12 @@ describe("HighlightableRecommendationText: mouse drag-select", () => {
     );
   });
 
-  it("a plain click on a second word (no Shift) starts a fresh one-word selection instead of extending", async () => {
+  it("in contiguous mode, a plain click on a second word resets to a fresh one-word selection", async () => {
     const user = userEvent.setup();
     render(
       <HighlightableRecommendationText
         text={TEXT}
+        mode="contiguous"
         onConfirmSelection={jest.fn()}
       />
     );
@@ -118,6 +119,76 @@ describe("HighlightableRecommendationText: mouse drag-select", () => {
 
     expect(getWordChunk("upper")).toHaveAttribute("aria-pressed", "false");
     expect(getWordChunk("pain")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("clicks disconnected words to toggle them on/off, previews the joined phrase, and confirms them", async () => {
+    const user = userEvent.setup();
+    const onConfirmSelection = jest.fn();
+    const ng12 = "unexplained vulval lump, ulceration or bleeding.";
+    render(
+      <HighlightableRecommendationText
+        text={ng12}
+        onConfirmSelection={onConfirmSelection}
+      />
+    );
+
+    await user.click(getWordChunk("unexplained"));
+    await user.click(getWordChunk("vulval"));
+    await user.click(getWordChunk("lump,"));
+    // Clicking an already-picked word toggles it off.
+    await user.click(getWordChunk("lump,"));
+    await user.click(getWordChunk("bleeding."));
+
+    expect(getWordChunk("unexplained")).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("vulval")).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("lump,")).toHaveAttribute("aria-pressed", "false");
+    expect(getWordChunk("ulceration")).toHaveAttribute("aria-pressed", "false");
+    expect(getWordChunk("bleeding.")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText(/unexplained vulval bleeding\./i)).toBeInTheDocument();
+
+    const confirmButton = screen.getByRole("button", { name: /confirm selection/i });
+    await user.click(confirmButton);
+
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      {
+        start: 0,
+        end: ng12.length,
+        text: "unexplained vulval bleeding.",
+      },
+      confirmButton,
+    );
+  });
+
+  it("toggles disconnected words with Space via keyboard and confirms with Enter", async () => {
+    const user = userEvent.setup();
+    const onConfirmSelection = jest.fn();
+    const ng12 = "unexplained vulval lump, ulceration or bleeding.";
+    render(
+      <HighlightableRecommendationText
+        text={ng12}
+        onConfirmSelection={onConfirmSelection}
+      />
+    );
+
+    await user.tab(); // "unexplained"
+    await user.keyboard(" ");
+    await user.tab(); // "vulval"
+    await user.keyboard(" ");
+    await user.tab(); // "lump,"
+    await user.tab(); // "ulceration"
+    await user.tab(); // "or"
+    await user.tab(); // "bleeding."
+    await user.keyboard(" ");
+    await user.keyboard("{Enter}");
+
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      {
+        start: 0,
+        end: ng12.length,
+        text: "unexplained vulval bleeding.",
+      },
+      getWordChunk("bleeding."),
+    );
   });
 
   it("does not select the dimmed word 'and' when dragging is not initiated on it", () => {

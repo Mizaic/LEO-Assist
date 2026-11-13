@@ -166,6 +166,13 @@ function candidateCoversCore(candidate: string, core: string): boolean {
   return overlap / coreLen >= MIN_DIRECT_ROW_COVERAGE;
 }
 
+function sourceRowTextCoversCore(sourceRowText: string, core: string): boolean {
+  const coreTokens = contentTokens(core);
+  const srcTokens = new Set(contentTokens(clinicalRowCore(sourceRowText)));
+  if (coreTokens.length === 0 || srcTokens.size === 0) return false;
+  return coreTokens.every((t) => srcTokens.has(t));
+}
+
 /**
  * True when `node` is the leaf that already answers this structure row,
  * judged from the row's own wording rather than quote-panel offsets.
@@ -177,6 +184,9 @@ export function leafResolvesRowText(
   if (node.source_row_text && node.source_row_text === row.text) return true;
   const core = clinicalRowCore(row.text);
   if (!core) return false;
+  if (node.source_row_text && sourceRowTextCoversCore(node.source_row_text, core)) {
+    return true;
+  }
   return leafMatchCandidates(node).some((candidate) =>
     candidateCoversCore(candidate, core),
   );

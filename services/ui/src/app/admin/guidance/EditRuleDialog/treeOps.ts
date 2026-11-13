@@ -524,6 +524,19 @@ export function removeExcluded(
   });
 }
 
+function setNodeSourceRowText(
+  node: EditableLogicNode,
+  raw: string | null | undefined,
+): EditableLogicNode {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) {
+    const rest = { ...node };
+    delete rest.source_row_text;
+    return rest;
+  }
+  return { ...node, source_row_text: trimmed.slice(0, 500) };
+}
+
 function mapNode(
   node: EditableLogicNode,
   fn: (n: EditableLogicNode) => EditableLogicNode | null,
@@ -760,6 +773,12 @@ export function applyUpdate(
               ...c,
               soft_qualifiers: update.soft_qualifiers,
             }))
+          : n,
+      );
+    case "set_source_row_text":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId
+          ? setNodeSourceRowText(n, update.sourceRowText)
           : n,
       );
     case "set_name":

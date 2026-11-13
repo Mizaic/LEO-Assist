@@ -63,17 +63,125 @@ describe("useWordSelection", () => {
     expect(result.current.selectionLoHi).toEqual({ lo: 0, hi: 2 });
   });
 
-  // Regression: clicking word 1, releasing, then clicking word 2 without
-  // Shift held must NOT extend the selection -- each plain click starts a
-  // fresh one-word selection, matching the drag/keyboard behaviour below.
-  it("a second plain mousedown (no Shift) resets to a fresh one-word selection instead of extending", () => {
+  it("in contiguous mode, a second plain mousedown (no Shift) resets to a fresh one-word selection", () => {
     const { result } = renderHook(() =>
-      useWordSelection({ text: TEXT, onConfirmSelection: jest.fn() }),
+      useWordSelection({
+        text: TEXT,
+        mode: "contiguous",
+        onConfirmSelection: jest.fn(),
+      }),
     );
     act(() => result.current.handleMouseDown(0));
     act(() => result.current.handleMouseUp());
     act(() => result.current.handleMouseDown(2));
+    act(() => result.current.handleMouseUp());
     expect(result.current.selectionLoHi).toEqual({ lo: 2, hi: 2 });
+  });
+
+  it("in default multi mode, plain clicks toggle disconnected words and confirm joins them in sentence order", () => {
+    const onConfirmSelection = jest.fn();
+    const ng12 = "unexplained vulval lump, ulceration or bleeding.";
+    const { result } = renderHook(() =>
+      useWordSelection({ text: ng12, onConfirmSelection }),
+    );
+    act(() => {
+      result.current.handleMouseDown(0);
+      result.current.handleMouseUp();
+    });
+    act(() => {
+      result.current.handleMouseDown(1);
+      result.current.handleMouseUp();
+    });
+    act(() => {
+      result.current.handleMouseDown(5);
+      result.current.handleMouseUp();
+    });
+    expect(Array.from(result.current.selectedIndices)).toEqual([0, 1, 5]);
+    expect(result.current.previewText).toBe("unexplained vulval bleeding.");
+
+    act(() => result.current.handleConfirm());
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      {
+        start: 0,
+        end: ng12.length,
+        text: "unexplained vulval bleeding.",
+      },
+      undefined,
+    );
+  });
+
+  it("clicking an already-selected word toggles it off", () => {
+    const ng12 = "unexplained vulval lump, ulceration or bleeding.";
+    const { result } = renderHook(() =>
+      useWordSelection({ text: ng12, onConfirmSelection: jest.fn() }),
+    );
+    act(() => {
+      result.current.handleMouseDown(0);
+      result.current.handleMouseUp();
+    });
+    act(() => {
+      result.current.handleMouseDown(2);
+      result.current.handleMouseUp();
+    });
+    act(() => {
+      result.current.handleMouseDown(2);
+      result.current.handleMouseUp();
+    });
+    expect(Array.from(result.current.selectedIndices)).toEqual([0]);
+  });
+
+  it("combines a Shift+click range with a later disconnected plain click", () => {
+    const onConfirmSelection = jest.fn();
+    const ng12 = "unexplained vulval lump, ulceration or bleeding.";
+    const { result } = renderHook(() =>
+      useWordSelection({ text: ng12, onConfirmSelection }),
+    );
+    act(() => {
+      result.current.handleMouseDown(0);
+      result.current.handleMouseUp();
+    });
+    act(() => {
+      result.current.handleMouseDown(1, true);
+      result.current.handleMouseUp();
+    });
+    act(() => {
+      result.current.handleMouseDown(5);
+      result.current.handleMouseUp();
+    });
+    act(() => result.current.handleConfirm());
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      {
+        start: 0,
+        end: ng12.length,
+        text: "unexplained vulval bleeding.",
+      },
+      undefined,
+    );
+  });
+
+  it("Space toggles focused words across Tab focus changes and Enter confirms them", () => {
+    const onConfirmSelection = jest.fn();
+    const ng12 = "unexplained vulval lump, ulceration or bleeding.";
+    const { result } = renderHook(() =>
+      useWordSelection({ text: ng12, onConfirmSelection }),
+    );
+    act(() => result.current.handleFocus(0));
+    act(() => result.current.handleKeyDown(0, keyEvent(" ")));
+    act(() => result.current.handleFocus(1));
+    act(() => result.current.handleKeyDown(1, keyEvent(" ")));
+    act(() => result.current.handleFocus(3)); // focus "ulceration" without pressing Space
+    act(() => result.current.handleFocus(5));
+    act(() => result.current.handleKeyDown(5, keyEvent(" ")));
+    act(() => result.current.handleKeyDown(5, keyEvent("Enter")));
+
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      {
+        start: 0,
+        end: ng12.length,
+        text: "unexplained vulval bleeding.",
+      },
+      undefined,
+    );
   });
 
   // Click-drag across small inline word chunks is fragile in a real

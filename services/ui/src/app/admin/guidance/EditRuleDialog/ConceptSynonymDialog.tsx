@@ -9,27 +9,8 @@
 "use client";
 
 /**
- * Controlled dialog for managing the synonym set + exclusions on a
- * CONCEPT leaf's criterion (UN-LEO-AI-093 / DI-LEO-AI-511): add one or
- * more equivalent SNOMED codes, nominate which supplies the chip's
- * label, opt each in/out of descendant expansion (with its own
- * depth), remove a code, or block a specific descendant.
- *
- * Extracted out of `SynonymChipEditor.tsx` so it can be opened from
- * anywhere a caller already has a target `node_id`, not only from
- * that component's own trigger badge. The highlight-to-build wizard's
- * Step 1 / Step 3 "edit an existing pick" flow has no chip UI of its
- * own to hang a badge off -- clicking an already-resolved row there
- * needs to open straight into add/remove, not a single-pick override.
- * `SynonymChipEditor` still owns the trigger badge and renders this
- * dialog internally, so the Advanced/Sentence editor's own chip keeps
- * working unchanged.
- *
- * Dialog, not Popover (R-LEO-AI-509 / DI-512 v3): the body grows and
- * shrinks as the author adds seeds, opens the descendants list, or
- * starts a search. A chip-anchored Popover repositions on every
- * content change and overflows a bounded host; a small centred Dialog
- * stays put and scrolls internally instead.
+ * Controlled dialog for managing the synonym set, exclusions, soft checks,
+ * and linked guideline wording on a CONCEPT or OBSERVATION leaf.
  */
 
 import { useMemo, useState } from "react";
@@ -40,10 +21,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
-import Radio from "@mui/material/Radio";
 import Stack from "@mui/material/Stack";
-import Switch from "@mui/material/Switch";
-import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
@@ -53,9 +31,11 @@ import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 
 import BlockedCodesPanel from "./BlockedCodesPanel";
 import SoftChecksPanel from "./SoftChecksPanel";
+import SourceWordingPanel from "./SourceWordingPanel";
 import ConceptSearchPanel from "./ConceptSearchPanel";
 import ObservationEditDialogBody from "./ObservationEditDialogBody";
 import SeedDescendantsList from "./SeedDescendantsList";
+import SeedRow from "./SeedRow";
 import { friendlyTerm, SYNONYM_OBSERVATION_EDIT } from "./copy";
 import { isLikelyObservableSeed } from "./observableHit";
 import type {
@@ -65,12 +45,6 @@ import type {
   NodeUpdate,
 } from "./types";
 
-/**
- * Normalises a criterion (legacy single-seed OR synonym-set shape)
- * into the seeds/excluded/primary triple every consumer here needs.
- * Exported so `SynonymChipEditor`'s trigger badge can derive the same
- * counts without duplicating this promotion logic.
- */
 export function deriveSynonymEditorState(criterion: LogicCriterion | undefined): {
   seeds: LogicSeed[];
   excluded: string[];
@@ -97,25 +71,18 @@ export function deriveSynonymEditorState(criterion: LogicCriterion | undefined):
 
 interface Props {
   open: boolean;
-  /** The CONCEPT leaf being edited. Null renders nothing -- callers
-   *  that open this dialog by node_id alone (e.g. the highlight
-   *  wizard) may briefly have no match while the tree updates. */
   node: EditableLogicNode | null;
+  /** Optional NICE recommendation text for editing linked guideline wording. */
+  recommendationText?: string | null;
   onUpdate: (u: NodeUpdate) => void;
   onClose: () => void;
-  /**
-   * When set (highlight wizard), the reviewer can undo a mistaken
-   * pick: removing the last code -- or clicking "Remove this match"
-   * -- deletes the whole CONCEPT leaf so the Step 3 row becomes
-   * unresolved again. The Advanced/Sentence chip editor omits this
-   * and keeps requiring at least one code on the chip.
-   */
   onClearMatch?: () => void;
 }
 
 export default function ConceptSynonymDialog({
   open,
   node,
+  recommendationText,
   onUpdate,
   onClose,
   onClearMatch,
@@ -138,6 +105,7 @@ export default function ConceptSynonymDialog({
     : showObservableThreshold
       ? SYNONYM_OBSERVATION_EDIT.dialogSubtitleObservableConcept
       : "Add other codes that mean the same thing, or block codes that should not fire this rule.";
+  const trimmedQuote = recommendationText?.trim() || "";
 
   if (!node) return null;
 
@@ -202,11 +170,20 @@ export default function ConceptSynonymDialog({
       </DialogTitle>
       <DialogContent dividers sx={{ p: 2 }}>
         {isObservationLeaf ? (
-          <ObservationEditDialogBody
-            node={node}
-            primarySeed={primarySeed}
-            onUpdate={onUpdate}
-          />
+          <Stack spacing={2}>
+            <ObservationEditDialogBody
+              node={node}
+              primarySeed={primarySeed}
+              onUpdate={onUpdate}
+            />
+            {trimmedQuote && (
+              <SourceWordingPanel
+                node={node}
+                recommendationText={trimmedQuote}
+                onUpdate={onUpdate}
+              />
+            )}
+          </Stack>
         ) : (
           <Stack spacing={2}>
             <SynonymEditorBody
@@ -219,6 +196,13 @@ export default function ConceptSynonymDialog({
               onUpdate={onUpdate}
               onClearMatch={onClearMatch}
             />
+            {trimmedQuote && (
+              <SourceWordingPanel
+                node={node}
+                recommendationText={trimmedQuote}
+                onUpdate={onUpdate}
+              />
+            )}
             {showObservableThreshold && (
               <ObservationEditDialogBody
                 node={node}
@@ -279,8 +263,6 @@ export function SynonymEditorBody({
 }) {
   const [searchMode, setSearchMode] =
     useState<"none" | "add_seed" | "add_excluded">("none");
-  // Wizard: clearing the last code undoes the whole match. Chip editor:
-  // keep at least one seed so the leaf never becomes empty.
   const canRemoveLast = !!onClearMatch;
 
   return (
@@ -436,10 +418,6 @@ export function SynonymEditorBody({
                     snomed_concept_id: criterion.snomed_concept_id,
                     preferred_term: criterion.preferred_term,
                     semantic_tag: criterion.semantic_tag,
-                    // Default new synonyms to "exact code only". The author
-                    // opts in to descendant expansion per-seed via the
-                    // toggle so it is never on for a code they have not
-                    // reviewed yet.
                     include_descendants: false,
                   },
                 });
@@ -462,183 +440,6 @@ export function SynonymEditorBody({
           </Button>
         </Box>
       )}
-    </Stack>
-  );
-}
-
-function SeedRow({
-  seed,
-  isPrimary,
-  canRemove,
-  removeClearsMatch = false,
-  onPickPrimary,
-  onToggleDescendants,
-  onSetDistance,
-  onRemove,
-}: {
-  seed: LogicSeed;
-  isPrimary: boolean;
-  canRemove: boolean;
-  /** True when this X undoes the whole wizard match, not just one synonym. */
-  removeClearsMatch?: boolean;
-  onPickPrimary: () => void;
-  onToggleDescendants: () => void;
-  onSetDistance: (d: number | null) => void;
-  onRemove: () => void;
-}) {
-  const includeDescendants = seed.include_descendants ?? true;
-  const friendly = friendlyTerm(seed.preferred_term);
-  return (
-    <Stack
-      direction="row"
-      spacing={0.75}
-      alignItems="center"
-      sx={{
-        px: 0.75,
-        py: 0.5,
-        borderRadius: 1,
-        bgcolor: isPrimary ? "primary.50" : "background.paper",
-        border: "1px solid",
-        borderColor: isPrimary ? "primary.100" : "transparent",
-        transition: "background-color 120ms ease, border-color 120ms ease",
-      }}
-    >
-      <Tooltip title="Use as the chip label" arrow>
-        <Radio
-          size="small"
-          checked={isPrimary}
-          onChange={onPickPrimary}
-          inputProps={{ "aria-label": `Use ${friendly} as the chip label` }}
-          sx={{ p: 0.25 }}
-        />
-      </Tooltip>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: isPrimary ? 700 : 500,
-              lineHeight: 1.25,
-              color: isPrimary ? "primary.dark" : "text.primary",
-            }}
-            noWrap
-          >
-            {friendly}
-          </Typography>
-          {isPrimary && (
-            <Box
-              component="span"
-              sx={{
-                fontSize: "0.6rem",
-                fontWeight: 700,
-                letterSpacing: 0.5,
-                px: 0.5,
-                py: "1px",
-                borderRadius: 0.5,
-                color: "primary.contrastText",
-                bgcolor: "primary.main",
-                textTransform: "uppercase",
-              }}
-              aria-hidden
-            >
-              Label
-            </Box>
-          )}
-        </Stack>
-        <Typography variant="caption" color="text.secondary">
-          code {seed.snomed_concept_id}
-          {seed.semantic_tag ? ` -- ${seed.semantic_tag}` : ""}
-        </Typography>
-      </Box>
-      <Tooltip
-        title={
-          includeDescendants
-            ? "Also matches more specific codes (descendants). Click to switch off."
-            : "Only matches this exact code. Click to also include more specific codes."
-        }
-        arrow
-      >
-        <Switch
-          size="small"
-          checked={includeDescendants}
-          onChange={onToggleDescendants}
-          // NOT `inputProps` here: MUI's own Switch hardcodes
-          // `slotProps.input = { role: 'switch' }` internally, and
-          // that spread runs AFTER (i.e. wins over) the legacy
-          // `inputProps` -> `slotProps.input` translation one layer
-          // down in SwitchBase -- so an aria-label passed via
-          // `inputProps` is silently dropped, leaving the switch with
-          // no accessible name at all. Passing `slotProps.input`
-          // ourselves is the only way to actually label this control,
-          // but Switch's own default entirely REPLACES rather than
-          // merges when we do -- so `role: "switch"` must be repeated
-          // here too, or the control silently reverts to the browser's
-          // default (implicit "checkbox") role.
-          slotProps={{
-            input: {
-              role: "switch",
-              "aria-label": `Include descendants for ${friendly}`,
-            },
-          }}
-        />
-      </Tooltip>
-      {includeDescendants && (
-        <Tooltip title="How many levels of more specific codes to include. Minimum is 1." arrow>
-          <TextField
-            size="small"
-            type="number"
-            value={seed.distance_child ?? ""}
-            placeholder="depth"
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === "") {
-                onSetDistance(null);
-                return;
-              }
-              const n = Number(raw);
-              if (!Number.isFinite(n)) {
-                onSetDistance(null);
-                return;
-              }
-              // Depth 0 with the toggle on would match nothing beyond the
-              // exact code -- the same as switching the toggle off -- so
-              // we never let the author land on a value below 1.
-              onSetDistance(Math.max(1, Math.floor(n)));
-            }}
-            inputProps={{
-              min: 1,
-              max: 12,
-              "aria-label": `Descendant depth for ${friendly}, minimum 1`,
-            }}
-            sx={{ width: 64 }}
-          />
-        </Tooltip>
-      )}
-      <Tooltip
-        title={
-          !canRemove
-            ? "A chip needs at least one code."
-            : removeClearsMatch
-              ? "Remove this match so you can pick a different code."
-              : "Remove this code"
-        }
-        arrow
-      >
-        <span>
-          <IconButton
-            size="small"
-            disabled={!canRemove}
-            onClick={onRemove}
-            aria-label={
-              removeClearsMatch
-                ? `Remove match for ${friendly}`
-                : `Remove ${friendly} from this chip`
-            }
-          >
-            <CloseIcon sx={{ fontSize: 16 }} />
-          </IconButton>
-        </span>
-      </Tooltip>
     </Stack>
   );
 }

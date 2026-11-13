@@ -84,6 +84,7 @@ export default function PathwayBoundaryRow({
           </Typography>
           <HighlightableRecommendationText
             text={boundary.text}
+            mode="contiguous"
             onConfirmSelection={onConfirmSplitSelection}
           />
         </Box>

@@ -588,6 +588,7 @@ describe("StepPathwayConditions: highlight-a-word multi-code picker", () => {
     expect(onAddMultiConcept).toHaveBeenCalledWith(
       { text: "upper abdominal pain", start: 0, end: 20 },
       expect.objectContaining({ snomed_concept_id: "422587007" }),
+      "upper",
     );
   });
 });

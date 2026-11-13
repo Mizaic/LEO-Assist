@@ -343,6 +343,7 @@ export function buildRowResolver(
     if (byRowWording) return resolutionFor(byRowWording);
     const hit = fuzzyMatches.find(
       (entry) =>
+        !entry.node.source_row_text &&
         rangesOverlap(entry.match, row) &&
         matchCoversClinicalRow(entry.match, row),
     );

@@ -398,15 +398,16 @@ export default function PathwayConditionsStage({
   function handleAddMultiConcept(
     item: RecommendationStructureItem,
     criterion: LogicCriterion,
+    selectedText?: string,
   ) {
     onUpdate({
       kind: "add_concept",
       parentNodeId: parentForClusterAdd(item),
       criterion,
-      // See EditableLogicNode.source_row_text's doc comment -- lets
-      // this row resolve reliably even when the picked code(s) share
-      // no wording with `item.text`.
-      sourceRowText: item.text,
+      // Prefer the exact highlighted phrase (including disconnected
+      // words across `boundary.text`) over `item.text` so downstream
+      // consumers and reopen matching preserve the reviewer's pick.
+      sourceRowText: selectedText?.trim() || item.text,
     });
   }
 

@@ -831,3 +831,71 @@ describe("PathwayConditionsStage: orphan tree leaves on text-derived boundaries"
     expect(screen.queryByTestId("pathway-confirmed-condition-n-wl")).not.toBeInTheDocument();
   });
 });
+
+describe("PathwayConditionsStage: disconnected highlight saves exact selected phrase", () => {
+  it("saves 'unexplained vulval bleeding.' as source_row_text when picked from a split row's situation context", async () => {
+    const user = userEvent.setup();
+    const ng12 = "unexplained vulval lump, ulceration or bleeding.";
+    const boundaries: PathwayTextBoundary[] = [
+      { text: ng12, start: 0, end: ng12.length, source: "heuristic" },
+    ];
+    jest.spyOn(global, "fetch").mockImplementation((url) => {
+      if (String(url).includes("/api/terminology/search")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            {
+              snomed_concept_id: "890094005",
+              term: "Bleeding from genital region",
+              semantic_tag: "finding",
+            },
+          ],
+        } as Response);
+      }
+      return Promise.resolve({ ok: true, json: async () => [] } as Response);
+    });
+
+    const updates: NodeUpdate[] = [];
+    render(
+      <PathwayConditionsStage
+        tree={{ node_id: "root", kind: "AND", children: [] }}
+        recommendationText={ng12}
+        boundaries={boundaries}
+        pathwayIndex={0}
+        clusterGroupings={{}}
+        onSetClusterGrouping={jest.fn()}
+        leadClusterGroupings={{}}
+        onSetLeadClusterGrouping={jest.fn()}
+        dismissedCopyAcrossOffers={new Set()}
+        onDismissCopyAcrossOffer={jest.fn()}
+        onSelectNode={jest.fn()}
+        onUpdate={(u) => updates.push(u)}
+        onRequestAdd={jest.fn()}
+        onEditConcept={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />,
+    );
+
+    const highlightButtons = screen.getAllByRole("button", {
+      name: /highlight text for more codes/i,
+    });
+    await user.click(highlightButtons[highlightButtons.length - 1]);
+
+    await user.click(screen.getByText("unexplained", { selector: "[data-word-index]" }));
+    await user.click(screen.getByText("vulval", { selector: "[data-word-index]" }));
+    await user.click(screen.getByText("bleeding.", { selector: "[data-word-index]" }));
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+
+    await user.click(
+      await screen.findByRole("checkbox", { name: /select bleeding from genital region/i }),
+    );
+    await user.click(screen.getByRole("button", { name: "Add 1 code" }));
+
+    const addUpdate = updates.find((u) => u.kind === "add_concept");
+    expect(addUpdate).toMatchObject({
+      kind: "add_concept",
+      sourceRowText: "unexplained vulval bleeding.",
+    });
+    jest.restoreAllMocks();
+  });
+});

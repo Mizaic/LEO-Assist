@@ -8,16 +8,14 @@
  */
 
 /**
- * Word-chunk text selection, extracted out of
- * HighlightableRecommendationText.tsx so the same mouse-drag /
- * Tab-and-extend keyboard model can be reused wherever a reviewer needs to
- * highlight a sub-phrase of some text -- originally the whole flattened
- * recommendation, now also a single Step 3 pathway row (see
- * HighlightableRowText.tsx).
+ * Word-chunk text selection, shared across Step 1's full guideline quote,
+ * Step 2's row-split picker (`mode="contiguous"`), Step 3's highlight-for-
+ * more-codes tool, and ConceptSynonymDialog's Guideline Wording editor.
  *
- * Free-form mouse drag-selection has no accessible default, so the
- * chunk-and-extend keyboard model here is load-bearing for WCAG 2.1 AA,
- * not a nice-to-have layered on top of a mouse-first design.
+ * Default `"multi"` mode lets a reviewer click individual disconnected words
+ * on/off (or press Space on focused words) while still supporting drag and
+ * Shift+click / Shift+Arrow for continuous spans. `"contiguous"` mode keeps
+ * single-span reset behaviour for Step 2's situation split point.
  */
 import { useCallback, useMemo, useRef, useState } from "react";
 
@@ -33,7 +31,10 @@ export interface TextSelectionResult {
   text: string;
 }
 
+export type WordSelectionMode = "multi" | "contiguous";
+
 const TOKEN_RE = /\S+|\s+/g;
+const MAX_SOURCE_ROW_TEXT_LENGTH = 500;
 
 /** Split `text` into word tokens (whitespace runs are dropped). */
 export function tokenizeWords(text: string): WordToken[] {
@@ -52,65 +53,166 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+function addRangeToSet(
+  target: Set<number>,
+  a: number,
+  b: number,
+  disabled?: ReadonlySet<number>,
+): void {
+  const lo = Math.min(a, b);
+  const hi = Math.max(a, b);
+  for (let i = lo; i <= hi; i++) {
+    if (!disabled?.has(i)) target.add(i);
+  }
+}
+
+function groupContiguousRuns(sortedIndices: number[]): Array<[number, number]> {
+  const runs: Array<[number, number]> = [];
+  for (const idx of sortedIndices) {
+    const last = runs[runs.length - 1];
+    if (last && idx === last[1] + 1) {
+      last[1] = idx;
+    } else {
+      runs.push([idx, idx]);
+    }
+  }
+  return runs;
+}
+
+function composeSelectionResult(
+  text: string,
+  wordTokens: WordToken[],
+  sortedIndices: number[],
+): TextSelectionResult {
+  const runs = groupContiguousRuns(sortedIndices);
+  const joined = runs
+    .map(([lo, hi]) => text.slice(wordTokens[lo].start, wordTokens[hi].end))
+    .join(" ");
+  const capped =
+    joined.length > MAX_SOURCE_ROW_TEXT_LENGTH
+      ? joined.slice(0, MAX_SOURCE_ROW_TEXT_LENGTH).trim()
+      : joined;
+  return {
+    start: wordTokens[sortedIndices[0]].start,
+    end: wordTokens[sortedIndices[sortedIndices.length - 1]].end,
+    text: capped,
+  };
+}
+
 interface Params {
   text: string;
-  /**
-   * `anchor` is the DOM element the reviewer actually confirmed the
-   * selection from (the "Confirm selection" button, or the focused
-   * word chunk when confirmed via Enter) -- always forward it so a
-   * search popover opened from this selection appears next to that
-   * element instead of a default position.
-   */
+  mode?: WordSelectionMode;
+  disabledIndices?: ReadonlySet<number>;
   onConfirmSelection: (selection: TextSelectionResult, anchor?: HTMLElement) => void;
   onCancelSelection?: () => void;
 }
 
-export function useWordSelection({ text, onConfirmSelection, onCancelSelection }: Params) {
+interface ActiveRange {
+  anchor: number;
+  focus: number;
+}
+
+function deriveSelectedIndices(
+  mode: WordSelectionMode,
+  committed: ReadonlySet<number>,
+  activeRange: ActiveRange | null,
+  disabledIndices?: ReadonlySet<number>,
+): Set<number> {
+  const out = new Set<number>();
+  if (mode === "multi") {
+    for (const idx of committed) {
+      if (!disabledIndices?.has(idx)) out.add(idx);
+    }
+  }
+  if (activeRange) {
+    addRangeToSet(out, activeRange.anchor, activeRange.focus, disabledIndices);
+  }
+  return out;
+}
+
+export function useWordSelection({
+  text,
+  mode = "multi",
+  disabledIndices,
+  onConfirmSelection,
+  onCancelSelection,
+}: Params) {
   const wordTokens = useMemo(() => tokenizeWords(text), [text]);
+  const [committed, setCommitted] = useState<Set<number>>(() => new Set());
+  const [lastAnchorIdx, setLastAnchorIdx] = useState<number | null>(null);
+  const [activeRange, setActiveRange] = useState<ActiveRange | null>(null);
 
-  const [anchorIdx, setAnchorIdx] = useState<number | null>(null);
-  const [focusIdx, setFocusIdx] = useState<number | null>(null);
   const draggingRef = useRef(false);
-  /**
-   * Clicking a focusable word chunk fires `onFocus` right after
-   * `onMouseDown` (browsers focus a clicked tabIndex=0 element before
-   * mouseup), which would otherwise immediately overwrite a Shift+click
-   * extend with a plain "select just this word" -- `handleMouseDown`
-   * arms this for exactly the one focus event it causes.
-   */
+  const dragOriginRef = useRef<number | null>(null);
+  const dragMovedRef = useRef(false);
   const suppressNextFocusRef = useRef(false);
+  const committedRef = useRef<Set<number>>(committed);
+  committedRef.current = committed;
+  const activeRangeRef = useRef<ActiveRange | null>(activeRange);
+  activeRangeRef.current = activeRange;
+  const lastAnchorRef = useRef<number | null>(lastAnchorIdx);
+  lastAnchorRef.current = lastAnchorIdx;
 
-  const selectionLoHi = useMemo(() => {
-    if (anchorIdx === null || focusIdx === null) return null;
-    return { lo: Math.min(anchorIdx, focusIdx), hi: Math.max(anchorIdx, focusIdx) };
-  }, [anchorIdx, focusIdx]);
-
-  const clearSelection = useCallback(() => {
-    setAnchorIdx(null);
-    setFocusIdx(null);
+  const updateCommitted = useCallback((next: Set<number>) => {
+    committedRef.current = next;
+    setCommitted(next);
   }, []);
 
-  const buildSelectionResult = useCallback(
-    (lo: number, hi: number): TextSelectionResult => {
-      const start = wordTokens[lo].start;
-      const end = wordTokens[hi].end;
-      return { start, end, text: text.slice(start, end) };
-    },
-    [wordTokens, text],
+  const updateActiveRange = useCallback((next: ActiveRange | null) => {
+    activeRangeRef.current = next;
+    setActiveRange(next);
+  }, []);
+
+  const updateLastAnchor = useCallback((next: number | null) => {
+    lastAnchorRef.current = next;
+    setLastAnchorIdx(next);
+  }, []);
+
+  const selectedIndices = useMemo(
+    () => deriveSelectedIndices(mode, committed, activeRange, disabledIndices),
+    [mode, committed, activeRange, disabledIndices],
   );
+
+  const sortedSelected = useMemo(
+    () => Array.from(selectedIndices).sort((a, b) => a - b),
+    [selectedIndices],
+  );
+
+  const selectionLoHi = useMemo(() => {
+    if (sortedSelected.length === 0) return null;
+    return {
+      lo: sortedSelected[0],
+      hi: sortedSelected[sortedSelected.length - 1],
+    };
+  }, [sortedSelected]);
+
+  const previewText = useMemo(() => {
+    if (sortedSelected.length === 0 || wordTokens.length === 0) return "";
+    return composeSelectionResult(text, wordTokens, sortedSelected).text;
+  }, [sortedSelected, text, wordTokens]);
+
+  const clearSelection = useCallback(() => {
+    updateCommitted(new Set());
+    updateLastAnchor(null);
+    updateActiveRange(null);
+    draggingRef.current = false;
+    dragOriginRef.current = null;
+    dragMovedRef.current = false;
+  }, [updateCommitted, updateLastAnchor, updateActiveRange]);
 
   const handleConfirm = useCallback(
     (fallbackWordIdx?: number, anchor?: HTMLElement) => {
-      const range =
-        selectionLoHi ??
-        (fallbackWordIdx !== undefined
-          ? { lo: fallbackWordIdx, hi: fallbackWordIdx }
-          : null);
-      if (!range) return;
-      onConfirmSelection(buildSelectionResult(range.lo, range.hi), anchor);
+      const indices =
+        sortedSelected.length > 0
+          ? sortedSelected
+          : fallbackWordIdx !== undefined && !disabledIndices?.has(fallbackWordIdx)
+            ? [fallbackWordIdx]
+            : [];
+      if (indices.length === 0 || wordTokens.length === 0) return;
+      onConfirmSelection(composeSelectionResult(text, wordTokens, indices), anchor);
       clearSelection();
     },
-    [selectionLoHi, buildSelectionResult, onConfirmSelection, clearSelection],
+    [sortedSelected, disabledIndices, wordTokens, text, onConfirmSelection, clearSelection],
   );
 
   const handleCancel = useCallback(() => {
@@ -118,54 +220,93 @@ export function useWordSelection({ text, onConfirmSelection, onCancelSelection }
     onCancelSelection?.();
   }, [clearSelection, onCancelSelection]);
 
-  /**
-   * `extend` (Shift+click) grows the CURRENT selection out to `wordIdx`
-   * instead of starting a fresh one-word selection there. Continuous
-   * click-drag across every word in between works today, but it is
-   * fragile for a multi-word SNOMED phrase: word chunks are small
-   * inline targets, and the mouse button must stay held down for the
-   * whole gesture or the drag silently restarts from wherever the next
-   * mousedown lands. Click-first-word-then-Shift-click-last-word is
-   * the same forgiving "extend a range" gesture already supported for
-   * the keyboard (Shift+ArrowRight/Left below), so both input methods
-   * now agree on how to pick a phrase like "light chains".
-   */
   const handleMouseDown = useCallback(
     (wordIdx: number, extend = false) => {
       suppressNextFocusRef.current = true;
-      if (extend && anchorIdx !== null) {
-        draggingRef.current = false;
-        setFocusIdx(wordIdx);
+      const curAnchor = lastAnchorRef.current;
+      const curRange = activeRangeRef.current;
+      const curCommitted = committedRef.current;
+
+      if (mode === "contiguous") {
+        if (extend && curAnchor !== null) {
+          draggingRef.current = false;
+          updateActiveRange({ anchor: curAnchor, focus: wordIdx });
+          return;
+        }
+        draggingRef.current = true;
+        updateLastAnchor(wordIdx);
+        updateActiveRange({ anchor: wordIdx, focus: wordIdx });
         return;
       }
+
+      if (extend) {
+        draggingRef.current = false;
+        const start = curAnchor ?? wordIdx;
+        const next = new Set(curCommitted);
+        if (curRange) addRangeToSet(next, curRange.anchor, curRange.focus, disabledIndices);
+        addRangeToSet(next, start, wordIdx, disabledIndices);
+        updateCommitted(next);
+        updateActiveRange(null);
+        updateLastAnchor(start);
+        return;
+      }
+
       draggingRef.current = true;
-      setAnchorIdx(wordIdx);
-      setFocusIdx(wordIdx);
+      dragOriginRef.current = wordIdx;
+      dragMovedRef.current = false;
+      updateLastAnchor(wordIdx);
+      if (curCommitted.has(wordIdx)) {
+        const next = new Set(curCommitted);
+        next.delete(wordIdx);
+        updateCommitted(next);
+        updateActiveRange(null);
+      } else {
+        updateActiveRange({ anchor: wordIdx, focus: wordIdx });
+      }
     },
-    [anchorIdx],
+    [mode, disabledIndices, updateCommitted, updateActiveRange, updateLastAnchor],
   );
 
-  const handleMouseEnter = useCallback((wordIdx: number) => {
-    if (draggingRef.current) setFocusIdx(wordIdx);
-  }, []);
+  const handleMouseEnter = useCallback(
+    (wordIdx: number) => {
+      if (!draggingRef.current) return;
+      const origin = dragOriginRef.current ?? wordIdx;
+      if (wordIdx !== origin) dragMovedRef.current = true;
+      updateActiveRange({ anchor: origin, focus: wordIdx });
+    },
+    [updateActiveRange],
+  );
 
   const handleMouseUp = useCallback(() => {
+    const wasDragging = draggingRef.current;
+    const curRange = activeRangeRef.current;
     draggingRef.current = false;
-    // Belt-and-suspenders: mouseup always follows the mousedown that
-    // armed this flag, so if the expected focus event never fired
-    // (e.g. focus landed elsewhere), don't leave it armed to wrongly
-    // suppress some unrelated future Tab-focus.
     suppressNextFocusRef.current = false;
-  }, []);
-
-  const handleFocus = useCallback((wordIdx: number) => {
-    if (suppressNextFocusRef.current) {
-      suppressNextFocusRef.current = false;
-      return;
+    if (mode === "multi" && wasDragging && curRange) {
+      const next = new Set(committedRef.current);
+      addRangeToSet(next, curRange.anchor, curRange.focus, disabledIndices);
+      updateCommitted(next);
+      updateActiveRange(null);
     }
-    setAnchorIdx(wordIdx);
-    setFocusIdx(wordIdx);
-  }, []);
+    dragOriginRef.current = null;
+    dragMovedRef.current = false;
+  }, [mode, disabledIndices, updateCommitted, updateActiveRange]);
+
+  const handleFocus = useCallback(
+    (wordIdx: number) => {
+      if (suppressNextFocusRef.current) {
+        suppressNextFocusRef.current = false;
+        return;
+      }
+      updateLastAnchor(wordIdx);
+      if (mode === "contiguous") {
+        updateActiveRange({ anchor: wordIdx, focus: wordIdx });
+      } else {
+        updateActiveRange(null);
+      }
+    },
+    [mode, updateLastAnchor, updateActiveRange],
+  );
 
   const handleKeyDown = useCallback(
     (
@@ -174,9 +315,6 @@ export function useWordSelection({ text, onConfirmSelection, onCancelSelection }
         key: string;
         shiftKey: boolean;
         preventDefault: () => void;
-        // Typed as the generic DOM event contract (not React's own
-        // KeyboardEvent<T>) so this hook stays independent of which
-        // element type the caller renders its word chunks as.
         currentTarget: EventTarget & Element;
       },
     ) => {
@@ -190,22 +328,47 @@ export function useWordSelection({ text, onConfirmSelection, onCancelSelection }
         handleCancel();
         return;
       }
-      if (e.shiftKey && e.key === "ArrowRight") {
+      if (e.key === " " && mode === "multi") {
         e.preventDefault();
-        setFocusIdx((f) => clamp((f ?? wordIdx) + 1, 0, wordTokens.length - 1));
+        const curRange = activeRangeRef.current;
+        const next = new Set(committedRef.current);
+        if (curRange) addRangeToSet(next, curRange.anchor, curRange.focus, disabledIndices);
+        if (next.has(wordIdx)) {
+          next.delete(wordIdx);
+        } else if (!disabledIndices?.has(wordIdx)) {
+          next.add(wordIdx);
+        }
+        updateCommitted(next);
+        updateActiveRange(null);
+        updateLastAnchor(wordIdx);
         return;
       }
-      if (e.shiftKey && e.key === "ArrowLeft") {
+      if (e.shiftKey && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
         e.preventDefault();
-        setFocusIdx((f) => clamp((f ?? wordIdx) - 1, 0, wordTokens.length - 1));
+        const delta = e.key === "ArrowRight" ? 1 : -1;
+        const prev = activeRangeRef.current;
+        const anchor = prev?.anchor ?? lastAnchorRef.current ?? wordIdx;
+        const focus = clamp((prev?.focus ?? anchor) + delta, 0, wordTokens.length - 1);
+        updateActiveRange({ anchor, focus });
       }
     },
-    [handleConfirm, handleCancel, wordTokens.length],
+    [
+      mode,
+      disabledIndices,
+      handleConfirm,
+      handleCancel,
+      wordTokens.length,
+      updateCommitted,
+      updateActiveRange,
+      updateLastAnchor,
+    ],
   );
 
   return {
     wordTokens,
+    selectedIndices,
     selectionLoHi,
+    previewText,
     handleMouseDown,
     handleMouseEnter,
     handleMouseUp,

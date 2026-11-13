@@ -1764,6 +1764,7 @@ export default function EditRuleDialog({
         node={
           synonymEditorNodeId && tree ? findNode(tree, synonymEditorNodeId) : null
         }
+        recommendationText={rule?.recommendation_text}
         onUpdate={handleUpdate}
         onClose={() => setSynonymEditorNodeId(null)}
         // Wizard (and any other open-by-node-id path): let the reviewer

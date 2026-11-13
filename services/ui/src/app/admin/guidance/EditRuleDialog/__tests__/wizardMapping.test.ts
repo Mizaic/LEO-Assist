@@ -289,6 +289,51 @@ describe("buildRowResolver", () => {
     };
     expect(resolver(row)?.nodeId).toBe("provenanced");
   });
+
+  it("resolves a split list row via disconnected source_row_text without stealing sibling rows (NG12 1.5.17)", () => {
+    const ng12 =
+      "1.5.17 Consider a suspected cancer pathway referral for vulval cancer " +
+      "in women who have an unexplained vulval lump, ulceration or bleeding. [2015]";
+    const bleedingLeaf: EditableLogicNode = {
+      node_id: "bleeding-leaf",
+      kind: "CONCEPT",
+      criterion: {
+        snomed_concept_id: "890094005",
+        preferred_term: "Bleeding from genital region (finding)",
+      },
+      source_row_text: "unexplained vulval bleeding.",
+    };
+    const pw = pathwayNode([bleedingLeaf]);
+    const resolver = buildRowResolver(pw, ng12);
+
+    const lumpStart = ng12.indexOf("unexplained vulval lump");
+    const ulcerStart = ng12.indexOf("ulceration");
+    const bleedStart = ng12.indexOf("bleeding");
+
+    expect(
+      resolver({
+        text: "bleeding",
+        start: bleedStart,
+        end: bleedStart + "bleeding".length,
+      })?.nodeId,
+    ).toBe("bleeding-leaf");
+
+    expect(
+      resolver({
+        text: "unexplained vulval lump",
+        start: lumpStart,
+        end: lumpStart + "unexplained vulval lump".length,
+      }),
+    ).toBeUndefined();
+
+    expect(
+      resolver({
+        text: "ulceration",
+        start: ulcerStart,
+        end: ulcerStart + "ulceration".length,
+      }),
+    ).toBeUndefined();
+  });
 });
 
 describe("countUnresolvedRows", () => {

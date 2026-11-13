@@ -8,23 +8,25 @@
  */
 "use client";
 
+import { useMemo } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 
-import { useWordSelection, type TextSelectionResult } from "./useWordSelection";
+import {
+  useWordSelection,
+  type TextSelectionResult,
+  type WordSelectionMode,
+  tokenizeWords,
+} from "./useWordSelection";
 
 /**
- * Renders a span of guideline text as individually focusable word/phrase
- * chunks so a reviewer can select a range of text with either the mouse
- * (click-drag) or the keyboard (Tab to a chunk, Shift+Arrow to extend,
- * Enter to confirm) -- the fallback path used when no
- * `recommendation_structure` exists at all, or for a single compound
- * list-item's text that still bundles more than one criterion. See the
- * "Fallback" sections of the wizard wireframes for the exact interaction.
- *
- * The selection state machine itself lives in useWordSelection.ts, shared
- * with HighlightableRowText.tsx (Step 3's per-row highlight-and-code pick).
+ * Renders a span of guideline text as individually focusable word chunks so
+ * a reviewer can select contiguous or disconnected words with either the
+ * mouse (click words to toggle on/off, Shift+click or drag for a continuous
+ * span) or the keyboard (Tab to a chunk, Space to toggle, Shift+Arrow to
+ * extend, Enter to confirm).
  */
 
 export type HighlightKind = "confirmed" | "candidate";
@@ -38,30 +40,24 @@ export interface HighlightSpan {
    * Which situation (0-based pathway index) this span belongs to, when
    * known. `null` / omitted means a prerequisite that applies to every
    * situation, or a leaf matched before any pathway split exists.
-   * Used by GuidelineQuotePanel to paint each situation a different
-   * colour so the reviewer can see A vs B vs C at a glance.
    */
   pathwayIndex?: number | null;
 }
 
-/** Background/text colour for each highlight kind -- exported so other
- * read-only renderers (e.g. GuidelineQuotePanel) use the exact same
- * palette as this interactive one, instead of a second copy that can
- * drift out of sync. */
 export const HIGHLIGHT_COLORS: Record<HighlightKind, { bgcolor: string; color: string }> = {
   confirmed: { bgcolor: "#DCFCE7", color: "#14532D" },
   candidate: { bgcolor: "#FEF9C3", color: "#713F12" },
 };
 
-export type { TextSelectionResult };
+export type { TextSelectionResult, WordSelectionMode };
 
 interface Props {
   text: string;
-  /** Already-resolved (confirmed) or AI-suggested (candidate) spans,
-   * rendered distinctly from plain and pending-selection text. */
+  /** `"multi"` (default) toggles disconnected words; `"contiguous"` picks one span. */
+  mode?: WordSelectionMode;
+  /** Already-resolved (confirmed) or AI-suggested (candidate) spans. */
   highlights?: HighlightSpan[];
-  /** Text outside the current pathway/scope -- rendered greyed out and
-   * not selectable (see the wireframes' "dimmed" notation). */
+  /** Text outside the current pathway/scope -- greyed out and not selectable. */
   dimmedRanges?: Array<{ start: number; end: number }>;
   onConfirmSelection: (selection: TextSelectionResult, anchor?: HTMLElement) => void;
   onCancelSelection?: () => void;
@@ -69,17 +65,15 @@ interface Props {
 
 function rangesOverlap(
   a: { start: number; end: number },
-  b: { start: number; end: number }
+  b: { start: number; end: number },
 ): boolean {
   return a.start < b.end && a.end > b.start;
 }
 
-/** Background/text colour for one word chunk, in priority order:
- * pending selection > confirmed > candidate > dimmed > plain. */
 function chunkStyle(
   isPending: boolean,
   highlightKind: HighlightKind | null,
-  isDimmed: boolean
+  isDimmed: boolean,
 ): { bgcolor: string; color: string; opacity?: number } {
   if (isPending) return { bgcolor: "#DBEAFE", color: "#1E3A8A" };
   if (highlightKind) return HIGHLIGHT_COLORS[highlightKind];
@@ -89,14 +83,26 @@ function chunkStyle(
 
 export default function HighlightableRecommendationText({
   text,
+  mode = "multi",
   highlights = [],
   dimmedRanges = [],
   onConfirmSelection,
   onCancelSelection,
 }: Props) {
+  const disabledIndices = useMemo(() => {
+    if (dimmedRanges.length === 0) return undefined;
+    const tokens = tokenizeWords(text);
+    const set = new Set<number>();
+    tokens.forEach((token, idx) => {
+      if (dimmedRanges.some((d) => rangesOverlap(token, d))) set.add(idx);
+    });
+    return set;
+  }, [text, dimmedRanges]);
+
   const {
     wordTokens,
-    selectionLoHi,
+    selectedIndices,
+    previewText,
     handleMouseDown,
     handleMouseEnter,
     handleMouseUp,
@@ -104,7 +110,15 @@ export default function HighlightableRecommendationText({
     handleKeyDown,
     handleConfirm,
     handleCancel,
-  } = useWordSelection({ text, onConfirmSelection, onCancelSelection });
+  } = useWordSelection({
+    text,
+    mode,
+    disabledIndices,
+    onConfirmSelection,
+    onCancelSelection,
+  });
+
+  const hasPending = selectedIndices.size > 0;
 
   return (
     <Box>
@@ -118,42 +132,48 @@ export default function HighlightableRecommendationText({
           wordTokens,
           highlights,
           dimmedRanges,
-          selectionLoHi,
+          selectedIndices,
           handleMouseDown,
           handleMouseEnter,
           handleFocus,
           handleKeyDown,
         })}
       </Box>
-      {selectionLoHi && (
-        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={(e) => handleConfirm(undefined, e.currentTarget)}
-          >
-            Confirm selection
-          </Button>
-          <Button size="small" variant="text" onClick={handleCancel}>
-            Cancel
-          </Button>
+      {hasPending && (
+        <Stack spacing={0.75} sx={{ mt: 1 }}>
+          {mode === "multi" && previewText && (
+            <Typography
+              variant="caption"
+              sx={{ color: "text.primary", fontWeight: 500 }}
+              data-testid="selected-words-preview"
+            >
+              Selected words: &ldquo;{previewText}&rdquo;
+            </Typography>
+          )}
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={(e) => handleConfirm(undefined, e.currentTarget)}
+            >
+              Confirm selection
+            </Button>
+            <Button size="small" variant="text" onClick={handleCancel}>
+              Cancel
+            </Button>
+          </Stack>
         </Stack>
       )}
     </Box>
   );
 }
 
-/**
- * Re-walks the ORIGINAL (non-tokenized-word-only) text so inter-word
- * whitespace is preserved verbatim, interleaving plain whitespace spans
- * with the interactive word chunks from useWordSelection's wordTokens.
- */
 function renderTokens(params: {
   text: string;
   wordTokens: ReturnType<typeof useWordSelection>["wordTokens"];
   highlights: HighlightSpan[];
   dimmedRanges: Array<{ start: number; end: number }>;
-  selectionLoHi: { lo: number; hi: number } | null;
+  selectedIndices: ReadonlySet<number>;
   handleMouseDown: (wordIdx: number, extend?: boolean) => void;
   handleMouseEnter: (wordIdx: number) => void;
   handleFocus: (wordIdx: number) => void;
@@ -164,7 +184,7 @@ function renderTokens(params: {
     wordTokens,
     highlights,
     dimmedRanges,
-    selectionLoHi,
+    selectedIndices,
     handleMouseDown,
     handleMouseEnter,
     handleFocus,
@@ -178,11 +198,7 @@ function renderTokens(params: {
       nodes.push(<span key={`gap-${cursor}`}>{text.slice(cursor, token.start)}</span>);
     }
     const isDimmed = dimmedRanges.some((d) => rangesOverlap(token, d));
-    const isPending =
-      !isDimmed &&
-      !!selectionLoHi &&
-      wordIdx >= selectionLoHi.lo &&
-      wordIdx <= selectionLoHi.hi;
+    const isPending = !isDimmed && selectedIndices.has(wordIdx);
     const highlightKind = isDimmed
       ? null
       : highlights.find((h) => rangesOverlap(token, h))?.kind ?? null;

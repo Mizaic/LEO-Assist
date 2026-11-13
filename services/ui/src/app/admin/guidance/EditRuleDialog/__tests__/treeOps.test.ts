@@ -128,6 +128,26 @@ describe("treeOps", () => {
     expect(updated!.children![1].children![1].source_row_text).toBeUndefined();
   });
 
+  it("set_source_row_text updates and clears source_row_text on an existing leaf", () => {
+    const tree = makeTree();
+    const leafId = tree.children![1].children![0].node_id;
+    const withPhrase = applyUpdate(tree, {
+      kind: "set_source_row_text",
+      nodeId: leafId,
+      sourceRowText: "  unexplained vulval bleeding.  ",
+    });
+    expect(withPhrase!.children![1].children![0].source_row_text).toBe(
+      "unexplained vulval bleeding.",
+    );
+
+    const cleared = applyUpdate(withPhrase!, {
+      kind: "set_source_row_text",
+      nodeId: leafId,
+      sourceRowText: "   ",
+    });
+    expect(cleared!.children![1].children![0].source_row_text).toBeUndefined();
+  });
+
   it("add_observation tags the new leaf with sourceRowText and seeded threshold", () => {
     const tree = assignNodeIds({
       kind: "AND",

@@ -132,4 +132,48 @@ describe("RowMultiCodeHighlight", () => {
       ).toBeInTheDocument(),
     );
   });
+
+  it("renders full contextText when provided so disconnected modifiers ahead of a split row can be clicked", async () => {
+    const user = userEvent.setup();
+    const bleedHit = {
+      snomed_concept_id: "890094005",
+      term: "Bleeding from genital region",
+      semantic_tag: "finding",
+    };
+    mockSearch([bleedHit]);
+    const onAddCriterion = jest.fn();
+    const bleedRow: RecommendationStructureItem = {
+      text: "bleeding",
+      start: 39,
+      end: 47,
+    };
+
+    render(
+      <RowMultiCodeHighlight
+        item={bleedRow}
+        contextText="unexplained vulval lump, ulceration or bleeding."
+        onAddCriterion={onAddCriterion}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /highlight text for more codes/i }));
+    await user.click(getWordChunk("unexplained"));
+    await user.click(getWordChunk("vulval"));
+    await user.click(getWordChunk("bleeding."));
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+
+    expect(screen.getByLabelText(/search clinical terms/i)).toHaveValue(
+      "unexplained vulval bleeding.",
+    );
+
+    await user.click(
+      await screen.findByRole("checkbox", { name: /select bleeding from genital region/i }),
+    );
+    await user.click(screen.getByRole("button", { name: "Add 1 code" }));
+
+    expect(onAddCriterion).toHaveBeenCalledWith(
+      expect.objectContaining({ snomed_concept_id: "890094005" }),
+      "unexplained vulval bleeding.",
+    );
+  });
 });
