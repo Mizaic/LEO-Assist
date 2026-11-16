@@ -21,8 +21,10 @@ import {
 import type { EditableLogicNode } from "../types";
 import { INITIAL_WIZARD_STATE, type WizardState } from "./wizardState";
 import type { ClusterGrouping } from "./StepPathwayConditions";
+import { leafTextMatches } from "./leafTextMatch";
 import {
   findClusterSubgroupByRole,
+  pathwayConfirmedLeaves,
   pathwayGroupingKey,
   pathwaySummaryText,
 } from "./wizardMapping";
@@ -91,6 +93,59 @@ export function boundariesFromPathways(
   }));
 }
 
+function cleanSavedSourceText(raw: string): string {
+  return raw.replace(/^[,;:\s]+|[,;:\s]+$/g, "");
+}
+
+function boundaryForPathwaySourceText(
+  pathway: EditableLogicNode,
+  recommendationText: string,
+): PathwayTextBoundary | null {
+  let bestBoundary: PathwayTextBoundary | null = null;
+  let bestWordCount = 0;
+  let bestCharLen = 0;
+
+  for (const leaf of pathwayConfirmedLeaves(pathway)) {
+    const cleaned = cleanSavedSourceText(leaf.source_row_text ?? "");
+    if (!cleaned) continue;
+    const matches = leafTextMatches(recommendationText, leaf);
+    if (matches.length === 0 || matches.some((m) => m.strategy !== "exact")) {
+      continue;
+    }
+    const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+    if (
+      wordCount > bestWordCount ||
+      (wordCount === bestWordCount && cleaned.length > bestCharLen)
+    ) {
+      bestWordCount = wordCount;
+      bestCharLen = cleaned.length;
+      bestBoundary = {
+        start: matches[0].start,
+        end: matches[matches.length - 1].end,
+        text: cleaned,
+        spans: matches.map((m) => ({ start: m.start, end: m.end })),
+        source: "heuristic",
+      };
+    }
+  }
+  return bestBoundary;
+}
+
+function boundariesFromSavedSourceText(
+  pathways: EditableLogicNode[],
+  recommendationText?: string | null,
+): PathwayTextBoundary[] | null {
+  const quote = recommendationText?.trim();
+  if (!quote) return null;
+  const built: PathwayTextBoundary[] = [];
+  for (const pathway of pathways) {
+    const boundary = boundaryForPathwaySourceText(pathway, quote);
+    if (!boundary) return null;
+    built.push(boundary);
+  }
+  return built.length === pathways.length ? built : null;
+}
+
 /**
  * Returns Review when every pathway already has at least one leaf;
  * otherwise the normal Step 1 start.
@@ -113,7 +168,8 @@ export function buildInitialWizardState(
   const boundaries =
     detected && detected.length === pathways.length
       ? detected
-      : boundariesFromPathways(pathways);
+      : boundariesFromSavedSourceText(pathways, recommendationText) ??
+        boundariesFromPathways(pathways);
 
   return {
     ...INITIAL_WIZARD_STATE,

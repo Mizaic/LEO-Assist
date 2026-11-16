@@ -953,4 +953,149 @@ describe("PathwayConditionsStage: disconnected highlight saves exact selected ph
       screen.getByText("unexplained", { selector: "[data-word-index]" }),
     ).toBeInTheDocument();
   });
+
+  it("allows adding a second AND concept condition on reopened NG12 1.5.17 Situation C", async () => {
+    const { buildInitialWizardState } = await import(
+      "../HighlightWizard/initialWizardState"
+    );
+    const user = userEvent.setup();
+    const fullNg12 =
+      "1.5.17 Consider a suspected cancer pathway referral for vulval cancer in women, and trans men and non-binary people with female reproductive organs who have an unexplained vulval lump, ulceration or bleeding. [2015]";
+    const savedTree: EditableLogicNode = {
+      node_id: "root",
+      kind: "AND",
+      children: [
+        {
+          node_id: "sex-f",
+          kind: "DEMOGRAPHIC",
+          field: "sex",
+          operator: "=",
+          value: "female",
+        },
+        {
+          node_id: "or",
+          kind: "OR",
+          children: [
+            {
+              node_id: "pw-a",
+              kind: "AND",
+              pathway_key: "pw_a",
+              children: [
+                {
+                  node_id: "c-a",
+                  kind: "CONCEPT",
+                  source_row_text: "unexplained vulval lump",
+                  criterion: {
+                    snomed_concept_id: "289477004",
+                    preferred_term: "Mass of vulva (finding)",
+                  },
+                },
+              ],
+            },
+            {
+              node_id: "pw-b",
+              kind: "AND",
+              pathway_key: "pw_b",
+              children: [
+                {
+                  node_id: "c-b",
+                  kind: "CONCEPT",
+                  source_row_text: "unexplained vulval ulceration",
+                  criterion: {
+                    snomed_concept_id: "68640004",
+                    preferred_term: "Ulceration of vulva (disorder)",
+                  },
+                },
+              ],
+            },
+            {
+              node_id: "pw-c",
+              kind: "AND",
+              pathway_key: "pw_c",
+              children: [
+                {
+                  node_id: "c-c",
+                  kind: "CONCEPT",
+                  source_row_text: "unexplained vulval bleeding",
+                  criterion: {
+                    snomed_concept_id: "890094005",
+                    preferred_term: "Bleeding from genital region (finding)",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    jest.spyOn(global, "fetch").mockImplementation((url) => {
+      if (String(url).includes("/api/terminology/search")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            {
+              snomed_concept_id: "248858001",
+              term: "Vulva finding",
+              semantic_tag: "finding",
+            },
+            {
+              snomed_concept_id: "5089007",
+              term: "Disorder of vulva",
+              semantic_tag: "disorder",
+            },
+          ],
+        } as Response);
+      }
+      return Promise.resolve({ ok: true, json: async () => [] } as Response);
+    });
+
+    const initial = buildInitialWizardState(savedTree, fullNg12);
+    const updates: NodeUpdate[] = [];
+    render(
+      <PathwayConditionsStage
+        tree={savedTree}
+        recommendationText={fullNg12}
+        boundaries={initial.boundaries!}
+        pathwayIndex={2}
+        clusterGroupings={initial.clusterGroupings}
+        onSetClusterGrouping={jest.fn()}
+        leadClusterGroupings={initial.leadClusterGroupings}
+        onSetLeadClusterGrouping={jest.fn()}
+        dismissedCopyAcrossOffers={new Set()}
+        onDismissCopyAcrossOffer={jest.fn()}
+        onSelectNode={jest.fn()}
+        onUpdate={(u) => updates.push(u)}
+        onRequestAdd={jest.fn()}
+        onEditConcept={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /highlight text for more codes/i }),
+    );
+    const vulvalWords = screen.getAllByText("vulval", {
+      selector: "[data-word-index]",
+    });
+    await user.click(vulvalWords[vulvalWords.length - 1]);
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+
+    await user.click(
+      await screen.findByRole("checkbox", { name: /select vulva finding/i }),
+    );
+    await user.click(
+      await screen.findByRole("checkbox", { name: /select disorder of vulva/i }),
+    );
+    await user.click(screen.getByRole("button", { name: "Add 2 codes" }));
+
+    expect(updates).toContainEqual(
+      expect.objectContaining({
+        kind: "add_concept",
+        parentNodeId: "pw-c",
+        sourceRowText: "vulval",
+      }),
+    );
+    jest.restoreAllMocks();
+  });
 });

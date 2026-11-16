@@ -35,8 +35,6 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
-import DemographicRow from "../LogicTreeEditor/DemographicRow";
-import ObservationRow from "../LogicTreeEditor/ObservationRow";
 import ListRecommendationView, {
   type ListRowResolution,
 } from "../SentenceEditor/ListRecommendationView";
@@ -51,6 +49,11 @@ import {
   ConfirmedSoFar,
   CopyAcrossBanner,
 } from "./PathwayConditionsChrome";
+import {
+  ExpandedConditionEditors,
+  WeightedChecklistSection,
+  type WeightedChecklistView,
+} from "./PathwayConditionsExtras";
 import type { EditableLogicNode, LogicCriterion, NodeUpdate } from "../types";
 import { STEP_PATHWAY_CONDITIONS, WIZARD_TOOLTIPS } from "./copy";
 import PathwayDemographicsPanel, {
@@ -69,8 +72,7 @@ export interface StepPathwayConditionsProps {
   pathwayIndex: number;
   pathwayCount: number;
   pathwayLetter: string;
-  /** The letter of the pathway that follows this one, if any --
-   *  drives the "Confirm situation B, next -> C" footer copy. */
+  /** Letter of the next pathway, if any -- drives "Confirm situation B, next -> C". */
   nextPathwayLetter?: string | null;
   boundary: PathwayTextBoundary;
   /** Optional full recommendation sentence so split-row highlights can reach shared lead words. */
@@ -79,62 +81,28 @@ export interface StepPathwayConditionsProps {
     item: RecommendationStructureItem,
   ) => ListRowResolution | undefined;
   onRowClick: (item: RecommendationStructureItem, anchor: HTMLElement) => void;
-  /**
-   * When supplied, every row gets a "Highlight text for more codes"
-   * affordance (RowMultiCodeHighlight) alongside the normal whole-row
-   * click -- for the case where a row's text bundles more than one
-   * clinical idea and the reviewer wants to code a specific sub-phrase,
-   * possibly with more than one SNOMED code. Omitted entirely (no
-   * affordance rendered) when this prop is not passed.
-   */
+  /** Renders "Highlight text for more codes" when provided. */
   onAddMultiConcept?: (
     item: RecommendationStructureItem,
     criterion: LogicCriterion,
     selectedText?: string,
   ) => void;
-  /** Undefined means "not yet asked" -- only relevant when this
-   *  pathway has a detected trailing "any of the following" cluster. */
+  /** Undefined means "not yet asked" for a trailing cluster. */
   clusterGrouping?: ClusterGrouping;
-  /** Second arg is the AT_LEAST.min to apply (1 for only-one, N for
-   *  "at least N"). Ignored when grouping is AND. */
+  /** Second arg is AT_LEAST.min (1 for only-one, N for at-least-N). */
   onChooseGrouping?: (grouping: ClusterGrouping, min?: number) => void;
-  /** Live AT_LEAST.min on the trailing subgroup (after a choice). */
   clusterMin?: number;
-  /** Guideline-suggested min ("2 or more" -> 2). Drives Recommended. */
   suggestedClusterMin?: number;
-  /** Term count for the trailing cluster -- clamps the min stepper. */
   clusterTermCount?: number;
   onSetClusterMin?: (min: number) => void;
-  /**
-   * Same as `clusterGrouping`/`onChooseGrouping` but for a SEPARATE,
-   * marker-less lead-or cluster detected ahead of the trailing one
-   * (see `buildPathwayRows`'s `leadCluster` -- e.g. "nausea or
-   * vomiting" ahead of "any of the following: ..."). Asked
-   * independently: both clusters apply to the same pathway ANDed
-   * together, but the reviewer decides each one's own AT_LEAST-vs-AND
-   * grouping separately, never inferred from which cluster it is.
-   */
+  /** Separate marker-less lead-or cluster ahead of the trailing list. */
   leadClusterGrouping?: ClusterGrouping;
   onChooseLeadGrouping?: (grouping: ClusterGrouping) => void;
   confirmedSummaries?: Array<{ letter: string; summary: string }>;
   onConfirmPathway: () => void;
-  /**
-   * Non-null disables "Confirm situation X" and shows this
-   * plain-English reason instead -- e.g. an unresolved-confidence
-   * gate the wizard orchestrator computed against the real tree
-   * (`confidenceGate.ts`). This component additionally requires
-   * every row it can see to have a resolution of its own before
-   * enabling the button, regardless of this prop.
-   */
+  /** Non-null disables "Confirm situation X" and shows this reason. */
   confirmBlockedReason?: string | null;
-  /**
-   * Set only when an EARLIER pathway asked about the exact same
-   * findings and has already been resolved (see
-   * `useCopyAcrossOffer`/`pathwayCopyAcross.ts`). Offering this is a
-   * one-time copy, never a silent auto-fill -- the reviewer must
-   * click to accept, and can still change any grouping or code
-   * afterwards exactly as if they had picked it themselves.
-   */
+  /** One-time copy offer from an earlier matching situation. */
   copyAcrossOffer?: { sourceLetter: string; count: number } | null;
   onAcceptCopyAcross?: () => void;
   onDismissCopyAcross?: () => void;
@@ -142,76 +110,27 @@ export interface StepPathwayConditionsProps {
   pathwayDemographics?: EditableLogicNode[];
   onAddPathwayDemographic?: (field: PathwayDemographicField) => void;
   onUpdatePathway?: (update: NodeUpdate) => void;
-  /**
-   * Non-DEMOGRAPHIC leaves already captured on this pathway with no
-   * guideline quote to derive a `ListRecommendationView` row from (see
-   * `pathwayConfirmedLeaves`'s doc comment) -- rendered as its own
-   * reviewable/removable list so a tree-rehydrated situation's existing
-   * CONCEPT/OBSERVATION conditions are never silently invisible.
-   */
+  /** Non-DEMOGRAPHIC leaves on this pathway not already represented by a text row. */
   confirmedLeaves?: EditableLogicNode[];
   onEditConfirmedLeaf?: (node: EditableLogicNode) => void;
   onRemoveConfirmedLeaf?: (node: EditableLogicNode) => void;
-  /**
-   * Adds a blank lab-value condition attached to THIS pathway only --
-   * mirrors `onAddPathwayDemographic` above, and the global version of
-   * this same button in `StepPrerequisites`. The reviewer then fills
-   * in the observable, operator, value, and unit via the same inline
-   * `ObservationRow` editor `expandedObservationNode` below expands
-   * to. Undefined hides the "Add lab value" button entirely.
-   */
+  /** Adds a blank lab-value condition attached to this pathway only. */
   onAddPathwayObservation?: () => void;
-  /**
-   * Findings inside a NOT group on this pathway -- shown as
-   * "must not have", never mixed into the must-have confirmed list.
-   */
+  /** Findings inside a NOT group on this pathway. */
   shouldNotHaveLeaves?: EditableLogicNode[];
-  /**
-   * Adds a must-not-have finding for THIS situation only. Undefined
-   * hides the "Patient should not have" button.
-   */
+  /** Adds a must-not-have finding for this situation only. */
   onAddPathwayShouldNotHave?: (anchor?: HTMLElement) => void;
-  /**
-   * The DEMOGRAPHIC leaf (from the main condition list, NOT
-   * `pathwayDemographics` above) whose inline age/sex editor should
-   * currently render, toggled by re-clicking its row (see
-   * `PathwayConditionsStage.handleRowClick`). Passed as the resolved
-   * node itself -- not looked up via `getRowResolution` -- because
-   * editing the value can change its own display text enough that it
-   * stops fuzzy-matching the original guideline wording, which would
-   * otherwise cause the editor to vanish mid-edit. Null/undefined
-   * means none is expanded.
-   */
+  /** Resolved DEMOGRAPHIC leaf whose inline age/sex editor is expanded. */
   expandedDemographicNode?: EditableLogicNode | null;
-  /**
-   * The OBSERVATION leaf whose inline operator/value/unit editor
-   * should currently render, toggled by re-clicking its row (see
-   * `PathwayConditionsStage.handleRowClick`). Passed as the resolved
-   * node itself for the same mid-edit stability reason as
-   * `expandedDemographicNode`. Null/undefined means none is expanded.
-   */
+  /** Resolved OBSERVATION leaf whose inline operator/value/unit editor is expanded. */
   expandedObservationNode?: EditableLogicNode | null;
-  /** Chip click inside the expanded ObservationRow -- swaps the
-   *  observable via the existing concept-search popover. */
+  /** Chip click inside the expanded ObservationRow to swap the observable. */
   onSelectObservation?: (nodeId: string, anchor?: HTMLElement | null) => void;
-  /**
-   * Tree problems in this pathway with no guideline text of their own
-   * to anchor a normal row to (almost always an empty group) -- see
-   * `PathwayConditionsStage`'s `pathwayProblemIssues` doc comment.
-   * Rendered as its own always-visible row so "jump to issue" always
-   * has somewhere real to land.
-   */
+  /** Tree problems in this pathway with no guideline text row of their own. */
   problemIssues?: ValidationIssue[];
   onRemoveProblem?: (nodeId: string) => void;
   /** NG12 1.7.1 weighted companion checklist on this boundary. */
-  weightedChecklist?: {
-    title: string;
-    threshold: number;
-    expanded: boolean;
-    scorePhrase: string | null;
-    majors: string[];
-    minors: string[];
-  } | null;
+  weightedChecklist?: WeightedChecklistView | null;
   onExpandWeightedChecklist?: () => void;
 }
 
@@ -321,6 +240,11 @@ export default function StepPathwayConditions({
     ? { ...leadItem, children: undefined }
     : null;
   const eitherOfChildren = leadItem?.children ?? [];
+  const trimmedQuote = (recommendationText || boundary.text).trim();
+  const standaloneHighlightItem: RecommendationStructureItem | null =
+    items.length === 0 && onAddMultiConcept && trimmedQuote
+      ? { text: trimmedQuote, start: 0, end: trimmedQuote.length }
+      : null;
   const rowExtra = onAddMultiConcept
     ? (item: RecommendationStructureItem) => (
         <RowMultiCodeHighlight
@@ -410,46 +334,10 @@ export default function StepPathwayConditions({
         />
       )}
 
-      {weightedChecklist && !weightedChecklist.expanded && onExpandWeightedChecklist && (
-        <Box
-          sx={{
-            p: 1.5,
-            borderRadius: 1.5,
-            border: "1px dashed",
-            borderColor: "primary.main",
-          }}
-          data-testid="weighted-checklist-expand"
-        >
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-            {weightedChecklist.title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {STEP_PATHWAY_CONDITIONS.weightedChecklistExpandHint}
-          </Typography>
-          <Tooltip title={STEP_PATHWAY_CONDITIONS.weightedChecklistExpandHint}>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={onExpandWeightedChecklist}
-              aria-label={STEP_PATHWAY_CONDITIONS.weightedChecklistExpand(
-                weightedChecklist.threshold,
-              )}
-            >
-              {STEP_PATHWAY_CONDITIONS.weightedChecklistExpand(
-                weightedChecklist.threshold,
-              )}
-            </Button>
-          </Tooltip>
-        </Box>
-      )}
-
-      {weightedChecklist?.expanded && (
-        <Typography variant="body2" color="text.secondary">
-          Major features ({weightedChecklist.majors.length}) and minor features (
-          {weightedChecklist.minors.length}). Score at least {weightedChecklist.threshold}{" "}
-          means any two majors, or one major plus one minor, or three minors.
-        </Typography>
-      )}
+      <WeightedChecklistSection
+        weightedChecklist={weightedChecklist}
+        onExpandWeightedChecklist={onExpandWeightedChecklist}
+      />
 
       {/* Lead finding outside an either/or group (e.g. NG12 1.3.1 E
           rectal bleeding) renders above the grouping card so it cannot
@@ -487,13 +375,24 @@ export default function StepPathwayConditions({
             renderRowExtra={rowExtra}
           />
         </Stack>
-      ) : (
+      ) : items.length > 0 ? (
         <ListRecommendationView
           items={items}
           getRowResolution={getRowResolution}
           onRowClick={onRowClick}
           renderRowExtra={rowExtra}
         />
+      ) : (
+        standaloneHighlightItem &&
+        onAddMultiConcept && (
+          <RowMultiCodeHighlight
+            item={standaloneHighlightItem}
+            contextText={trimmedQuote}
+            onAddCriterion={(criterion, selectedText) =>
+              onAddMultiConcept(standaloneHighlightItem, criterion, selectedText)
+            }
+          />
+        )
       )}
 
       {onRemoveProblem &&
@@ -501,27 +400,12 @@ export default function StepPathwayConditions({
           <ProblemNodeRow key={issue.nodeId} issue={issue} onRemove={onRemoveProblem} />
         ))}
 
-      {expandedDemographicNode && onUpdatePathway && (
-        <Box sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
-            {STEP_PATHWAY_CONDITIONS.editingDemographicHeading}
-          </Typography>
-          <DemographicRow node={expandedDemographicNode} onUpdate={onUpdatePathway} />
-        </Box>
-      )}
-
-      {expandedObservationNode && onUpdatePathway && onSelectObservation && (
-        <Box sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
-            {STEP_PATHWAY_CONDITIONS.editingObservationHeading}
-          </Typography>
-          <ObservationRow
-            node={expandedObservationNode}
-            onUpdate={onUpdatePathway}
-            onSelect={onSelectObservation}
-          />
-        </Box>
-      )}
+      <ExpandedConditionEditors
+        expandedDemographicNode={expandedDemographicNode}
+        expandedObservationNode={expandedObservationNode}
+        onUpdatePathway={onUpdatePathway}
+        onSelectObservation={onSelectObservation}
+      />
 
       {leadCluster && leadClusterPrompt && (
         <ClusterGroupingChoice

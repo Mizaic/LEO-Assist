@@ -591,6 +591,56 @@ describe("StepPathwayConditions: highlight-a-word multi-code picker", () => {
       "upper",
     );
   });
+
+  it("renders Highlight text for more codes on a tree-sourced situation when recommendationText is provided", async () => {
+    const user = userEvent.setup();
+    mockSearch([
+      {
+        snomed_concept_id: "248858001",
+        term: "Vulva finding",
+        semantic_tag: "finding",
+      },
+    ]);
+    const onAddMultiConcept = jest.fn();
+    const treeBoundary: PathwayTextBoundary = {
+      text: "has bleeding from genital region",
+      start: 0,
+      end: 0,
+      source: "tree",
+    };
+    const quote =
+      "1.5.17 Consider referral in women who have an unexplained vulval lump, ulceration or bleeding.";
+
+    render(
+      <StepPathwayConditions
+        pathwayIndex={3}
+        pathwayCount={3}
+        pathwayLetter="C"
+        boundary={treeBoundary}
+        recommendationText={quote}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onAddMultiConcept={onAddMultiConcept}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /highlight text for more codes/i }),
+    );
+    await user.click(getWordChunk("vulval"));
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+    await user.click(
+      await screen.findByRole("checkbox", { name: /select vulva finding/i }),
+    );
+    await user.click(screen.getByRole("button", { name: "Add 1 code" }));
+
+    expect(onAddMultiConcept).toHaveBeenCalledWith(
+      expect.objectContaining({ text: quote }),
+      expect.objectContaining({ snomed_concept_id: "248858001" }),
+      "vulval",
+    );
+  });
 });
 
 describe("StepPathwayConditions: inline age/sex editor for an already-resolved DEMOGRAPHIC row", () => {

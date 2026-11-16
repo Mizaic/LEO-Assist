@@ -221,4 +221,87 @@ describe("buildInitialWizardState", () => {
     expect(state.clusterGroupings).toEqual({});
     expect(state.leadClusterGroupings).toEqual({});
   });
+
+  it("reconstructs heuristic text boundaries (including disconnected spans) from saved source_row_text on NG12 1.5.17", () => {
+    const text =
+      "1.5.17 Consider a suspected cancer pathway referral for vulval cancer in women, and trans men and non-binary people with female reproductive organs who have an unexplained vulval lump, ulceration or bleeding. [2015]";
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        { kind: "DEMOGRAPHIC", field: "sex", operator: "=", value: "female" },
+        {
+          kind: "OR",
+          children: [
+            {
+              kind: "AND",
+              pathway_key: "pw_1",
+              children: [
+                {
+                  kind: "CONCEPT",
+                  source_row_text: "unexplained vulval lump",
+                  criterion: {
+                    snomed_concept_id: "289477004",
+                    preferred_term: "Mass of vulva (finding)",
+                  },
+                },
+              ],
+            },
+            {
+              kind: "AND",
+              pathway_key: "pw_2",
+              children: [
+                {
+                  kind: "CONCEPT",
+                  source_row_text: "unexplained vulval ulceration",
+                  criterion: {
+                    snomed_concept_id: "68640004",
+                    preferred_term: "Ulceration of vulva (disorder)",
+                  },
+                },
+              ],
+            },
+            {
+              kind: "AND",
+              pathway_key: "pw_3",
+              children: [
+                {
+                  kind: "CONCEPT",
+                  source_row_text: "unexplained vulval bleeding",
+                  criterion: {
+                    snomed_concept_id: "890094005",
+                    preferred_term: "Bleeding from genital region (finding)",
+                  },
+                },
+                {
+                  kind: "CONCEPT",
+                  source_row_text: "vulval",
+                  criterion: {
+                    snomed_concept_id: "248858001",
+                    preferred_term: "Vulva finding (finding)",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }) as EditableLogicNode;
+
+    const state = buildInitialWizardState(tree, text);
+
+    expect(state.step).toBe("review");
+    expect(state.boundaries).toHaveLength(3);
+    expect(state.boundaries?.map((b) => b.source)).toEqual([
+      "heuristic",
+      "heuristic",
+      "heuristic",
+    ]);
+    expect(state.boundaries?.map((b) => b.text)).toEqual([
+      "unexplained vulval lump",
+      "unexplained vulval ulceration",
+      "unexplained vulval bleeding",
+    ]);
+    expect(state.boundaries?.[1].spans).toHaveLength(2);
+    expect(state.boundaries?.[2].spans).toHaveLength(2);
+  });
 });
