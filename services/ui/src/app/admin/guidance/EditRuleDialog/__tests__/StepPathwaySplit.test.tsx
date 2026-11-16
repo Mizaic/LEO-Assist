@@ -473,4 +473,44 @@ describe("StepPathwaySplit: no split found", () => {
       screen.getByRole("heading", { name: /age and lab bands/i }),
     ).toBeInTheDocument();
   });
+
+  it("lets the reviewer manually split a single-sentence rule (NG12 1.5.17) into 3 situations", async () => {
+    const user = userEvent.setup();
+    const onConfirm = jest.fn();
+    const ng12 =
+      "1.5.17 Consider a suspected cancer pathway referral for vulval cancer in women, and trans men and non-binary people with female reproductive organs who have an unexplained vulval lump, ulceration or bleeding. [2015]";
+    render(
+      <StepPathwaySplit
+        recommendationText={ng12}
+        recommendationStructure={null}
+        onConfirm={onConfirm}
+        onNoSplit={jest.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /break this sentence into two or more/i }),
+    );
+    expect(
+      screen.getByText(/select the words that belong to the first new situation/i),
+    ).toBeInTheDocument();
+
+    // Split 1: click "lump," -> (A) ends at "lump,", (B) is "ulceration or bleeding. [2015]"
+    await user.click(screen.getByText("lump,", { selector: "[data-word-index]" }));
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+
+    expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(2);
+
+    // Split 2: split row (B) after "ulceration"
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.split, "i") }));
+    const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
+    await user.click(rows[1]);
+    await user.click(screen.getByText("ulceration", { selector: "[data-word-index]" }));
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+
+    expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(3);
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm.mock.calls[0][0]).toHaveLength(3);
+  });
 });

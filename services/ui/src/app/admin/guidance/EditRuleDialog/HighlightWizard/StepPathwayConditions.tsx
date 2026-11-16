@@ -73,6 +73,8 @@ export interface StepPathwayConditionsProps {
    *  drives the "Confirm situation B, next -> C" footer copy. */
   nextPathwayLetter?: string | null;
   boundary: PathwayTextBoundary;
+  /** Optional full recommendation sentence so split-row highlights can reach shared lead words. */
+  recommendationText?: string | null;
   getRowResolution?: (
     item: RecommendationStructureItem,
   ) => ListRowResolution | undefined;
@@ -219,6 +221,7 @@ export default function StepPathwayConditions({
   pathwayLetter,
   nextPathwayLetter = null,
   boundary,
+  recommendationText,
   getRowResolution,
   onRowClick,
   onAddMultiConcept,
@@ -322,7 +325,7 @@ export default function StepPathwayConditions({
     ? (item: RecommendationStructureItem) => (
         <RowMultiCodeHighlight
           item={item}
-          contextText={boundary.text}
+          contextText={recommendationText || boundary.text}
           onAddCriterion={(criterion, selectedText) =>
             onAddMultiConcept(item, criterion, selectedText)
           }

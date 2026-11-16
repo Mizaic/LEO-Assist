@@ -133,6 +133,7 @@ export const STEP_PATHWAY_SPLIT = {
   noSplitBody:
     "We couldn't find more than one situation in this text. Shared symptoms belong in Always true. If ages have different lab cut-offs (for example PSA or CA125), build those bands here.",
   noSplitConfirmLabel: "Doesn't split -- one set of rules for everyone",
+  manualSplitLabel: "Split into situations",
   ageLabBandsLabel: "Build from age and lab bands",
   ageLabBandsHint:
     "Creates one situation per age range with its own lab threshold. Shared symptoms stay in Always true -- each situation is only age plus the lab value.",
@@ -341,6 +342,7 @@ export const WIZARD_TOOLTIPS = {
   confirmMerge: "Finish combining the selected situations.",
   cancelMergeSplit: "Stop merging or splitting and keep the current rows.",
   noSplit: "Continue with one situation that applies to everyone.",
+  manualSplit: "Break this sentence into two or more separate situations yourself.",
   undoMerge: "Undo your merge and restore the separate situations.",
   confirmSituation: "Save this situation's conditions and move on.",
   onlyOne: "Any one of these findings is enough for this group.",

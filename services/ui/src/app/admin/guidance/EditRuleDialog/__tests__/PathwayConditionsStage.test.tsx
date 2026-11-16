@@ -898,4 +898,59 @@ describe("PathwayConditionsStage: disconnected highlight saves exact selected ph
     });
     jest.restoreAllMocks();
   });
+
+  it("exposes the full recommendationText in Situation C's highlight tool even when Situation C's boundary is only 'or bleeding. [2015]'", async () => {
+    const user = userEvent.setup();
+    const fullNg12 =
+      "1.5.17 Consider referral for vulval cancer in women who have an unexplained vulval lump, ulceration or bleeding. [2015]";
+    const startB = fullNg12.indexOf("ulceration");
+    const startC = fullNg12.indexOf("or bleeding");
+    const boundaries: PathwayTextBoundary[] = [
+      { text: fullNg12.slice(0, startB), start: 0, end: startB, source: "heuristic" },
+      { text: fullNg12.slice(startB, startC), start: startB, end: startC, source: "heuristic" },
+      { text: fullNg12.slice(startC), start: startC, end: fullNg12.length, source: "heuristic" },
+    ];
+    const tree: EditableLogicNode = {
+      node_id: "root",
+      kind: "AND",
+      children: [
+        {
+          node_id: "or",
+          kind: "OR",
+          children: [
+            { node_id: "pw-a", kind: "AND", pathway_key: "pw_a", children: [] },
+            { node_id: "pw-b", kind: "AND", pathway_key: "pw_b", children: [] },
+            { node_id: "pw-c", kind: "AND", pathway_key: "pw_c", children: [] },
+          ],
+        },
+      ],
+    };
+
+    render(
+      <PathwayConditionsStage
+        tree={tree}
+        recommendationText={fullNg12}
+        boundaries={boundaries}
+        pathwayIndex={2}
+        clusterGroupings={{}}
+        onSetClusterGrouping={jest.fn()}
+        leadClusterGroupings={{}}
+        onSetLeadClusterGrouping={jest.fn()}
+        dismissedCopyAcrossOffers={new Set()}
+        onDismissCopyAcrossOffer={jest.fn()}
+        onSelectNode={jest.fn()}
+        onUpdate={jest.fn()}
+        onRequestAdd={jest.fn()}
+        onEditConcept={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /highlight text for more codes/i }),
+    );
+    expect(
+      screen.getByText("unexplained", { selector: "[data-word-index]" }),
+    ).toBeInTheDocument();
+  });
 });

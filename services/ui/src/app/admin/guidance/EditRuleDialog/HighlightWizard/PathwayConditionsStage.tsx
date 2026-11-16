@@ -534,6 +534,7 @@ export default function PathwayConditionsStage({
         pathwayIndex + 1 < boundaries.length ? pathwayLetterAt(pathwayIndex + 1) : null
       }
       boundary={boundary}
+      recommendationText={recommendationText}
       getRowResolution={getRowResolution}
       onRowClick={handleRowClick}
       onAddMultiConcept={handleAddMultiConcept}

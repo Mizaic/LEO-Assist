@@ -35,6 +35,7 @@ import Typography from "@mui/material/Typography";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { TextSelectionResult } from "../SentenceEditor/HighlightableRecommendationText";
 import {
+  buildNoSplitBoundary,
   splitPathways,
   type PathwayTextBoundary,
   type RecommendationStructure,
@@ -172,6 +173,14 @@ export default function StepPathwaySplit({
     setPreMergeSnapshot(null);
   }
 
+  function handleManualSplit() {
+    const text = recommendationText?.trim() ? recommendationText : "";
+    if (!text) return;
+    setBoundaries([buildNoSplitBoundary(text, recommendationStructure)]);
+    setSelected([0]);
+    setMode("splitting");
+  }
+
   function handleConfirmSplit(selection: TextSelectionResult) {
     if (!boundaries || selected.length !== 1) return;
     const index = selected[0];
@@ -185,8 +194,10 @@ export default function StepPathwaySplit({
   }
 
   const canConfirmMerge = mode === "merging" && selected.length === 2;
+  const isManualFirstSplit = mode === "splitting" && boundaries?.length === 1;
+  const canManualSplit = Boolean(recommendationText?.trim());
 
-  if (!boundaries || boundaries.length < 2) {
+  if (!boundaries || (boundaries.length < 2 && !isManualFirstSplit)) {
     // Deliberately does NOT render StepHeader here -- its "we found
     // N situations" wording would flatly contradict whichever of
     // these two single-row explanations follows it.
@@ -197,6 +208,7 @@ export default function StepPathwaySplit({
         ) : (
           <NoSplitState
             onNoSplit={onNoSplit}
+            onManualSplit={canManualSplit ? handleManualSplit : undefined}
             onAgeLabBands={
               onAgeLabBands ? () => setAgeLabOpen(true) : undefined
             }
@@ -218,7 +230,7 @@ export default function StepPathwaySplit({
 
   return (
     <Stack spacing={1.5} data-tour="er-04-situations">
-      <StepHeader source={source} count={boundaries.length} />
+      {!isManualFirstSplit && <StepHeader source={source} count={boundaries.length} />}
 
       <Stack spacing={0.75}>
         {mode === "merging" && (

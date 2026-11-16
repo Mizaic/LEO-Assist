@@ -1062,4 +1062,35 @@ describe("looksLikeWithAnd", () => {
   it("does not split age phrasing that uses 'and'", () => {
     expect(looksLikeWithAnd("people aged 55 and over with weight loss")).toBeNull();
   });
+
+  it("peels 'Consider ... who have an <finding>' lead scaffolding on manually split NG12 1.5.17 boundaries", () => {
+    const boundaryA = {
+      text: "1.5.17 Consider a suspected cancer pathway referral for vulval cancer in women, and trans men and non-binary people with female reproductive organs who have an unexplained vulval lump,",
+      start: 0,
+      end: 184,
+      source: "heuristic" as const,
+    };
+    const boundaryB = {
+      text: "ulceration",
+      start: 185,
+      end: 195,
+      source: "heuristic" as const,
+    };
+    const boundaryC = {
+      text: "or bleeding. [2015]",
+      start: 196,
+      end: 215,
+      source: "heuristic" as const,
+    };
+
+    expect(buildPathwayRows(boundaryA).items.map((i) => i.text)).toEqual([
+      "unexplained vulval lump",
+    ]);
+    expect(buildPathwayRows(boundaryB).items.map((i) => i.text)).toEqual([
+      "ulceration",
+    ]);
+    expect(buildPathwayRows(boundaryC).items.map((i) => i.text)).toEqual([
+      "bleeding",
+    ]);
+  });
 });

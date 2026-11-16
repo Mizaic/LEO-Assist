@@ -36,9 +36,11 @@ const EMPTY_STATE_BOX_SX = {
 
 export function NoSplitState({
   onNoSplit,
+  onManualSplit,
   onAgeLabBands,
 }: {
   onNoSplit: () => void;
+  onManualSplit?: () => void;
   onAgeLabBands?: () => void;
 }) {
   return (
@@ -56,6 +58,13 @@ export function NoSplitState({
           <Tooltip title={STEP_PATHWAY_SPLIT.ageLabBandsHint}>
             <Button variant="contained" size="small" onClick={onAgeLabBands}>
               {STEP_PATHWAY_SPLIT.ageLabBandsLabel}
+            </Button>
+          </Tooltip>
+        )}
+        {onManualSplit && (
+          <Tooltip title={WIZARD_TOOLTIPS.manualSplit}>
+            <Button variant="outlined" size="small" onClick={onManualSplit}>
+              {STEP_PATHWAY_SPLIT.manualSplitLabel}
             </Button>
           </Tooltip>
         )}

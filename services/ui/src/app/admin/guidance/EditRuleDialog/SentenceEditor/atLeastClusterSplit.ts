@@ -150,12 +150,22 @@ export function stripPatientLeadScaffold(text: string): string {
       .replace(/^(?:a|an)\s+/i, "")
       .trim();
   }
+  const actionWhoHave = trimmed.match(
+    /^(?:\d+(?:\.\d+)+\s+)?(?:consider|offer|refer)\b[\s\S]*?\bwho\s+(?:have|has|are)\s+(.+)$/i,
+  );
+  if (actionWhoHave?.[1]) {
+    return actionWhoHave[1]
+      .replace(/^(?:a|an)\s+/i, "")
+      .replace(/[,;]+$/, "")
+      .trim();
+  }
   return trimmed
     .replace(/^\d+(?:\.\d+)+\s+/, "")
     .replace(/^for\s+people\s+who\s+(?:have|has|are)\s+/i, "")
     .replace(/^people\s+who\s+(?:have|has|are)\s+/i, "")
     .replace(/^who\s+(?:have|has|are)\s+/i, "")
     .replace(/^(?:a|an)\s+/i, "")
+    .replace(/[,;]+$/, "")
     .trim();
 }
 
@@ -197,16 +207,18 @@ export function hasAtLeastQuantifierMarker(text: string | null | undefined): boo
  * pathway's own display text can carry a dangling ", or" it does not
  * semantically own. Strip it before any content-level parsing.
  */
+const LEADING_CONNECTOR_RE = /^(?:,\s*)?\bor\b\s+/i;
 const TRAILING_CONNECTOR_RE = /,?\s*\bor\b\s*$/i;
 
 /**
- * Strip a dangling trailing ", or" / " or" pathway-boundary connector
- * (see `TRAILING_CONNECTOR_RE`'s doc comment above) so a pathway's own
- * text reads as a complete phrase rather than one that trails off with
- * a connector belonging to the next pathway.
+ * Strip a dangling leading or trailing ", or" / " or" pathway-boundary
+ * connector so a pathway's own text reads as a complete phrase.
  */
 export function cleanPathwayText(text: string): string {
-  return text.replace(TRAILING_CONNECTOR_RE, "").trim();
+  return text
+    .replace(LEADING_CONNECTOR_RE, "")
+    .replace(TRAILING_CONNECTOR_RE, "")
+    .trim();
 }
 
 export interface AtLeastClusterSplit {
