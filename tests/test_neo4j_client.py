@@ -106,9 +106,6 @@ class TestRunWithRetry:
         client = _BaseClient("bolt://localhost:7687", "neo4j", "pass")
         # run() delegates to run_with_retry - just verify no exception
         mock_session.run.return_value = iter([{"n": 1}])
-        # Use the low-level function directly
-        from libs.neo4j_client.client import run_with_retry
-
         mock_session2 = MagicMock()
         mock_session2.run.return_value = [{"n": 1}]
         client._driver.session.return_value.__enter__ = MagicMock(
@@ -211,3 +208,72 @@ class TestKnowledgeGraphClient:
         _args, kwargs = MockGD.driver.call_args
         assert kwargs["auth"][0] == "neo4j"
         client.close()
+
+
+class TestTlsCaBundle:
+    """Tests for certifi TLS root bundle wiring (DO-448BFA1A / DI-84F44836)."""
+
+    @patch("libs.neo4j_client.client.GraphDatabase")
+    def test_sets_ssl_cert_file_from_certifi_when_unset(self, MockGD, monkeypatch):
+        import certifi
+        import os
+
+        monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+        from libs.neo4j_client.client import _BaseClient
+
+        client = _BaseClient("neo4j+s://example.databases.neo4j.io", "neo4j", "pass")
+        assert os.environ.get("SSL_CERT_FILE") == certifi.where()
+        MockGD.driver.assert_called_once()
+        client.close()
+
+    @patch("libs.neo4j_client.client.GraphDatabase")
+    def test_preserves_existing_ssl_cert_file(self, MockGD, monkeypatch):
+        import os
+
+        custom_ca = "/etc/ssl/certs/custom-ca-bundle.pem"
+        monkeypatch.setenv("SSL_CERT_FILE", custom_ca)
+        from libs.neo4j_client.client import _BaseClient
+
+        client = _BaseClient("neo4j+s://example.databases.neo4j.io", "neo4j", "pass")
+        assert os.environ.get("SSL_CERT_FILE") == custom_ca
+        MockGD.driver.assert_called_once()
+        client.close()
+
+    @patch("libs.neo4j_client.client.AsyncGraphDatabase")
+    def test_async_driver_sets_ssl_cert_file_when_unset(self, MockAGD, monkeypatch):
+        import certifi
+        import os
+
+        monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+        monkeypatch.setenv(
+            "KNOWLEDGE_GRAPH_NEO4J_URI", "neo4j+s://example.databases.neo4j.io"
+        )
+        monkeypatch.setenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
+        monkeypatch.setenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "pass")
+        from libs.neo4j_client.client import get_async_driver
+
+        get_async_driver()
+        assert os.environ.get("SSL_CERT_FILE") == certifi.where()
+        MockAGD.driver.assert_called_once()
+
+    def test_all_neo4j_requirements_pin_certifi_2026(self):
+        import re
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
+        req_files = [
+            root / "requirements.txt",
+            *sorted((root / "services").glob("*/requirements.txt")),
+        ]
+        neo4j_reqs = [
+            p
+            for p in req_files
+            if re.search(r"^neo4j[>=]", p.read_text(encoding="utf-8"), re.M)
+        ]
+        assert len(neo4j_reqs) >= 9
+        for req_path in neo4j_reqs:
+            text = req_path.read_text(encoding="utf-8")
+            rel = req_path.relative_to(root)
+            assert re.search(
+                r"^certifi>=2026\.", text, re.M
+            ), f"{rel} uses neo4j without pinning certifi>=2026.x"

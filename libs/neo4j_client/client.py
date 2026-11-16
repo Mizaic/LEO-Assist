@@ -12,25 +12,17 @@ terminology + FHIR resource graph.
 
 from __future__ import annotations
 
+import atexit
+from contextlib import contextmanager
 import logging
 import os
 from pathlib import Path
-
-from dotenv import load_dotenv
-
-# Fallback for scripts and test harnesses that import this lib directly without
-# going through a service main.py (which calls load_keyvault_secrets() first).
-# Services always call load_keyvault_secrets() before importing, so KV wins.
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=True)
-load_dotenv(_REPO_ROOT / "secrets" / ".env", override=False)
-import atexit
 import random
 import threading
 import time
-from contextlib import contextmanager
 from typing import Any
 
+from dotenv import load_dotenv
 from neo4j import AsyncGraphDatabase, GraphDatabase
 from neo4j.exceptions import (
     ConfigurationError,
@@ -38,6 +30,13 @@ from neo4j.exceptions import (
     SessionExpired,
     TransientError,
 )
+
+# Fallback for scripts and test harnesses that import this lib directly without
+# going through a service main.py (which calls load_keyvault_secrets() first).
+# Services always call load_keyvault_secrets() before importing, so KV wins.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=True)
+load_dotenv(_REPO_ROOT / "secrets" / ".env", override=False)
 
 logger = logging.getLogger("libs.neo4j_client")
 
@@ -88,6 +87,25 @@ _DRIVER_LOCK = threading.Lock()
 _ATEXIT_REGISTERED = False
 
 
+def ensure_tls_ca_bundle() -> str | None:
+    """Default SSL_CERT_FILE to certifi so neo4j+s:// trusts current Aura roots."""
+    existing = os.environ.get("SSL_CERT_FILE", "").strip()
+    if existing:
+        return existing
+    try:
+        import certifi
+    except ImportError:
+        return None
+    ca_path = certifi.where()
+    if ca_path and Path(ca_path).is_file():
+        os.environ["SSL_CERT_FILE"] = ca_path
+        return ca_path
+    return None
+
+
+ensure_tls_ca_bundle()
+
+
 def _close_all_cached_drivers() -> None:
     """Close every cached driver at interpreter shutdown."""
     with _DRIVER_LOCK:
@@ -106,6 +124,7 @@ def _build_driver(
     password: str,
     notifications_min_severity: str,
 ):
+    ensure_tls_ca_bundle()
     # liveness_check_timeout: if a pooled connection has been idle for this
     # many seconds the driver sends a lightweight check before reusing it.
     # This prevents SSLEOFError when Aura closes idle TCP connections during
@@ -228,7 +247,7 @@ class PatientGraphClient(_BaseClient):
 class KnowledgeGraphClient(_BaseClient):
     """Connects to the Knowledge Graph (KNOWLEDGE_GRAPH_NEO4J_URI).
 
-    Contains anonymous/de-identified model knowledge — no patient identifiers:
+    Contains anonymous/de-identified model knowledge -- no patient identifiers:
       Terminology:   Concept, Term, SurfaceForm, ReadCode, Icd10Code, ValueSet,
                      ConceptMap, CodingDecision, SurfaceFormTask
       Learning loop: TrainingCandidate, GoldLabel  (GDPR-isolated)
@@ -281,6 +300,7 @@ def _async_pool_kwargs() -> dict:
 def _build_async_driver(uri: str, username: str, password: str):
     """Create an async driver with the hardening kwargs, falling back if
     the installed neo4j package does not recognise one of them."""
+    ensure_tls_ca_bundle()
     kwargs = _async_pool_kwargs()
     try:
         return AsyncGraphDatabase.driver(uri, auth=(username, password), **kwargs)

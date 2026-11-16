@@ -283,6 +283,15 @@ def load_keyvault_secrets() -> None:
     environment). This is the documented local-dev path.
     """
     vault_url = os.environ.get("AZURE_KEYVAULT_URL", "")
+    if not os.environ.get("SSL_CERT_FILE", "").strip():
+        try:
+            import certifi
+
+            ca_path = certifi.where()
+            if ca_path and Path(ca_path).is_file():
+                os.environ["SSL_CERT_FILE"] = ca_path
+        except ImportError:
+            pass
     if not vault_url:
         _load_local_dev_secrets()
         return
