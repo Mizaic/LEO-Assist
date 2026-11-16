@@ -317,4 +317,49 @@ describe("MultiConceptPicker", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onConfirm.mock.calls[0][0].snomed_concept_id).toBe("396361002");
   });
+
+  it("keeps codes selected in an earlier search when confirming after a second search", async () => {
+    const user = userEvent.setup();
+    const VULVA_FINDING = {
+      snomed_concept_id: "248858001",
+      term: "Vulva finding",
+      semantic_tag: "finding",
+    };
+    const DISORDER_OF_VULVA = {
+      snomed_concept_id: "5089007",
+      term: "Disorder of vulva",
+      semantic_tag: "disorder",
+    };
+    jest.spyOn(global, "fetch").mockImplementation((url) => {
+      const href = String(url);
+      if (href.includes("/api/terminology/search")) {
+        const hits = href.includes("Disorder")
+          ? [DISORDER_OF_VULVA]
+          : [VULVA_FINDING];
+        return Promise.resolve({ ok: true, json: async () => hits } as Response);
+      }
+      return Promise.resolve({ ok: true, json: async () => [] } as Response);
+    });
+
+    const onConfirm = jest.fn();
+    render(<MultiConceptPicker initialQuery="vulva" onConfirm={onConfirm} />);
+
+    await user.click(
+      await screen.findByRole("checkbox", { name: /select vulva finding/i }),
+    );
+    const searchInput = screen.getByLabelText(/search clinical terms/i);
+    await user.clear(searchInput);
+    await user.type(searchInput, "Disorder of vulva");
+    await user.click(
+      await screen.findByRole("checkbox", { name: /select disorder of vulva/i }),
+    );
+    await user.click(screen.getByRole("button", { name: "Add 2 codes" }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    const criterion: LogicCriterion = onConfirm.mock.calls[0][0];
+    expect(criterion.seeds?.map((s) => s.snomed_concept_id)).toEqual([
+      "248858001",
+      "5089007",
+    ]);
+  });
 });

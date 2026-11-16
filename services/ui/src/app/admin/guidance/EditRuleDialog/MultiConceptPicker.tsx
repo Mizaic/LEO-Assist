@@ -73,6 +73,9 @@ export default function MultiConceptPicker({
   const [hits, setHits] = useState<ConceptSearchHit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedHitByConceptId, setSelectedHitByConceptId] = useState<
+    Map<string, ConceptSearchHit>
+  >(new Map());
   const [depthByConceptId, setDepthByConceptId] = useState<
     Map<string, number>
   >(new Map());
@@ -105,9 +108,13 @@ export default function MultiConceptPicker({
   }, [query]);
 
   const selectedIds = [...depthByConceptId.keys()];
-  const selectedHits = hits.filter((h) =>
-    depthByConceptId.has(h.snomed_concept_id),
-  );
+  const selectedHits = selectedIds
+    .map(
+      (id) =>
+        selectedHitByConceptId.get(id) ??
+        hits.find((h) => h.snomed_concept_id === id),
+    )
+    .filter((h): h is ConceptSearchHit => Boolean(h));
   const selectedDrafts = selectedHits.map(
     (h) =>
       thresholdByConceptId.get(h.snomed_concept_id) ??
@@ -127,6 +134,15 @@ export default function MultiConceptPicker({
       : null;
 
   function toggle(hit: ConceptSearchHit) {
+    setSelectedHitByConceptId((prev) => {
+      const next = new Map(prev);
+      if (next.has(hit.snomed_concept_id)) {
+        next.delete(hit.snomed_concept_id);
+      } else {
+        next.set(hit.snomed_concept_id, hit);
+      }
+      return next;
+    });
     setDepthByConceptId((prev) => {
       const next = new Map(prev);
       if (next.has(hit.snomed_concept_id)) {
