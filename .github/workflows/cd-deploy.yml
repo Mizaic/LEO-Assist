@@ -46,7 +46,7 @@ permissions:
   actions: read
 
 env:
-  ACR_LOGIN_SERVER: leoaicr.azurecr.io
+  MIZAIC_ACR_NAME: mizaicleoacr.azurecr.io
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
@@ -176,9 +176,9 @@ jobs:
             az containerapp update \
               --name "$SERVICE" \
               --resource-group leo-ai-dev \
-              --image "${ACR_LOGIN_SERVER}/${SERVICE}:${IMAGE_TAG}" \
+              --image "${MIZAIC_ACR_NAME}/${SERVICE}:${IMAGE_TAG}" \
               --output none
-            echo "Updated $SERVICE -> ${ACR_LOGIN_SERVER}/${SERVICE}:${IMAGE_TAG}"
+            echo "Updated $SERVICE -> ${MIZAIC_ACR_NAME}/${SERVICE}:${IMAGE_TAG}"
           done
 
       - name: Post-deploy smoke checks

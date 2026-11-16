@@ -35,12 +35,9 @@ on:
         type: boolean
 
 permissions:
-  id-token: write   # required for OIDC federated credential
   contents: read
 
 env:
-  ACR_NAME: leoaicr
-  ACR_LOGIN_SERVER: leoaicr.azurecr.io
   MIZAIC_ACR_NAME: mizaicleoacr.azurecr.io
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -339,32 +336,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
-      - name: Debug OIDC subject
-        run: |
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" | jq -r '.value')
-          echo "$TOKEN" | python3 -c "
-          import base64, json, sys
-          t = sys.stdin.read().strip()
-          if t:
-            p = t.split('.')[1]
-            p += '=' * (4 - len(p) % 4)
-            d = json.loads(base64.urlsafe_b64decode(p))
-            print('OIDC subject (must match federated credential):', d.get('sub'))
-            print('OIDC issuer:', d.get('iss'))
-          "
-
-      - name: Azure login (OIDC)
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          audience: api://AzureADTokenExchange
-
-      - name: Log in to ACR
-        run: az acr login --name "$ACR_NAME"
-
       - name: Log in to Mizaic ACR
         env:
           MIZAIC_ACR_USERNAME: ${{ secrets.MIZAIC_ACR_USERNAME }}
@@ -388,22 +359,20 @@ jobs:
           PUSH_LATEST: ${{ steps.image-tag.outputs.push_latest }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          IMAGE="${ACR_LOGIN_SERVER}/${SERVICE}"
-          MIZAIC_IMAGE="${MIZAIC_ACR_NAME}/${SERVICE}"
+          IMAGE="${MIZAIC_ACR_NAME}/${SERVICE}"
           HF_BUILD_ARG=""
           if [ -n "$HF_TOKEN" ]; then
             HF_BUILD_ARG="--build-arg HF_TOKEN=${HF_TOKEN}"
           fi
           latest_args=()
           if [ "$PUSH_LATEST" = "true" ]; then
-            latest_args+=(--tag "${IMAGE}:latest" --tag "${MIZAIC_IMAGE}:latest")
+            latest_args+=(--tag "${IMAGE}:latest")
           fi
           build_ok=0
           for attempt in 1 2 3; do
             if docker build \
               --file "$DOCKERFILE" \
               --tag "${IMAGE}:${TAG}" \
-              --tag "${MIZAIC_IMAGE}:${TAG}" \
               "${latest_args[@]}" \
               --cache-from "${IMAGE}:latest" \
               ${HF_BUILD_ARG} \
@@ -419,10 +388,8 @@ jobs:
             exit 1
           fi
           docker push "${IMAGE}:${TAG}"
-          docker push "${MIZAIC_IMAGE}:${TAG}"
           if [ "$PUSH_LATEST" = "true" ]; then
             docker push "${IMAGE}:latest"
-            docker push "${MIZAIC_IMAGE}:latest"
           fi
 
       - name: Output image digest
@@ -430,7 +397,7 @@ jobs:
           SERVICE: ${{ matrix.service }}
           TAG: ${{ steps.image-tag.outputs.tag }}
         run: |
-          docker inspect --format='{{index .RepoDigests 0}}' "${ACR_LOGIN_SERVER}/${SERVICE}:${TAG}"
+          docker inspect --format='{{index .RepoDigests 0}}' "${MIZAIC_ACR_NAME}/${SERVICE}:${TAG}"
 
   build-push-ui:
     name: Build ui
@@ -441,32 +408,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
-
-      - name: Debug OIDC subject
-        run: |
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" | jq -r '.value')
-          echo "$TOKEN" | python3 -c "
-          import base64, json, sys
-          t = sys.stdin.read().strip()
-          if t:
-            p = t.split('.')[1]
-            p += '=' * (4 - len(p) % 4)
-            d = json.loads(base64.urlsafe_b64decode(p))
-            print('OIDC subject (must match federated credential):', d.get('sub'))
-            print('OIDC issuer:', d.get('iss'))
-          "
-
-      - name: Azure login (OIDC)
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          audience: api://AzureADTokenExchange
-
-      - name: Log in to ACR
-        run: az acr login --name "$ACR_NAME"
 
       - name: Log in to Mizaic ACR
         env:
@@ -488,31 +429,27 @@ jobs:
           TAG: ${{ steps.image-tag.outputs.tag }}
           PUSH_LATEST: ${{ steps.image-tag.outputs.push_latest }}
         run: |
-          IMAGE="${ACR_LOGIN_SERVER}/ui"
-          MIZAIC_IMAGE="${MIZAIC_ACR_NAME}/ui"
+          IMAGE="${MIZAIC_ACR_NAME}/ui"
           latest_args=()
           if [ "$PUSH_LATEST" = "true" ]; then
-            latest_args+=(--tag "${IMAGE}:latest" --tag "${MIZAIC_IMAGE}:latest")
+            latest_args+=(--tag "${IMAGE}:latest")
           fi
           docker build \
             --file infra/dockerfiles/Dockerfile.ui \
             --tag "${IMAGE}:${TAG}" \
-            --tag "${MIZAIC_IMAGE}:${TAG}" \
             "${latest_args[@]}" \
             --cache-from "${IMAGE}:latest" \
             .
           docker push "${IMAGE}:${TAG}"
-          docker push "${MIZAIC_IMAGE}:${TAG}"
           if [ "$PUSH_LATEST" = "true" ]; then
             docker push "${IMAGE}:latest"
-            docker push "${MIZAIC_IMAGE}:latest"
           fi
 
       - name: Output image digest
         env:
           TAG: ${{ steps.image-tag.outputs.tag }}
         run: |
-          docker inspect --format='{{index .RepoDigests 0}}' "${ACR_LOGIN_SERVER}/ui:${TAG}"
+          docker inspect --format='{{index .RepoDigests 0}}' "${MIZAIC_ACR_NAME}/ui:${TAG}"
 
   publish-build-manifest:
     name: Publish build manifest
