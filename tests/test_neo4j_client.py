@@ -256,6 +256,84 @@ class TestTlsCaBundle:
         assert os.environ.get("SSL_CERT_FILE") == certifi.where()
         MockAGD.driver.assert_called_once()
 
+    @patch("libs.neo4j_client.client.GraphDatabase")
+    def test_secure_uri_loads_certifi_into_ssl_context(self, MockGD, monkeypatch):
+        import ssl
+
+        monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+        from libs.neo4j_client.client import _BaseClient
+
+        client = _BaseClient("neo4j+s://example.databases.neo4j.io", "neo4j", "pass")
+        args, kwargs = MockGD.driver.call_args
+        ctx = kwargs["ssl_context"]
+        assert args[0] == "neo4j://example.databases.neo4j.io"
+        assert ctx.verify_mode == ssl.CERT_REQUIRED
+        assert ctx.check_hostname is True
+        assert ctx.get_ca_certs()
+        client.close()
+
+    @patch("libs.neo4j_client.client.GraphDatabase")
+    def test_plain_bolt_uri_does_not_pass_ssl_context(self, MockGD):
+        from libs.neo4j_client.client import _BaseClient
+
+        client = _BaseClient("bolt://localhost:7687", "neo4j", "pass")
+        args, kwargs = MockGD.driver.call_args
+        assert args[0] == "bolt://localhost:7687"
+        assert "ssl_context" not in kwargs
+        client.close()
+
+    @patch("libs.neo4j_client.client.GraphDatabase")
+    def test_ssc_uri_stays_on_the_driver_scheme(self, MockGD):
+        from libs.neo4j_client.client import _BaseClient
+
+        client = _BaseClient("neo4j+ssc://example.databases.neo4j.io", "neo4j", "pass")
+        args, kwargs = MockGD.driver.call_args
+        assert args[0] == "neo4j+ssc://example.databases.neo4j.io"
+        assert "ssl_context" not in kwargs
+        client.close()
+
+    @patch("libs.neo4j_client.client.AsyncGraphDatabase")
+    def test_async_secure_uri_loads_certifi_into_ssl_context(
+        self, MockAGD, monkeypatch
+    ):
+        import ssl
+
+        monkeypatch.setenv(
+            "KNOWLEDGE_GRAPH_NEO4J_URI", "neo4j+s://example.databases.neo4j.io"
+        )
+        monkeypatch.setenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
+        monkeypatch.setenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "pass")
+        from libs.neo4j_client.client import get_async_driver
+
+        get_async_driver()
+        args, kwargs = MockAGD.driver.call_args
+        assert args[0] == "neo4j://example.databases.neo4j.io"
+        assert kwargs["ssl_context"].verify_mode == ssl.CERT_REQUIRED
+
+    @patch("libs.neo4j_client.client.GraphDatabase")
+    def test_unknown_pool_option_still_uses_certifi_context(self, MockGD):
+        import ssl
+
+        from neo4j.exceptions import ConfigurationError
+
+        def side_effect(uri, **kwargs):
+            if (
+                "notifications_min_severity" in kwargs
+                or "liveness_check_timeout" in kwargs
+            ):
+                raise ConfigurationError("unknown")
+            return MagicMock()
+
+        MockGD.driver.side_effect = side_effect
+        from libs.neo4j_client.client import _BaseClient
+
+        client = _BaseClient("neo4j+s://example.databases.neo4j.io", "neo4j", "pass")
+        args, kwargs = MockGD.driver.call_args
+        assert args[0] == "neo4j://example.databases.neo4j.io"
+        assert kwargs["ssl_context"].verify_mode == ssl.CERT_REQUIRED
+        assert "liveness_check_timeout" not in kwargs
+        client.close()
+
     def test_all_neo4j_requirements_pin_certifi_2026(self):
         import re
         from pathlib import Path

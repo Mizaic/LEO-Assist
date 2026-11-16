@@ -18,6 +18,7 @@ import logging
 import os
 from pathlib import Path
 import random
+import ssl
 import threading
 import time
 from typing import Any
@@ -88,19 +89,74 @@ _ATEXIT_REGISTERED = False
 
 
 def ensure_tls_ca_bundle() -> str | None:
-    """Default SSL_CERT_FILE to certifi so neo4j+s:// trusts current Aura roots."""
+    """Default SSL_CERT_FILE to certifi for libraries that honour it.
+
+    The Neo4j driver does not. A neo4j+s:// URI always uses the system
+    trust store, so driver setup must pass a certifi SSL context instead.
+    """
     existing = os.environ.get("SSL_CERT_FILE", "").strip()
     if existing:
         return existing
     try:
-        import certifi
-    except ImportError:
+        ca_path = _certifi_ca_file()
+    except RuntimeError:
         return None
+    os.environ["SSL_CERT_FILE"] = ca_path
+    return ca_path
+
+
+def _certifi_ca_file() -> str:
+    """Return certifi's CA bundle. Raise if Aura TLS cannot be verified."""
+    try:
+        import certifi
+    except ImportError as exc:
+        raise RuntimeError("certifi is required to verify Neo4j Aura TLS") from exc
     ca_path = certifi.where()
-    if ca_path and Path(ca_path).is_file():
-        os.environ["SSL_CERT_FILE"] = ca_path
-        return ca_path
-    return None
+    if not ca_path or not Path(ca_path).is_file():
+        raise RuntimeError("certifi CA bundle is missing")
+    return ca_path
+
+
+def _certifi_ssl_context() -> ssl.SSLContext:
+    """TLS context that trusts certifi, including the Aura 2022 root."""
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    ctx.check_hostname = True
+    ctx.verify_mode = ssl.CERT_REQUIRED
+    ctx.load_verify_locations(cafile=_certifi_ca_file())
+    return ctx
+
+
+def _driver_uri_and_tls(uri: str) -> tuple[str, dict[str, Any]]:
+    """Use certifi for +s URIs. +s itself only trusts the system store."""
+    if "+ssc://" in uri or "+s://" not in uri:
+        return uri, {}
+    secure_uri = uri.replace("+s://", "://", 1)
+    return secure_uri, {"ssl_context": _certifi_ssl_context()}
+
+
+def _open_driver(factory: Any, uri: str, username: str, password: str, extra: dict):
+    """Open a driver. Drop unknown pool options, and keep the TLS context."""
+    secure_uri, tls_kwargs = _driver_uri_and_tls(uri)
+    attempts = [{**extra, **tls_kwargs}]
+    if "notifications_min_severity" in extra:
+        without_notes = {
+            key: value
+            for key, value in extra.items()
+            if key != "notifications_min_severity"
+        }
+        attempts.append({**without_notes, **tls_kwargs})
+    if extra:
+        attempts.append(dict(tls_kwargs))
+    last_exc: ConfigurationError | None = None
+    for kwargs in attempts:
+        try:
+            return factory(secure_uri, auth=(username, password), **kwargs)
+        except ConfigurationError as exc:
+            last_exc = exc
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("Neo4j driver failed to open")
 
 
 ensure_tls_ca_bundle()
@@ -125,39 +181,9 @@ def _build_driver(
     notifications_min_severity: str,
 ):
     ensure_tls_ca_bundle()
-    # liveness_check_timeout: if a pooled connection has been idle for this
-    # many seconds the driver sends a lightweight check before reusing it.
-    # This prevents SSLEOFError when Aura closes idle TCP connections during
-    # long-running operations (e.g. LLM disambiguation batches).
-    # max_connection_pool_size: bound per-process pool. Aura's default is 100;
-    # 50 is plenty for a single uvicorn worker and prevents any one process
-    # from exhausting the cluster-wide quota.
-    _pool_kwargs: dict = {
-        "liveness_check_timeout": 5,
-        "max_connection_lifetime": int(
-            os.getenv("NEO4J_MAX_CONNECTION_LIFETIME", "240")
-        ),
-        "max_connection_pool_size": int(os.getenv("NEO4J_MAX_POOL_SIZE", "50")),
-        "connection_acquisition_timeout": float(
-            os.getenv("NEO4J_ACQUIRE_TIMEOUT", "60")
-        ),
-    }
-    try:
-        return GraphDatabase.driver(
-            uri,
-            auth=(username, password),
-            notifications_min_severity=notifications_min_severity,
-            **_pool_kwargs,
-        )
-    except ConfigurationError:
-        try:
-            return GraphDatabase.driver(
-                uri,
-                auth=(username, password),
-                **_pool_kwargs,
-            )
-        except ConfigurationError:
-            return GraphDatabase.driver(uri, auth=(username, password))
+    extra = _pool_kwargs()
+    extra["notifications_min_severity"] = notifications_min_severity
+    return _open_driver(GraphDatabase.driver, uri, username, password, extra)
 
 
 def _get_or_create_driver(
@@ -268,8 +294,8 @@ class KnowledgeGraphClient(_BaseClient):
         )
 
 
-def _async_pool_kwargs() -> dict:
-    """Hardening kwargs shared by every async driver.
+def _pool_kwargs() -> dict:
+    """Hardening kwargs shared by the sync and async drivers.
 
     - liveness_check_timeout: lightweight ping before reusing a pooled
       connection that has been idle for more than this many seconds.
@@ -301,11 +327,9 @@ def _build_async_driver(uri: str, username: str, password: str):
     """Create an async driver with the hardening kwargs, falling back if
     the installed neo4j package does not recognise one of them."""
     ensure_tls_ca_bundle()
-    kwargs = _async_pool_kwargs()
-    try:
-        return AsyncGraphDatabase.driver(uri, auth=(username, password), **kwargs)
-    except ConfigurationError:
-        return AsyncGraphDatabase.driver(uri, auth=(username, password))
+    return _open_driver(
+        AsyncGraphDatabase.driver, uri, username, password, _pool_kwargs()
+    )
 
 
 def get_async_driver():
