@@ -124,7 +124,7 @@ export const STEP_PATHWAY_SPLIT = {
   confirmMergeLabel: "Confirm merge",
   cancelLabel: "Cancel",
   splitInstruction:
-    "Select the words that belong to the first new situation, then confirm.",
+    "Select through the last word of the first new situation, then confirm. Tip: click the first word, hold Shift and click the last word. Or click and drag. One click on the last word alone also works.",
   /** Shown once merge mode is on, above the row list -- merge has no
    *  per-row instruction the way split does (split's prompt lives
    *  inside the one row being split), so it needs its own banner or

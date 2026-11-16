@@ -146,6 +146,8 @@ export function useWordSelection({
   const dragOriginRef = useRef<number | null>(null);
   const dragMovedRef = useRef(false);
   const suppressNextFocusRef = useRef(false);
+  // Contiguous drag can focus the release word after mouseup; skip one collapse.
+  const skipNextContiguousFocusRef = useRef(false);
   const committedRef = useRef<Set<number>>(committed);
   committedRef.current = committed;
   const activeRangeRef = useRef<ActiveRange | null>(activeRange);
@@ -198,6 +200,7 @@ export function useWordSelection({
     draggingRef.current = false;
     dragOriginRef.current = null;
     dragMovedRef.current = false;
+    skipNextContiguousFocusRef.current = false;
   }, [updateCommitted, updateLastAnchor, updateActiveRange]);
 
   const handleConfirm = useCallback(
@@ -234,6 +237,8 @@ export function useWordSelection({
           return;
         }
         draggingRef.current = true;
+        dragOriginRef.current = wordIdx;
+        dragMovedRef.current = false;
         updateLastAnchor(wordIdx);
         updateActiveRange({ anchor: wordIdx, focus: wordIdx });
         return;
@@ -280,8 +285,13 @@ export function useWordSelection({
   const handleMouseUp = useCallback(() => {
     const wasDragging = draggingRef.current;
     const curRange = activeRangeRef.current;
+    const moved = dragMovedRef.current;
     draggingRef.current = false;
     suppressNextFocusRef.current = false;
+    // mouseup clears dragMoved before focus may fire on the release word.
+    if (mode === "contiguous" && wasDragging && moved) {
+      skipNextContiguousFocusRef.current = true;
+    }
     if (mode === "multi" && wasDragging && curRange) {
       const next = new Set(committedRef.current);
       addRangeToSet(next, curRange.anchor, curRange.focus, disabledIndices);
@@ -296,6 +306,12 @@ export function useWordSelection({
     (wordIdx: number) => {
       if (suppressNextFocusRef.current) {
         suppressNextFocusRef.current = false;
+        return;
+      }
+      // Contiguous drag can land focus on the release word after mouseup.
+      // Do not collapse a multi-word range the drag just painted.
+      if (mode === "contiguous" && skipNextContiguousFocusRef.current) {
+        skipNextContiguousFocusRef.current = false;
         return;
       }
       updateLastAnchor(wordIdx);

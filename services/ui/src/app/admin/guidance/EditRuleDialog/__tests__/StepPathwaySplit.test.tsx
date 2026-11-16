@@ -10,6 +10,8 @@
  * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import React from "react";
+import fs from "fs";
+import path from "path";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WIZARD_TOOLTIPS } from "../HighlightWizard/copy";
@@ -397,6 +399,14 @@ describe("StepPathwaySplit: merging every row down to one", () => {
 });
 
 describe("StepPathwaySplit: split editing", () => {
+  it("keeps Split into situations on contiguous selection (Shift+click / drag)", () => {
+    const src = fs.readFileSync(
+      path.join(__dirname, "../HighlightWizard/PathwayBoundaryRow.tsx"),
+      "utf8",
+    );
+    expect(src).toMatch(/mode=["']contiguous["']/);
+  });
+
   it("splits a row into two at the confirmed word selection", async () => {
     const user = userEvent.setup();
     const onConfirm = jest.fn();
@@ -492,11 +502,16 @@ describe("StepPathwaySplit: no split found", () => {
       screen.getByRole("button", { name: /break this sentence into two or more/i }),
     );
     expect(
-      screen.getByText(/select the words that belong to the first new situation/i),
+      screen.getByText(/select through the last word of the first new situation/i),
     ).toBeInTheDocument();
 
-    // Split 1: click "lump," -> (A) ends at "lump,", (B) is "ulceration or bleeding. [2015]"
+    // Split 1: contiguous mode -- click the last word of situation A ("lump,").
+    // The cut uses that word's end offset, so earlier words need not be selected.
     await user.click(screen.getByText("lump,", { selector: "[data-word-index]" }));
+    expect(screen.getByText("lump,", { selector: "[data-word-index]" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await user.click(screen.getByRole("button", { name: /confirm selection/i }));
 
     expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(2);

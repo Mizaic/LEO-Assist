@@ -121,6 +121,67 @@ describe("HighlightableRecommendationText: mouse drag-select", () => {
     expect(getWordChunk("pain")).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("in contiguous mode, Shift+click extends across multiple words for Step 2 splits", async () => {
+    const user = userEvent.setup();
+    const onConfirmSelection = jest.fn();
+    const ng12 =
+      "who have an unexplained vulval lump, ulceration or bleeding. [2015]";
+    render(
+      <HighlightableRecommendationText
+        text={ng12}
+        mode="contiguous"
+        onConfirmSelection={onConfirmSelection}
+      />
+    );
+
+    await user.click(getWordChunk("who"));
+    await user.keyboard("{Shift>}");
+    await user.click(getWordChunk("lump,"));
+    await user.keyboard("{/Shift}");
+
+    expect(getWordChunk("who")).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("unexplained")).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("lump,")).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("ulceration")).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "who have an unexplained vulval lump," }),
+      expect.any(HTMLElement),
+    );
+  });
+
+  it("in contiguous mode, click-drag selects a multi-word range", async () => {
+    const user = userEvent.setup();
+    const onConfirmSelection = jest.fn();
+    render(
+      <HighlightableRecommendationText
+        text={TEXT}
+        mode="contiguous"
+        onConfirmSelection={onConfirmSelection}
+      />
+    );
+
+    const start = getWordChunk("upper");
+    const end = getWordChunk("pain");
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: start },
+      { target: getWordChunk("abdominal") },
+      { target: end },
+      { keys: "[/MouseLeft]", target: end },
+    ]);
+
+    expect(start).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("abdominal")).toHaveAttribute("aria-pressed", "true");
+    expect(end).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      { start: 0, end: 20, text: "upper abdominal pain" },
+      expect.any(HTMLElement),
+    );
+  });
+
   it("clicks disconnected words to toggle them on/off, previews the joined phrase, and confirms them", async () => {
     const user = userEvent.setup();
     const onConfirmSelection = jest.fn();

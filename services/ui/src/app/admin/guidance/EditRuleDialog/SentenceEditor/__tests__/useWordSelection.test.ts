@@ -78,6 +78,21 @@ describe("useWordSelection", () => {
     expect(result.current.selectionLoHi).toEqual({ lo: 2, hi: 2 });
   });
 
+  it("in contiguous mode, mouse drag from word 0 to word 2 selects the full span (not only word 2)", () => {
+    const { result } = renderHook(() =>
+      useWordSelection({
+        text: TEXT,
+        mode: "contiguous",
+        onConfirmSelection: jest.fn(),
+      }),
+    );
+    act(() => result.current.handleMouseDown(0));
+    act(() => result.current.handleMouseEnter(1));
+    act(() => result.current.handleMouseEnter(2));
+    act(() => result.current.handleMouseUp());
+    expect(result.current.selectionLoHi).toEqual({ lo: 0, hi: 2 });
+  });
+
   it("in default multi mode, plain clicks toggle disconnected words and confirm joins them in sentence order", () => {
     const onConfirmSelection = jest.fn();
     const ng12 = "unexplained vulval lump, ulceration or bleeding.";
