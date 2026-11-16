@@ -220,6 +220,36 @@ describe("HighlightableRecommendationText: mouse drag-select", () => {
     );
   });
 
+  it("commits a dragged contiguous phrase even if mouseup lands outside the word spans, then appends a non-contiguous word click", async () => {
+    const user = userEvent.setup();
+    const onConfirmSelection = jest.fn();
+    const ng12 = "organs who have an unexplained vulval lump, ulceration or bleeding.";
+    render(
+      <HighlightableRecommendationText
+        text={ng12}
+        onConfirmSelection={onConfirmSelection}
+      />
+    );
+
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: getWordChunk("unexplained") },
+      { target: getWordChunk("vulval") },
+      { keys: "[/MouseLeft]", target: document.body },
+    ]);
+    await user.click(getWordChunk("ulceration"));
+
+    expect(getWordChunk("unexplained")).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("vulval")).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("lump,")).toHaveAttribute("aria-pressed", "false");
+    expect(getWordChunk("ulceration")).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "unexplained vulval ulceration" }),
+      expect.any(HTMLElement),
+    );
+  });
+
   it("toggles disconnected words with Space via keyboard and confirms with Enter", async () => {
     const user = userEvent.setup();
     const onConfirmSelection = jest.fn();

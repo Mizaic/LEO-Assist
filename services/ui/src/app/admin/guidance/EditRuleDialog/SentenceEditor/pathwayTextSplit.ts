@@ -104,6 +104,8 @@ export interface PathwayTextBoundary {
   end: number;
   text: string;
   source: PathwayBoundarySource;
+  /** Exact contiguous ranges in recommendationText when built from non-contiguous words. */
+  spans?: Array<{ start: number; end: number }>;
   /**
    * Present only when `source === "structure"` and the guideline's own
    * markup nested a `<ul>` under this item -- these ARE the AT_LEAST

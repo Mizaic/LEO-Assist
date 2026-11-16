@@ -106,6 +106,16 @@ export function buildSituationBoundaryHighlights(
     if (boundary.source === "tree" || boundary.end <= boundary.start) {
       return [];
     }
+    if (boundary.spans && boundary.spans.length > 0) {
+      return boundary.spans
+        .filter((s) => s.end > s.start)
+        .map((s) => ({
+          start: s.start,
+          end: s.end,
+          kind: "confirmed" as const,
+          pathwayIndex: index,
+        }));
+    }
     const cleaned = cleanPathwayText(boundary.text);
     const local = cleaned ? boundary.text.indexOf(cleaned) : 0;
     const start = boundary.start + Math.max(0, local);
@@ -122,6 +132,17 @@ export function buildSituationBoundaryHighlights(
       },
     ];
   });
+}
+
+function boundaryOwnsSpan(
+  boundary: PathwayTextBoundary,
+  window: { start: number; end: number },
+  span: HighlightSpan,
+): boolean {
+  if (boundary.spans && boundary.spans.length > 0) {
+    return boundary.spans.some((r) => span.start >= r.start && span.end <= r.end);
+  }
+  return span.start < window.end && window.start < span.end;
 }
 
 /**
@@ -147,14 +168,22 @@ export function scopeHighlightsToActiveSituation(
     const raw = pathwayBoundaries[i];
     return extended ?? { start: raw.start, end: raw.end };
   });
-  const active =
+  const activeBoundary =
+    activePathwayIndex != null ? pathwayBoundaries[activePathwayIndex] : undefined;
+  const activeWindow =
     activePathwayIndex != null ? windows[activePathwayIndex] : undefined;
-  const fallsWithin = (span: HighlightSpan, range: { start: number; end: number }) =>
-    span.start < range.end && range.start < span.end;
   return highlights.filter((span) => {
-    if (active && fallsWithin(span, active)) return true;
+    if (
+      activeBoundary &&
+      activeWindow &&
+      boundaryOwnsSpan(activeBoundary, activeWindow, span)
+    ) {
+      return true;
+    }
     const inOther = windows.some(
-      (w, i) => i !== activePathwayIndex && fallsWithin(span, w),
+      (w, i) =>
+        i !== activePathwayIndex &&
+        boundaryOwnsSpan(pathwayBoundaries[i], w, span),
     );
     return !inOther;
   });
@@ -167,12 +196,14 @@ export type MergedHighlightRange = {
 };
 
 /** Merges overlapping/adjacent highlight spans of the SAME situation
- *  only -- never glues situation A into situation B, which would wipe
- *  the per-colour distinction. Exported for direct unit testing. */
+ *  only -- never glues situation A into situation B, and clips shared
+ *  overlaps across different situations so text is never duplicated. */
 export function mergeHighlightRanges(
   highlights: HighlightSpan[],
 ): MergedHighlightRange[] {
-  const sorted = [...highlights].sort((a, b) => a.start - b.start);
+  const sorted = [...highlights].sort(
+    (a, b) => a.start - b.start || (a.pathwayIndex ?? -1) - (b.pathwayIndex ?? -1),
+  );
   const merged: MergedHighlightRange[] = [];
   for (const span of sorted) {
     const last = merged[merged.length - 1];
@@ -180,11 +211,14 @@ export function mergeHighlightRanges(
     if (last && samePathway && span.start <= last.end) {
       last.end = Math.max(last.end, span.end);
     } else {
-      merged.push({
-        start: span.start,
-        end: span.end,
-        pathwayIndex: span.pathwayIndex,
-      });
+      const clippedStart = last ? Math.max(span.start, last.end) : span.start;
+      if (clippedStart < span.end) {
+        merged.push({
+          start: clippedStart,
+          end: span.end,
+          pathwayIndex: span.pathwayIndex,
+        });
+      }
     }
   }
   return merged;
@@ -245,17 +279,17 @@ function pickHighlights(
   const all = collectTreeHighlights(recommendationText, tree);
   if (hasSplit && activePathwayIndex != null) {
     const textLength = recommendationText?.length ?? 0;
+    const activeBoundary = pathwayBoundaries![activePathwayIndex];
     const activeWindow =
       pathwayTextWindow(pathwayBoundaries!, activePathwayIndex, textLength) ??
-      pathwayBoundaries![activePathwayIndex];
+      activeBoundary;
     const scoped = scopeHighlightsToActiveSituation(
       all,
       pathwayBoundaries,
       activePathwayIndex,
       textLength,
     ).map((span) => {
-      const inActive =
-        span.start < activeWindow.end && activeWindow.start < span.end;
+      const inActive = boundaryOwnsSpan(activeBoundary, activeWindow, span);
       // Active-situation captures paint in that situation's colour;
       // prerequisites (outside every pathway window) stay the shared green.
       return { ...span, pathwayIndex: inActive ? activePathwayIndex : null };

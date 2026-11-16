@@ -125,7 +125,8 @@ export default function HighlightableRecommendationText({
       <Box
         component="span"
         onMouseUp={handleMouseUp}
-        sx={{ lineHeight: 2, wordSpacing: 2 }}
+        onDragStart={(e) => e.preventDefault()}
+        sx={{ lineHeight: 2, wordSpacing: 2, userSelect: "none" }}
       >
         {renderTokens({
           text,

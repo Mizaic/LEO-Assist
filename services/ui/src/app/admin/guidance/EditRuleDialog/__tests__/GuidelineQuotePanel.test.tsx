@@ -415,4 +415,95 @@ describe("GuidelineQuotePanel: scoped to the active situation", () => {
     );
     expect(screen.getByText(/captured for this situation/i)).toBeInTheDocument();
   });
+
+  it("never duplicates quote text and scopes disconnected spans cleanly across manual NG12 1.5.17 situations", () => {
+    const ng12 =
+      "organs who have an unexplained vulval lump, ulceration or bleeding. [2015]";
+    const unexpStart = ng12.indexOf("unexplained");
+    const vulvalEnd = unexpStart + "unexplained vulval".length;
+    const lumpEnd = unexpStart + "unexplained vulval lump".length;
+    const ulcStart = ng12.indexOf("ulceration");
+    const ulcEnd = ulcStart + "ulceration".length;
+    const bleedStart = ng12.indexOf("bleeding.");
+    const bleedEnd = bleedStart + "bleeding.".length;
+    const manualSituations: PathwayTextBoundary[] = [
+      {
+        text: "unexplained vulval lump",
+        start: unexpStart,
+        end: lumpEnd,
+        spans: [{ start: unexpStart, end: lumpEnd }],
+        source: "heuristic",
+      },
+      {
+        text: "unexplained vulval ulceration",
+        start: unexpStart,
+        end: ulcEnd,
+        spans: [
+          { start: unexpStart, end: vulvalEnd },
+          { start: ulcStart, end: ulcEnd },
+        ],
+        source: "heuristic",
+      },
+      {
+        text: "unexplained vulval bleeding.",
+        start: unexpStart,
+        end: bleedEnd,
+        spans: [
+          { start: unexpStart, end: vulvalEnd },
+          { start: bleedStart, end: bleedEnd },
+        ],
+        source: "heuristic",
+      },
+    ];
+
+    const { unmount } = render(
+      <GuidelineQuotePanel
+        recommendationText={ng12}
+        tree={null}
+        pathwayBoundaries={manualSituations}
+        activePathwayIndex={null}
+      />,
+    );
+    const region = screen.getByRole("region", { name: /nice guideline wording/i });
+    expect(region.textContent).toContain(ng12);
+    expect(region.textContent?.match(/unexplained vulval/g)?.length).toBe(1);
+    unmount();
+
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "1", preferred_term: "Mass of vulva" },
+              source_row_text: "unexplained vulval lump",
+            },
+          ],
+        },
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "2", preferred_term: "Ulceration of vulva" },
+              source_row_text: "unexplained vulval ulceration",
+            },
+          ],
+        },
+      ],
+    } as LogicNodeSeed);
+
+    render(
+      <GuidelineQuotePanel
+        recommendationText={ng12}
+        tree={tree}
+        pathwayBoundaries={manualSituations}
+        activePathwayIndex={1}
+      />,
+    );
+    const marks = Array.from(document.querySelectorAll("mark")).map((m) => m.textContent);
+    expect(marks).toEqual(["unexplained vulval", "ulceration"]);
+  });
 });

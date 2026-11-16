@@ -46,6 +46,7 @@ import type { ListRowResolution } from "../SentenceEditor/ListRecommendationView
 import type { TextMatchRange } from "../SentenceEditor/recommendationTextMatch";
 import { leafTextMatch, leafTextMatches } from "./leafTextMatch";
 import {
+  clinicalRowCore,
   leafResolvesRowText,
   matchCoversClinicalRow,
 } from "./rowLeafResolve";
@@ -85,9 +86,13 @@ export function pathwayTextWindow(
     return textLength > 0 ? { start: 0, end: textLength } : undefined;
   }
   const nextStart = boundaries[index + 1]?.start;
-  // Fall back to the structural end when textLength is unknown/0 so a
-  // last-pathway window never collapses to an empty or inverted range.
-  let end = nextStart ?? Math.max(textLength, boundary.end);
+  // Manual non-contiguous situations can share lead words ("unexplained vulval"),
+  // making nextStart < boundary.end. Never collapse the window to empty.
+  const sequentialNext =
+    nextStart !== undefined && nextStart >= boundary.end ? nextStart : undefined;
+  let end =
+    sequentialNext ??
+    (nextStart === undefined ? Math.max(textLength, boundary.end) : boundary.end);
   // Shared quantifier lists (NG12 1.1.2) attach the same structure
   // children to every heuristic situation, but the verbatim list only
   // appears once after both leads. Extend this pathway's window so
@@ -460,6 +465,45 @@ function offsetInSharedStructureChildren(
   return false;
 }
 
+function boundariesHaveOverlap(boundaries: PathwayTextBoundary[]): boolean {
+  return boundaries.some(
+    (b, i) =>
+      Boolean(b.spans && b.spans.length > 1) ||
+      (i > 0 && b.start < boundaries[i - 1].end),
+  );
+}
+
+function claimOverlappingBoundaryIndex(
+  container: EditableLogicNode,
+  boundaries: PathwayTextBoundary[],
+  recommendationText: string,
+): number | null {
+  const leaves = collectLeaves(container).filter(
+    (leaf) => leaf.kind === "CONCEPT" || leaf.kind === "OBSERVATION",
+  );
+  for (const leaf of leaves) {
+    if (!leaf.source_row_text) continue;
+    const core = clinicalRowCore(leaf.source_row_text);
+    const exactIdx = boundaries.findIndex(
+      (b) => core.length > 0 && clinicalRowCore(b.text) === core,
+    );
+    if (exactIdx >= 0) return exactIdx;
+  }
+  for (const leaf of leaves) {
+    for (const match of leafTextMatches(recommendationText, leaf)) {
+      const owners: number[] = [];
+      boundaries.forEach((b, idx) => {
+        const ranges = b.spans?.length ? b.spans : [{ start: b.start, end: b.end }];
+        if (ranges.some((r) => match.start >= r.start && match.end <= r.end)) {
+          owners.push(idx);
+        }
+      });
+      if (owners.length === 1) return owners[0];
+    }
+  }
+  return null;
+}
+
 export function orderPathwayNodesByBoundary(
   containers: EditableLogicNode[],
   boundaries: PathwayTextBoundary[],
@@ -476,6 +520,7 @@ export function orderPathwayNodesByBoundary(
     return containers;
   }
 
+  const hasOverlap = boundariesHaveOverlap(boundaries);
   const boundaryIndexFor = (offset: number): number => {
     for (let i = boundaries.length - 1; i >= 0; i -= 1) {
       if (offset >= boundaries[i].start) return i;
@@ -491,14 +536,23 @@ export function orderPathwayNodesByBoundary(
     // >=40, which text-matches situation D ("aged 40 and over") and
     // would yank the container off situation E mid-edit (NG12 1.3.1).
     // CONCEPT / OBSERVATION leaves are the reliable situation signal.
-    const claim = collectLeaves(container)
-      .filter((leaf) => leaf.kind === "CONCEPT" || leaf.kind === "OBSERVATION")
-      .map((leaf) => leafTextMatch(recommendationText, leaf))
-      .find(
-        (match): match is TextMatchRange =>
-          !!match && !offsetInSharedStructureChildren(match.start, boundaries),
+    let boundaryIndex: number | null = null;
+    if (hasOverlap) {
+      boundaryIndex = claimOverlappingBoundaryIndex(
+        container,
+        boundaries,
+        recommendationText,
       );
-    const boundaryIndex = claim ? boundaryIndexFor(claim.start) : null;
+    } else {
+      const claim = collectLeaves(container)
+        .filter((leaf) => leaf.kind === "CONCEPT" || leaf.kind === "OBSERVATION")
+        .map((leaf) => leafTextMatch(recommendationText, leaf))
+        .find(
+          (match): match is TextMatchRange =>
+            !!match && !offsetInSharedStructureChildren(match.start, boundaries),
+        );
+      boundaryIndex = claim ? boundaryIndexFor(claim.start) : null;
+    }
     if (boundaryIndex !== null && !claimedBoundaries.has(boundaryIndex)) {
       claimedBoundaries.set(boundaryIndex, container);
     } else {

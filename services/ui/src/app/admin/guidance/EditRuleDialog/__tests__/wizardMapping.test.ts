@@ -632,6 +632,75 @@ describe("orderPathwayNodesByBoundary", () => {
 
     expect(ordered.map((n) => n.node_id)).toEqual(["pw-a", "pw-b"]);
   });
+
+  it("keeps manual overlapping disconnected situations in A/B/C order and gives each a non-empty window (NG12 1.5.17)", () => {
+    const ng12 =
+      "1.5.17 Consider a suspected cancer pathway referral for vulval cancer in women, and trans men and non-binary people with female reproductive organs who have an unexplained vulval lump, ulceration or bleeding. [2015]";
+    const unexpStart = ng12.indexOf("unexplained");
+    const vulvalEnd = unexpStart + "unexplained vulval".length;
+    const lumpEnd = unexpStart + "unexplained vulval lump".length;
+    const ulcStart = ng12.indexOf("ulceration");
+    const ulcEnd = ulcStart + "ulceration".length;
+    const bleedStart = ng12.indexOf("bleeding.");
+    const bleedEnd = bleedStart + "bleeding.".length;
+
+    const manualBoundaries: PathwayTextBoundary[] = [
+      {
+        text: "unexplained vulval lump",
+        start: unexpStart,
+        end: lumpEnd,
+        spans: [{ start: unexpStart, end: lumpEnd }],
+        source: "heuristic",
+      },
+      {
+        text: "unexplained vulval ulceration",
+        start: unexpStart,
+        end: ulcEnd,
+        spans: [
+          { start: unexpStart, end: vulvalEnd },
+          { start: ulcStart, end: ulcEnd },
+        ],
+        source: "heuristic",
+      },
+      {
+        text: "unexplained vulval bleeding.",
+        start: unexpStart,
+        end: bleedEnd,
+        spans: [
+          { start: unexpStart, end: vulvalEnd },
+          { start: bleedStart, end: bleedEnd },
+        ],
+        source: "heuristic",
+      },
+    ];
+
+    const winA = pathwayTextWindow(manualBoundaries, 0, ng12.length);
+    expect(winA).toBeDefined();
+    expect(winA!.end).toBeGreaterThan(winA!.start);
+
+    const leafA: EditableLogicNode = {
+      node_id: "leaf-a",
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "289477004", preferred_term: "Mass of vulva" },
+      source_row_text: "unexplained vulval lump",
+    };
+    const leafB: EditableLogicNode = {
+      node_id: "leaf-b",
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "68640004", preferred_term: "Ulceration of vulva" },
+      source_row_text: "unexplained vulval ulceration",
+    };
+    const pwA = { ...pathwayNode([leafA]), node_id: "pw-a", pathway_key: "pw_a" };
+    const pwB = { ...pathwayNode([leafB]), node_id: "pw-b", pathway_key: "pw_b" };
+    const pwC = { ...pathwayNode([]), node_id: "pw-c", pathway_key: "pw_c" };
+
+    const ordered = orderPathwayNodesByBoundary(
+      [pwA, pwB, pwC],
+      manualBoundaries,
+      ng12,
+    );
+    expect(ordered.map((n) => n.node_id)).toEqual(["pw-a", "pw-b", "pw-c"]);
+  });
 });
 
 describe("buildRootWithFreshPathways", () => {

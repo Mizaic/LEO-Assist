@@ -17,7 +17,7 @@
  * Shift+click / Shift+Arrow for continuous spans. `"contiguous"` mode keeps
  * single-span reset behaviour for Step 2's situation split point.
  */
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface WordToken {
   start: number;
@@ -301,6 +301,14 @@ export function useWordSelection({
     dragOriginRef.current = null;
     dragMovedRef.current = false;
   }, [mode, disabledIndices, updateCommitted, updateActiveRange]);
+
+  useEffect(() => {
+    const onWindowMouseUp = () => {
+      if (draggingRef.current) handleMouseUp();
+    };
+    window.addEventListener("mouseup", onWindowMouseUp);
+    return () => window.removeEventListener("mouseup", onWindowMouseUp);
+  }, [handleMouseUp]);
 
   const handleFocus = useCallback(
     (wordIdx: number) => {

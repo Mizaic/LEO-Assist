@@ -35,7 +35,6 @@ import Typography from "@mui/material/Typography";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { TextSelectionResult } from "../SentenceEditor/HighlightableRecommendationText";
 import {
-  buildNoSplitBoundary,
   splitPathways,
   type PathwayTextBoundary,
   type RecommendationStructure,
@@ -43,11 +42,17 @@ import {
 import AgeLabBandsDialog from "./AgeLabBandsDialog";
 import type { AgeLabBandSpec } from "./ageLabBands";
 import { STEP_PATHWAY_SPLIT, WIZARD_TOOLTIPS } from "./copy";
+import ManualSituationBuilder from "./ManualSituationBuilder";
 import PathwayBoundaryRow from "./PathwayBoundaryRow";
 import { MergedToOneState, NoSplitState } from "./PathwaySplitEmptyStates";
-import { mergeBoundaries, pathwayLetter, splitBoundaryAt } from "./pathwayBoundaryEdits";
+import {
+  buildManualBoundaryFromSelection,
+  mergeBoundaries,
+  pathwayLetter,
+  splitBoundaryAt,
+} from "./pathwayBoundaryEdits";
 
-type SelectMode = "idle" | "merging" | "splitting";
+type SelectMode = "idle" | "merging" | "splitting" | "building";
 
 export interface StepPathwaySplitProps {
   recommendationText?: string | null;
@@ -101,6 +106,9 @@ export default function StepPathwaySplit({
    * `mergedToOneTitle` in copy.ts.
    */
   const [preMergeSnapshot, setPreMergeSnapshot] = useState<
+    PathwayTextBoundary[] | null
+  >(null);
+  const [preBuildSnapshot, setPreBuildSnapshot] = useState<
     PathwayTextBoundary[] | null
   >(null);
   /** Gates a merge of two NON-adjacent rows behind an extra confirm
@@ -174,11 +182,35 @@ export default function StepPathwaySplit({
   }
 
   function handleManualSplit() {
-    const text = recommendationText?.trim() ? recommendationText : "";
-    if (!text) return;
-    setBoundaries([buildNoSplitBoundary(text, recommendationStructure)]);
-    setSelected([0]);
-    setMode("splitting");
+    if (!recommendationText?.trim()) return;
+    setPreBuildSnapshot(null);
+    setBoundaries([]);
+    setSelected([]);
+    setMode("building");
+  }
+
+  function handleStartAddFromText() {
+    if (!recommendationText?.trim()) return;
+    setPreBuildSnapshot(boundaries);
+    setSelected([]);
+    setMode("building");
+  }
+
+  function handleAddManualSelection(selection: TextSelectionResult) {
+    if (!recommendationText) return;
+    const built = buildManualBoundaryFromSelection(recommendationText, selection);
+    if (!built) return;
+    setBoundaries((prev) => [...(prev ?? []), built]);
+  }
+
+  function handleRemoveManualAt(index: number) {
+    setBoundaries((prev) => (prev ?? []).filter((_, i) => i !== index));
+  }
+
+  function handleCancelManualBuild() {
+    setBoundaries(preBuildSnapshot);
+    setPreBuildSnapshot(null);
+    resetSelection();
   }
 
   function handleConfirmSplit(selection: TextSelectionResult) {
@@ -194,10 +226,22 @@ export default function StepPathwaySplit({
   }
 
   const canConfirmMerge = mode === "merging" && selected.length === 2;
-  const isManualFirstSplit = mode === "splitting" && boundaries?.length === 1;
   const canManualSplit = Boolean(recommendationText?.trim());
 
-  if (!boundaries || (boundaries.length < 2 && !isManualFirstSplit)) {
+  if (mode === "building" && recommendationText?.trim()) {
+    return (
+      <ManualSituationBuilder
+        recommendationText={recommendationText}
+        boundaries={boundaries ?? []}
+        onAddSelection={handleAddManualSelection}
+        onRemoveAt={handleRemoveManualAt}
+        onLooksRight={() => boundaries && boundaries.length >= 2 && onConfirm(boundaries)}
+        onCancel={handleCancelManualBuild}
+      />
+    );
+  }
+
+  if (!boundaries || boundaries.length < 2) {
     // Deliberately does NOT render StepHeader here -- its "we found
     // N situations" wording would flatly contradict whichever of
     // these two single-row explanations follows it.
@@ -230,7 +274,7 @@ export default function StepPathwaySplit({
 
   return (
     <Stack spacing={1.5} data-tour="er-04-situations">
-      {!isManualFirstSplit && <StepHeader source={source} count={boundaries.length} />}
+      <StepHeader source={source} count={boundaries.length} />
 
       <Stack spacing={0.75}>
         {mode === "merging" && (
@@ -259,6 +303,7 @@ export default function StepPathwaySplit({
         onLooksRight={() => onConfirm(boundaries)}
         onStartMerge={() => setMode("merging")}
         onStartSplit={() => setMode("splitting")}
+        onStartAddFromText={canManualSplit ? handleStartAddFromText : undefined}
         onConfirmMerge={handleConfirmMerge}
         onCancel={resetSelection}
         onAgeLabBands={onAgeLabBands ? () => setAgeLabOpen(true) : undefined}
@@ -328,6 +373,7 @@ function StepActions({
   onLooksRight,
   onStartMerge,
   onStartSplit,
+  onStartAddFromText,
   onConfirmMerge,
   onCancel,
   onAgeLabBands,
@@ -339,6 +385,7 @@ function StepActions({
   onLooksRight: () => void;
   onStartMerge: () => void;
   onStartSplit: () => void;
+  onStartAddFromText?: () => void;
   onConfirmMerge: () => void;
   onCancel: () => void;
   onAgeLabBands?: () => void;
@@ -396,6 +443,13 @@ function StepActions({
               {STEP_PATHWAY_SPLIT.splitLabel}
             </Button>
           </Tooltip>
+          {onStartAddFromText && (
+            <Tooltip title={WIZARD_TOOLTIPS.addFromText}>
+              <Button variant="outlined" size="small" onClick={onStartAddFromText}>
+                {STEP_PATHWAY_SPLIT.addFromTextLabel}
+              </Button>
+            </Tooltip>
+          )}
         </>
       )}
       {onAgeLabBands && (

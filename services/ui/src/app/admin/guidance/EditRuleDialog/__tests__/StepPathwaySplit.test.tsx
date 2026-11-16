@@ -399,7 +399,7 @@ describe("StepPathwaySplit: merging every row down to one", () => {
 });
 
 describe("StepPathwaySplit: split editing", () => {
-  it("keeps Split into situations on contiguous selection (Shift+click / drag)", () => {
+  it("keeps PathwayBoundaryRow ('Split a row') on contiguous selection", () => {
     const src = fs.readFileSync(
       path.join(__dirname, "../HighlightWizard/PathwayBoundaryRow.tsx"),
       "utf8",
@@ -484,7 +484,7 @@ describe("StepPathwaySplit: no split found", () => {
     ).toBeInTheDocument();
   });
 
-  it("lets the reviewer manually split a single-sentence rule (NG12 1.5.17) into 3 situations", async () => {
+  it("lets the reviewer manually split a single-sentence rule (NG12 1.5.17) into 3 situations with contiguous and non-contiguous words", async () => {
     const user = userEvent.setup();
     const onConfirm = jest.fn();
     const ng12 =
@@ -502,30 +502,55 @@ describe("StepPathwaySplit: no split found", () => {
       screen.getByRole("button", { name: /break this sentence into two or more/i }),
     );
     expect(
-      screen.getByText(/select through the last word of the first new situation/i),
+      screen.getByText(/select the words for situation a/i),
     ).toBeInTheDocument();
 
-    // Split 1: contiguous mode -- click the last word of situation A ("lump,").
-    // The cut uses that word's end offset, so earlier words need not be selected.
+    const pickSecondVulval = () => {
+      const vulvals = screen.getAllByText("vulval", { selector: "[data-word-index]" });
+      return vulvals[vulvals.length - 1];
+    };
+
+    // Situation A (contiguous): "unexplained vulval lump," -> cleaned to "unexplained vulval lump"
+    await user.click(screen.getByText("unexplained", { selector: "[data-word-index]" }));
+    await user.click(pickSecondVulval());
     await user.click(screen.getByText("lump,", { selector: "[data-word-index]" }));
-    expect(screen.getByText("lump,", { selector: "[data-word-index]" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
     await user.click(screen.getByRole("button", { name: /confirm selection/i }));
 
-    expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(2);
+    expect(screen.getByText(/\(A\)/)).toBeInTheDocument();
+    expect(screen.getByText("unexplained vulval lump")).toBeInTheDocument();
+    expect(
+      screen.getByText(/select the words for situation b/i),
+    ).toBeInTheDocument();
 
-    // Split 2: split row (B) after "ulceration"
-    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.split, "i") }));
-    const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
-    await user.click(rows[1]);
+    // Situation B (non-contiguous!): "unexplained" + "vulval" + "ulceration" (skipping "lump,")
+    await user.click(screen.getByText("unexplained", { selector: "[data-word-index]" }));
+    await user.click(pickSecondVulval());
     await user.click(screen.getByText("ulceration", { selector: "[data-word-index]" }));
+    expect(
+      screen.getByTestId("selected-words-preview"),
+    ).toHaveTextContent("unexplained vulval ulceration");
     await user.click(screen.getByRole("button", { name: /confirm selection/i }));
 
-    expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(3);
+    expect(screen.getByText(/\(B\)/)).toBeInTheDocument();
+    expect(screen.getByText("unexplained vulval ulceration")).toBeInTheDocument();
+
+    // Situation C (non-contiguous!): "unexplained" + "vulval" + "bleeding."
+    await user.click(screen.getByText("unexplained", { selector: "[data-word-index]" }));
+    await user.click(pickSecondVulval());
+    await user.click(screen.getByText("bleeding.", { selector: "[data-word-index]" }));
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+
+    expect(screen.getByText(/\(C\)/)).toBeInTheDocument();
+    expect(screen.getByText("unexplained vulval bleeding.")).toBeInTheDocument();
+
     await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    expect(onConfirm.mock.calls[0][0]).toHaveLength(3);
+    const confirmed = onConfirm.mock.calls[0][0];
+    expect(confirmed).toHaveLength(3);
+    expect(confirmed.map((b: { text: string }) => b.text)).toEqual([
+      "unexplained vulval lump",
+      "unexplained vulval ulceration",
+      "unexplained vulval bleeding.",
+    ]);
   });
 });

@@ -59,3 +59,61 @@ export function splitBoundaryAt(
     },
   ];
 }
+
+function resolveSelectionSpans(
+  recommendationText: string,
+  selectionStart: number,
+  selectionEnd: number,
+  cleanedText: string,
+): Array<{ start: number; end: number }> {
+  const slice = recommendationText.slice(selectionStart, selectionEnd);
+  const words = cleanedText.split(/\s+/).filter(Boolean);
+  const spans: Array<{ start: number; end: number }> = [];
+  let cursor = 0;
+  let i = 0;
+  while (i < words.length) {
+    let matchedEnd = i;
+    let foundAt = -1;
+    let candidateLen = 0;
+    for (let j = words.length; j > i; j--) {
+      const candidate = words.slice(i, j).join(" ");
+      const idx = slice.indexOf(candidate, cursor);
+      if (idx >= 0) {
+        matchedEnd = j;
+        foundAt = idx;
+        candidateLen = candidate.length;
+        break;
+      }
+    }
+    if (foundAt < 0) return [{ start: selectionStart, end: selectionEnd }];
+    spans.push({
+      start: selectionStart + foundAt,
+      end: selectionStart + foundAt + candidateLen,
+    });
+    cursor = foundAt + candidateLen;
+    i = matchedEnd;
+  }
+  return spans.length > 0 ? spans : [{ start: selectionStart, end: selectionEnd }];
+}
+
+/** Build one situation boundary from a contiguous or disconnected word selection. */
+export function buildManualBoundaryFromSelection(
+  recommendationText: string,
+  selection: { start: number; end: number; text: string },
+): PathwayTextBoundary | null {
+  const cleaned = selection.text.replace(/^[,;:\s]+|[,;:\s]+$/g, "");
+  if (!cleaned) return null;
+  const spans = resolveSelectionSpans(
+    recommendationText,
+    selection.start,
+    selection.end,
+    cleaned,
+  );
+  return {
+    start: spans[0].start,
+    end: spans[spans.length - 1].end,
+    text: cleaned,
+    spans,
+    source: "heuristic",
+  };
+}

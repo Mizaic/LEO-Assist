@@ -134,6 +134,12 @@ export const STEP_PATHWAY_SPLIT = {
     "We couldn't find more than one situation in this text. Shared symptoms belong in Always true. If ages have different lab cut-offs (for example PSA or CA125), build those bands here.",
   noSplitConfirmLabel: "Doesn't split -- one set of rules for everyone",
   manualSplitLabel: "Split into situations",
+  addFromTextLabel: "Add situation from text",
+  manualBuildInstruction: (letter: string) =>
+    `Select the words for situation ${letter}, then confirm. Click individual words (even when separated by other words) or drag across a phrase.`,
+  manualBuildNeedTwoHint:
+    "Add at least two situations so each one can have its own conditions.",
+  removeSituationAriaLabel: (letter: string) => `Remove situation ${letter}`,
   ageLabBandsLabel: "Build from age and lab bands",
   ageLabBandsHint:
     "Creates one situation per age range with its own lab threshold. Shared symptoms stay in Always true -- each situation is only age plus the lab value.",
@@ -343,6 +349,8 @@ export const WIZARD_TOOLTIPS = {
   cancelMergeSplit: "Stop merging or splitting and keep the current rows.",
   noSplit: "Continue with one situation that applies to everyone.",
   manualSplit: "Break this sentence into two or more separate situations yourself.",
+  addFromText: "Pick another situation from the guideline sentence.",
+  removeSituation: "Remove this situation from the list.",
   undoMerge: "Undo your merge and restore the separate situations.",
   confirmSituation: "Save this situation's conditions and move on.",
   onlyOne: "Any one of these findings is enough for this group.",
